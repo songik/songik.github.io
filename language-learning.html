@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>외국어 학습 페이지</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .language-selector {
+            margin-bottom: 20px;
+        }
+        .conversation-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: auto;
+            text-align: right;
+        }
+        .system-message {
+            background-color: #f0f0f0;
+        }
+        .input-area {
+            display: flex;
+            margin-top: 15px;
+        }
+        input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        .phrase-list {
+            margin-top: 20px;
+        }
+        .phrase-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .phrase-item:hover {
+            background-color: #f0f0f0;
+        }
+        .levels {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .level-btn {
+            padding: 8px 12px;
+            background-color: #e0e0e0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .level-btn.active {
+            background-color: #4285f4;
+            color: white;
+        }
+        .translation {
+            font-style: italic;
+            color: #666;
+            margin-top: 5px;
+            display: none;
+        }
+        .show-translation {
+            color: #4285f4;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>외국어 회화 학습</h1>
+        
+        <div class="language-selector">
+            <label for="language">학습할 언어 선택:</label>
+            <select id="language">
+                <option value="english">영어</option>
+                <option value="japanese">일본어</option>
+                <option value="chinese">중국어</option>
+                <option value="spanish">스페인어</option>
+            </select>
+        </div>
+        
+        <div class="levels">
+            <button class="level-btn active" data-level="beginner">초급</button>
+            <button class="level-btn" data-level="intermediate">중급</button>
+            <button class="level-btn" data-level="advanced">고급</button>
+        </div>
+
+        <div class="conversation-container" id="conversation">
+            <div class="message system-message">
+                안녕하세요! 회화 연습을 시작해볼까요? 아래 입력창에 메시지를 작성하거나 추천 문구를 클릭하세요.
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="메시지 입력...">
+            <button id="send-btn">전송</button>
+        </div>
+        
+        <div class="phrase-list" id="phrases">
+            <h3>추천 문구</h3>
+            <!-- 문구는 자바스크립트로 동적 생성됩니다 -->
+        </div>
+    </div>
+
+    <script>
+        // 언어별 회화 문구
+        const phrasesData = {
+            english: {
+                beginner: [
+                    {text: "Hello, how are you?", translation: "안녕하세요, 어떻게 지내세요?"},
+                    {text: "My name is...", translation: "제 이름은...입니다"},
+                    {text: "Nice to meet you", translation: "만나서 반갑습니다"},
+                    {text: "Where are you from?", translation: "어디에서 오셨어요?"},
+                    {text: "Thank you very much", translation: "정말 감사합니다"}
+                ],
+                intermediate: [
+                    {text: "I've been learning English for 2 years", translation: "저는 영어를 2년 동안 배우고 있어요"},
+                    {text: "Could you recommend a good restaurant?", translation: "좋은 레스토랑을 추천해 주시겠어요?"},
+                    {text: "What do you do for a living?", translation: "직업이 뭐예요?"},
+                    {text: "I'm interested in art and music", translation: "저는 미술과 음악에 관심이 있어요"},
+                    {text: "How long have you been here?", translation: "여기 얼마나 오래 계셨어요?"}
+                ],
+                advanced: [
+                    {text: "I'm contemplating a career change", translation: "저는 직업 변경을 고려하고 있어요"},
+                    {text: "The economic implications are significant", translation: "경제적 영향이 상당합니다"},
+                    {text: "That perspective hadn't occurred to me", translation: "그런 관점은 생각해보지 못했어요"},
+                    {text: "We should address the underlying issues", translation: "근본적인 문제를 해결해야 합니다"},
+                    {text: "I find that premise rather questionable", translation: "나는 그 전제가 다소 의심스럽다고 생각해요"}
+                ]
+            },
+            japanese: {
+                beginner: [
+                    {text: "こんにちは", translation: "안녕하세요"},
+                    {text: "はじめまして", translation: "처음 뵙겠습니다"},
+                    {text: "ありがとうございます", translation: "감사합니다"},
+                    {text: "お元気ですか", translation: "잘 지내세요?"},
+                    {text: "私の名前は...です", translation: "제 이름은...입니다"}
+                ],
+                intermediate: [
+                    {text: "日本語を勉強しています", translation: "일본어를 공부하고 있습니다"},
+                    {text: "趣味は何ですか", translation: "취미가 뭐예요?"},
+                    {text: "日本に行ったことがあります", translation: "일본에 가본 적이 있어요"},
+                    {text: "美味しい料理ですね", translation: "맛있는 요리네요"},
+                    {text: "また会いましょう", translation: "또 만나요"}
+                ],
+                advanced: [
+                    {text: "将来日本で働きたいと思っています", translation: "미래에 일본에서 일하고 싶습니다"},
+                    {text: "日本文化に興味があります", translation: "일본 문화에 관심이 있습니다"},
+                    {text: "この映画は深い意味がありますね", translation: "이 영화는 깊은 의미가 있네요"},
+                    {text: "その考え方は面白いですね", translation: "그 생각 방식은 흥미롭네요"},
+                    {text: "日本語の敬語は難しいです", translation: "일본어 경어는 어렵습니다"}
+                ]
+            },
+            chinese: {
+                beginner: [
+                    {text: "你好", translation: "안녕하세요"},
+                    {text: "我叫...", translation: "제 이름은...입니다"},
+                    {text: "谢谢", translation: "감사합니다"},
+                    {text: "再见", translation: "안녕히 가세요"},
+                    {text: "请问...", translation: "실례지만..."}
+                ],
+                intermediate: [
+                    {text: "我在学习中文", translation: "저는 중국어를 배우고 있어요"},
+                    {text: "你是哪国人?", translation: "당신은 어느 나라 사람이에요?"},
+                    {text: "这个多少钱?", translation: "이거 얼마예요?"},
+                    {text: "我喜欢中国菜", translation: "저는 중국 음식을 좋아해요"},
+                    {text: "我明天有空", translation: "저는 내일 시간이 있어요"}
+                ],
+                advanced: [
+                    {text: "对这个问题我有不同的看法", translation: "이 문제에 대해 저는 다른 견해가 있습니다"},
+                    {text: "环境保护很重要", translation: "환경 보호는 매우 중요합니다"},
+                    {text: "我认为经济发展需要创新", translation: "경제 발전에는 혁신이 필요하다고 생각합니다"},
+                    {text: "文化交流促进国际理解", translation: "문화 교류는 국제적 이해를 증진시킵니다"},
+                    {text: "这个城市的变化真快", translation: "이 도시의 변화는 정말 빠릅니다"}
+                ]
+            },
+            spanish: {
+                beginner: [
+                    {text: "Hola, ¿cómo estás?", translation: "안녕하세요, 어떻게 지내세요?"},
+                    {text: "Me llamo...", translation: "제 이름은...입니다"},
+                    {text: "Mucho gusto", translation: "만나서 반갑습니다"},
+                    {text: "Gracias", translation: "감사합니다"},
+                    {text: "Adiós", translation: "안녕히 가세요"}
+                ],
+                intermediate: [
+                    {text: "Estoy aprendiendo español", translation: "저는 스페인어를 배우고 있어요"},
+                    {text: "¿De dónde eres?", translation: "어디 출신이에요?"},
+                    {text: "Me gusta la música latina", translation: "저는 라틴 음악을 좋아해요"},
+                    {text: "¿Qué recomiendas hacer aquí?", translation: "여기서 무엇을 하면 좋을지 추천해 주세요?"},
+                    {text: "Tengo una pregunta", translation: "질문이 있어요"}
+                ],
+                advanced: [
+                    {text: "La diversidad cultural enriquece nuestra sociedad", translation: "문화적 다양성은 우리 사회를 풍요롭게 합니다"},
+                    {text: "Es importante considerar distintas perspectivas", translation: "다양한 관점을 고려하는 것이 중요합니다"},
+                    {text: "El cambio climático es un desafío global", translation: "기후 변화는 전 세계적인 도전입니다"},
+                    {text: "Me interesa la política internacional", translation: "저는 국제 정치에 관심이 있습니다"},
+                    {text: "Creo que el arte refleja la realidad social", translation: "예술은 사회적 현실을 반영한다고 생각합니다"}
+                ]
+            }
+        };
+
+        // 응답 데이터
+        const responses = {
+            english: {
+                greetings: ["Hello!", "Hi there!", "Good to see you!", "How are you today?"],
+                questions: ["That's interesting. Could you tell me more?", "Why do you think that?", "What else interests you?", "How long have you been interested in that?"],
+                reactions: ["I understand.", "That makes sense.", "Interesting point!", "I hadn't thought of it that way."]
+            },
+            japanese: {
+                greetings: ["こんにちは！", "お元気ですか？", "はじめまして！", "よろしくお願いします！"],
+                questions: ["なるほど、もっと教えてください。", "どうしてそう思いますか？", "他に何が好きですか？", "それはいつからですか？"],
+                reactions: ["わかりました。", "そうですね。", "面白いですね！", "そう考えたことはありませんでした。"]
+            },
+            chinese: {
+                greetings: ["你好！", "最近怎么样？", "很高兴见到你！", "你今天好吗？"],
+                questions: ["很有意思，能告诉我更多吗？", "为什么这么想？", "你还喜欢什么？", "你对这个感兴趣多久了？"],
+                reactions: ["我明白了。", "有道理。", "有意思！", "我没有那样想过。"]
+            },
+            spanish: {
+                greetings: ["¡Hola!", "¿Cómo estás?", "¡Encantado de conocerte!", "¡Buen día!"],
+                questions: ["Qué interesante, ¿puedes contarme más?", "¿Por qué piensas eso?", "¿Qué más te interesa?", "¿Desde cuándo te interesa esto?"],
+                reactions: ["Entiendo.", "Tiene sentido.", "¡Interesante!", "No lo había pensado así."]
+            }
+        };
+
+        // DOM 요소 선택
+        const languageSelect = document.getElementById('language');
+        const conversationDiv = document.getElementById('conversation');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const phrasesDiv = document.getElementById('phrases');
+        const levelBtns = document.querySelectorAll('.level-btn');
+
+        // 현재 선택된 레벨
+        let currentLevel = 'beginner';
+
+        // 레벨 버튼 이벤트 리스너
+        levelBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                levelBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentLevel = btn.dataset.level;
+                updatePhrases();
+            });
+        });
+
+        // 언어 변경 이벤트 리스너
+        languageSelect.addEventListener('change', updatePhrases);
+
+        // 문구 업데이트 함수
+        function updatePhrases() {
+            const language = languageSelect.value;
+            const phrases = phrasesData[language][currentLevel];
+            
+            phrasesDiv.innerHTML = '<h3>추천 문구</h3>';
+            
+            phrases.forEach(phrase => {
+                const phraseItem = document.createElement('div');
+                phraseItem.className = 'phrase-item';
+                phraseItem.innerHTML = `
+                    <div>${phrase.text}</div>
+                    <div class="show-translation">번역 보기</div>
+                    <div class="translation">${phrase.translation}</div>
+                `;
+                
+                // 문구 클릭 이벤트
+                phraseItem.querySelector('.phrase-item > div').addEventListener('click', () => {
+                    sendMessage(phrase.text);
+                });
+                
+                // 번역 보기 토글
+                phraseItem.querySelector('.show-translation').addEventListener('click', (e) => {
+                    const translationDiv = phraseItem.querySelector('.translation');
+                    if (translationDiv.style.display === 'block') {
+                        translationDiv.style.display = 'none';
+                        e.target.textContent = '번역 보기';
+                    } else {
+                        translationDiv.style.display = 'block';
+                        e.target.textContent = '번역 숨기기';
+                    }
+                    e.stopPropagation();
+                });
+                
+                phrasesDiv.appendChild(phraseItem);
+            });
+        }
+
+        // 메시지 전송 함수
+        function sendMessage(text) {
+            // 사용자 메시지 추가
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'message user-message';
+            userMessageDiv.textContent = text;
+            conversationDiv.appendChild(userMessageDiv);
+            
+            // 입력창 비우기
+            userInput.value = '';
+            
+            // 자동 스크롤
+            conversationDiv.scrollTop = conversationDiv.scrollHeight;
+            
+            // 응답 생성
+            setTimeout(() => {
+                const language = languageSelect.value;
+                let response;
+                
+                // 랜덤 응답 선택
+                const responseType = Math.random() > 0.5 ? 'questions' : 'reactions';
+                const responseArray = responses[language][responseType];
+                response = responseArray[Math.floor(Math.random() * responseArray.length)];
+                
+                // 시스템 응답 추가
+                const systemMessageDiv = document.createElement('div');
+                systemMessageDiv.className = 'message system-message';
+                systemMessageDiv.textContent = response;
+                conversationDiv.appendChild(systemMessageDiv);
+                
+                // 자동 스크롤
+                conversationDiv.scrollTop = conversationDiv.scrollHeight;
+            }, 800); // 0.8초 후 응답
+        }
+
+        // 전송 버튼 이벤트 리스너
+        sendBtn.addEventListener('click', () => {
+            const text = userInput.value.trim();
+            if (text) {
+                sendMessage(text);
+            }
+        });
+
+        // 엔터키 입력 이벤트
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const text = userInput.value.trim();
+                if (text) {
+                    sendMessage(text);
+                }
+            }
+        });
+
+        // 초기 문구 업데이트
+        updatePhrases();
+    </script>
+</body>
+</html>
