@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>흔들갈대</title>
+<!-- 스타일 생략 -->
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+  /* 간단한 로딩 스타일 */
+  #loading { display: none; text-align: center; margin-top: 20px; font-size: 18px; }
+</style>
+</head>
+<body>
+<div id="password-screen">
+  <form id="password-form" onsubmit="return checkPassword(event)">
+    <h2>🔐 비밀번호를 입력하세요</h2>
+    <input id="password" type="password" placeholder="비밀번호 입력" required>
+    <button type="submit">입장</button>
+    <p id="error-msg"></p>
+  </form>
+</div>
+<div id="main-content" style="display: none;">
+  <header>
+    <img src="logo.png" style="height:60px;">
+    <p>헛되이 보낸 오늘은, 죽은이가 그토록 바라던 내일이었다</p>
+    <audio id="bgm" src="bgm.mp3" autoplay loop hidden></audio>
+  </header>
+  <nav>
+    <!-- 네비게이션 링크 -->
+  </nav>
+  <div id="tabs">
+    <!-- 탭 컨텐츠 -->
+  </div>
+</div>
+<div id="loading">로딩 중...</div>
+<script>
+// Firebase 초기화 및 로그인 관련
+let firebaseInitialized = false;
+let userId = null;
+
+function initializeFirebase() {
+  if (!firebaseInitialized && typeof firebase !== 'undefined' && firebase.apps.length === 0) {
+    const firebaseConfig = {
+      apiKey: "AIzaSyAc1vHqkpkK76kYtZazxq2bVso2cPFA1Qw",
+      authDomain: "song-homepage.firebaseapp.com",
+      projectId: "song-homepage",
+      storageBucket: "song-homepage.appspot.com",
+      messagingSenderId: "59678249334",
+      appId: "1:59678249334:web:83018cd88e5c244ac2cf1a",
+      measurementId: "G-3YSWN7XH2W"
+    };
+    firebase.initializeApp(firebaseConfig);
+    firebaseInitialized = true;
+    userId = localStorage.getItem("uid") || Date.now().toString();
+    localStorage.setItem("uid", userId);
+    console.log('Firebase 초기화 완료, 사용자 ID:', userId);
+  }
+  return firebaseInitialized;
+}
+
+function checkPassword(event) {
+  event.preventDefault();
+  const input = document.getElementById('password').value;
+  const errorMsg = document.getElementById('error-msg');
+
+  if (input === 'sik282') {
+    localStorage.setItem('loggedIn', 'true');
+    document.getElementById('password-screen').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    if (initializeFirebase()) {
+      loadInitialData();
+    }
+  } else {
+    errorMsg.textContent = '비밀번호가 틀렸습니다';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('loggedIn') === 'true') {
+    document.getElementById('password-screen').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    if (initializeFirebase()) {
+      loadInitialData();
+    }
+  }
+});
+
+// 로딩 중 표시
+function showLoading() {
+  document.getElementById('loading').style.display = 'block';
+}
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+// Firebase 데이터 저장 함수
+function saveToFirebase(key, data) {
+  if (!firebaseInitialized) return;
+  const db = firebase.database();
+  db.ref(`${userId}/${key}`).set(data)
+    .then(() => console.log(`${key} 저장 완료`))
+    .catch(err => console.error(`${key} 저장 실패`, err));
+}
+
+// Firebase 데이터 로드 함수
+function loadDataFromFirebase(key, callback) {
+  if (!firebaseInitialized) return;
+  const db = firebase.database();
+  db.ref(`${userId}/${key}`).once('value')
+    .then(snapshot => {
+      const data = snapshot.val();
+      callback(data);
+    })
+    .catch(err => {
+      console.error(`${key} 로드 실패`, err);
+      callback(null);
+    });
+}
+
+// 초기 데이터 로드
+function loadInitialData() {
+  showLoading();
+  const keys = ['diaries', 'memos', 'todos', 'schedules', 'weights', 'accounts', 'goals', 'habits'];
+  let loaded = 0;
+
+  keys.forEach(key => {
+    loadDataFromFirebase(key, (data) => {
+      if (data) {
+        window[key] = data;
+        localStorage.setItem(key, JSON.stringify(data));
+      } else {
+        const localData = localStorage.getItem(key);
+        window[key] = localData ? JSON.parse(localData) : [];
+      }
+      loaded++;
+      if (loaded === keys.length) {
+        hideLoading();
+        console.log('모든 데이터 로드 완료');
+      }
+    });
+  });
+}
+</script>
+</body>
+</html>
