@@ -103,7 +103,40 @@
     50% { opacity: 0.3; }
     100% { opacity: 1; }
 }
-</style></head>
+</style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAc1vHqkpkK76kYtZazxq2bVso2cPFA",
+    authDomain: "song-homepage.firebaseapp.com",
+    projectId: "song-homepage",
+    storageBucket: "song-homepage.appspot.com",
+    messagingSenderId: "59678249334",
+    appId: "1:59678249334:web:83018cd88e5c244ac2cf",
+    measurementId: "G-3YSWN7XH2W"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const userId = localStorage.getItem("uid") || Date.now().toString();
+  localStorage.setItem("uid", userId);
+
+  function saveToFirebase(key, data) {
+    db.ref(`${userId}/${key}`).set(data);
+  }
+
+  function loadFromFirebase(key, callback) {
+    db.ref(`${userId}/${key}`).once('value').then(snapshot => {
+      callback(snapshot.val());
+    });
+  }
+</script>
+
+</head>
 <body>
 <div id="password-screen">
 <form id="password-form" onsubmit="return checkPassword(event)" style="display: flex; flex-direction: column; align-items: center;">
@@ -1013,6 +1046,39 @@
   border: 2px solid #ddd;
 }
     </style>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAc1vHqkpkK76kYtZazxq2bVso2cPFA",
+    authDomain: "song-homepage.firebaseapp.com",
+    projectId: "song-homepage",
+    storageBucket: "song-homepage.appspot.com",
+    messagingSenderId: "59678249334",
+    appId: "1:59678249334:web:83018cd88e5c244ac2cf",
+    measurementId: "G-3YSWN7XH2W"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const userId = localStorage.getItem("uid") || Date.now().toString();
+  localStorage.setItem("uid", userId);
+
+  function saveToFirebase(key, data) {
+    db.ref(`${userId}/${key}`).set(data);
+  }
+
+  function loadFromFirebase(key, callback) {
+    db.ref(`${userId}/${key}`).once('value').then(snapshot => {
+      callback(snapshot.val());
+    });
+  }
+</script>
+
 </head>
 <body onload="loadInitialData()">
 <!-- 메인 컨텐츠 -->
