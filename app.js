@@ -420,23 +420,28 @@ function getEditorContent(containerId) {
 function formatDate(date, includeTime = false) {
   if (!date) return '';
   
-// Firestore Timestamp를 Date로 변환 - 수정된 안전한 방식
-if (date && typeof date.toDate === 'function') {
-  date = date.toDate();
-}
-  
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  
-  if (!includeTime) {
-    return `${year}-${month}-${day}`;
+  // Firestore Timestamp를 Date로 변환
+  if (date && typeof date.toDate === 'function') {
+    date = date.toDate();
   }
   
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
+  try {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    if (!includeTime) {
+      return `${year}-${month}-${day}`;
+    }
+    
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  } catch (err) {
+    console.error("날짜 형식 변환 중 오류:", err, date);
+    return '';
+  }
 }
 
 // 날짜 입력값을 Date 객체로 변환
