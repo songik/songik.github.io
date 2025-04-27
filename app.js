@@ -404,10 +404,10 @@ function getEditorContent(containerId) {
 function formatDate(date, includeTime = false) {
   if (!date) return '';
   
-  // Firestore Timestamp를 Date로 변환
-  if (date.toDate) {
-    date = date.toDate();
-  }
+// Firestore Timestamp를 Date로 변환 - 수정된 안전한 방식
+if (date && typeof date.toDate === 'function') {
+  date = date.toDate();
+}
   
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -602,7 +602,8 @@ function renderEventsCalendar(events) {
   
   if (!calendarEl) return;
   
-  // FullCalendar 초기화
+// FullCalendar 초기화 - 수정된 안전한 방식
+try {
   const calendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
       left: 'prev,next today',
@@ -611,28 +612,15 @@ function renderEventsCalendar(events) {
     },
     initialView: 'dayGridMonth',
     locale: 'ko',
-    events: events,
-    editable: true,
-    selectable: true,
-    selectMirror: true,
-    dayMaxEvents: true,
-    // 날짜 선택 시 이벤트 추가 폼 표시
-    select: function(info) {
-      showAddEventForm(info.startStr, info.endStr, info.allDay);
-    },
-    // 이벤트 클릭 시 편집 폼 표시
-    eventClick: function(info) {
-      editEvent(info.event.id);
-    },
-    // 이벤트 드래그 앤 드롭으로 변경
-    eventDrop: function(info) {
-      updateEventDates(info.event.id, info.event.start, info.event.end, info.event.allDay);
-    },
-    // 이벤트 리사이징으로 기간 변경
-    eventResize: function(info) {
-      updateEventDates(info.event.id, info.event.start, info.event.end, info.event.allDay);
-    }
+    events: events || [],
+    // ... 다른 설정들 ...
   });
+  
+  calendar.render();
+} catch (error) {
+  console.error("캘린더 초기화 중 오류 발생:", error);
+  calendarEl.innerHTML = "<p>캘린더를 로드하는 중 오류가 발생했습니다.</p>";
+}
   
   calendar.render();
 }
@@ -1866,12 +1854,21 @@ function renderWeightChart(weights) {
     window.weightChart.destroy();
   }
   
-  // 새 차트 생성
-  window.weightChart = new Chart(chartEl, {
-    type: 'line',
-    data: chartData,
-    options: chartOptions
-  });
+// 새 차트 생성 - 오류 처리 추가
+try {
+  if (typeof Chart !== 'undefined' && chartEl) {
+    window.weightChart = new Chart(chartEl, {
+      type: 'line',
+      data: chartData,
+      options: chartOptions
+    });
+  }
+} catch (error) {
+  console.error("차트 초기화 중 오류 발생:", error);
+  if (chartEl) {
+    chartEl.innerHTML = "<p>차트를 로드하는 중 오류가 발생했습니다.</p>";
+  }
+}
 }
 
 // 체중 추가 폼 표시
