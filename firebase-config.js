@@ -9,7 +9,7 @@ const firebaseConfig = {
   measurementId: "G-J1DPBKM3ZJ"
 };
 
-// 전역 변수로 선언 (var 또는 window 객체에 할당)
+// 전역 변수로 선언
 var db;
 var auth;
 var storage;
