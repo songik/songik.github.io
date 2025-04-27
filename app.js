@@ -766,34 +766,45 @@ function checkDataSize(data, maxSizeInBytes = 900000) {
   return data;
 }
 
-// app.js 파일의 saveEvent, saveNote 등의 함수 수정
+// 일정 저장
 async function saveEvent() {
-  // ...
+  const titleEl = document.getElementById('event-title');
+  const startEl = document.getElementById('event-start');
+  const endEl = document.getElementById('event-end');
+  const allDayEl = document.getElementById('event-all-day');
   
-  // 일정 데이터 구성
-  const eventData = {
-    title: titleEl.value,
-    start: firebase.firestore.Timestamp.fromDate(new Date(startEl.value)),
-    allDay: allDayEl.checked
-  };
-  
-  // 선택적 필드 추가
-  if (endEl.value) {
-    eventData.end = firebase.firestore.Timestamp.fromDate(new Date(endEl.value));
+  if (!titleEl.value || !startEl.value) {
+    alert('제목과 시작일시는 필수 입력 항목입니다.');
+    return;
   }
   
-  if (description) {
-    eventData.description = description;
-  }
+  const description = getEditorContent('event-description-editor');
   
-  // 저장 시간 추가
-  eventData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-  
-  // 데이터 크기 확인 및 조정
-  const safeData = checkDataSize(eventData);
-  
-  // Firestore에 저장
-  await db.collection("events").add(safeData);
+  try {
+    // 일정 데이터 구성
+    const eventData = {
+      title: titleEl.value,
+      start: firebase.firestore.Timestamp.fromDate(new Date(startEl.value)),
+      allDay: allDayEl.checked
+    };
+    
+    // 선택적 필드 추가
+    if (endEl.value) {
+      eventData.end = firebase.firestore.Timestamp.fromDate(new Date(endEl.value));
+    }
+    
+    if (description) {
+      eventData.description = description;
+    }
+    
+    // 저장 시간 추가
+    eventData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    
+    // 데이터 크기 확인 및 조정
+    const safeData = checkDataSize(eventData);
+    
+    // Firestore에 저장
+    await db.collection("events").add(safeData);
     
     // 모달 닫기
     closeModal();
