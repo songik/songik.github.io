@@ -620,7 +620,11 @@ function renderEventsCalendar(events) {
   
   // 이전 인스턴스 제거 (있을 경우)
   if (window.eventCalendar) {
-    window.eventCalendar.destroy();
+    try {
+      window.eventCalendar.destroy();
+    } catch (err) {
+      console.error("캘린더 제거 중 오류:", err);
+    }
   }
   
   try {
@@ -659,8 +663,8 @@ function renderEventsCalendar(events) {
     // 명시적으로 렌더링 호출
     window.eventCalendar.render();
     console.log("캘린더가 성공적으로 렌더링되었습니다.");
-  } catch (error) {
-    console.error("캘린더 초기화 중 오류 발생:", error);
+  } catch (err) {
+    console.error("캘린더 초기화 중 오류 발생:", err);
     if (calendarEl) {
       calendarEl.innerHTML = '<p>캘린더를 로드하는 중 오류가 발생했습니다.</p>';
     }
