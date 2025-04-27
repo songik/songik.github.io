@@ -596,6 +596,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* 습관 달력 스타일 */
+/* 습관 달력 관련 스타일 */
 .habit-calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -604,26 +605,110 @@ input:focus, select:focus, textarea:focus {
 }
 
 .habit-day {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 40px;
+  min-height: 40px;
   border-radius: 4px;
   background-color: #f5f5f5;
-  cursor: pointer;
 }
 
-.habit-day.selected {
+.habit-day-header {
+  font-weight: bold;
+  background-color: #e0e0e0;
+}
+
+.habit-day-other-month {
+  color: #aaa;
+  background-color: #f0f0f0;
+}
+
+.selectable-day {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.selectable-day:hover {
   background-color: var(--primary-light);
 }
 
+.habit-day.selected {
+  background-color: rgba(33, 150, 243, 0.2);
+}
+
 .habit-day.today {
+  font-weight: bold;
   border: 2px solid var(--primary-color);
 }
 
 .habit-day.completed {
+  background-color: rgba(76, 175, 80, 0.2);
+}
+
+.habit-check-circle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 5px;
+  right: 5px;
+  background-color: white;
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.habit-check-circle.checked {
   background-color: var(--primary-color);
   color: white;
+}
+
+.habit-calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.habit-calendar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.select-btn {
+  font-size: 0.8rem;
+  padding: 5px 10px;
+}
+
+.habit-calendar-save {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.habit-instruction {
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+  color: var(--text-light);
+  font-style: italic;
+}
+
+.primary-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.primary-button:hover {
+  background-color: var(--primary-dark);
 }
 
 /* 검색 스타일 */
