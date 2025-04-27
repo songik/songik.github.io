@@ -819,3 +819,37 @@ input:focus, select:focus, textarea:focus {
     padding: 15px;
   }
 }
+/* 습관 체크마크 스타일 */
+.habit-day.completed {
+  position: relative;
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.habit-checkmark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.habit-day {
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.habit-day:hover {
+  background-color: var(--primary-light);
+}
+
+/* 할 일 체크박스 스타일 - 달력 내 */
+.fc-event input[type="checkbox"] {
+  margin-right: 5px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
