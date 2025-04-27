@@ -9,12 +9,12 @@ const firebaseConfig = {
   measurementId: "G-J1DPBKM3ZJ"
 };
 
-// 전역 변수로 선언
-var db;
-var auth;
-var storage;
+// 전역 변수로 선언 (window 객체에 추가)
+window.db = null;
+window.auth = null;
+window.storage = null;
 // 기본 비밀번호 설정
-const DEFAULT_PASSWORD = "sik282";
+window.DEFAULT_PASSWORD = "sik282";
 
 // Firebase 초기화
 try {
@@ -24,10 +24,10 @@ try {
     firebase.app(); // 이미 초기화된 앱이 있다면 그것을 사용
   }
   
-  // Firebase 서비스 참조 생성 (전역 변수에 할당)
-  db = firebase.firestore();
-  auth = firebase.auth();
-  storage = firebase.storage();
+  // Firebase 서비스 참조 생성 (window 객체에 할당)
+  window.db = firebase.firestore();
+  window.auth = firebase.auth();
+  window.storage = firebase.storage();
   
   console.log("Firebase 초기화 완료");
 } catch (error) {
