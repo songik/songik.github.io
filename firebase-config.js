@@ -9,12 +9,6 @@ const firebaseConfig = {
   measurementId: "G-J1DPBKM3ZJ"
 };
 
-// 전역 변수로 명확하게 선언
-window.db = null;
-window.auth = null;
-window.storage = null;
-window.DEFAULT_PASSWORD = "sik282";
-
 // 전역 변수로 선언
 window.db = null;
 window.auth = null;
