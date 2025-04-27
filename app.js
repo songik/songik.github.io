@@ -996,14 +996,19 @@ function renderTodosList(todos) {
   let html = '<ul class="list-container">';
   
   todos.forEach(todo => {
+    // 체크박스의 id를 고유하게 설정하여 충돌 방지
+    const checkboxId = `todo-checkbox-${todo.id}`;
+    
     html += `
       <li class="list-item" data-id="${todo.id}">
         <div class="list-item-checkbox">
           <input 
             type="checkbox" 
+            id="${checkboxId}"
             ${todo.completed ? 'checked' : ''} 
             onchange="toggleTodoComplete('${todo.id}', ${!todo.completed})"
           />
+          <label for="${checkboxId}" class="checkbox-label"></label>
         </div>
         <div class="list-item-content ${todo.completed ? 'completed' : ''}">
           <div class="list-item-title">${todo.title}</div>
