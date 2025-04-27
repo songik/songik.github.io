@@ -668,19 +668,12 @@ function renderEventsCalendar(events) {
     // 명시적으로 렌더링 호출
     window.eventCalendar.render();
     console.log("캘린더가 성공적으로 렌더링되었습니다.");
-  } catch (err) {
-    console.error("캘린더 초기화 중 오류 발생:", err);
+  } catch (error) {
+    console.error("캘린더 초기화 중 오류 발생:", error);
     if (calendarEl) {
       calendarEl.innerHTML = '<p>캘린더를 로드하는 중 오류가 발생했습니다.</p>';
     }
   }
-}
-catch (error) {
-  console.error("캘린더 초기화 중 오류 발생:", error);
-  calendarEl.innerHTML = "<p>캘린더를 로드하는 중 오류가 발생했습니다.</p>";
-}
-  
-  calendar.render();
 }
 
 // 일정 추가 폼 표시
