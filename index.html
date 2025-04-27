@@ -28,6 +28,36 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <script>
+  // 전역 오류 핸들러
+  window.onerror = function(message, source, lineno, colno, error) {
+    alert('오류 발생: ' + message + '\n소스: ' + source + '\n라인: ' + lineno);
+    console.error('오류 상세:', {message, source, lineno, colno, error});
+    return false; // 오류 처리를 계속 진행
+  };
+  
+  // 비동기 오류 핸들러
+  window.addEventListener('unhandledrejection', function(event) {
+    alert('비동기 오류: ' + event.reason);
+    console.error('비동기 오류 상세:', event.reason);
+  });
+  
+  // DOM 로드 완료시 실행
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM이 로드되었습니다.');
+    setTimeout(function() {
+      const appElem = document.getElementById('app');
+      console.log('앱 요소:', appElem);
+      console.log('앱 내용:', appElem ? appElem.innerHTML : 'null');
+      
+      if (!appElem || !appElem.innerHTML) {
+        alert('앱이 정상적으로 렌더링되지 않았습니다. 수동으로 새로고침합니다.');
+        localStorage.removeItem('isAuthenticated');
+        window.location.reload();
+      }
+    }, 3000); // 3초 후 확인
+  });
+</script>
   <div id="app">
     <!-- 앱 콘텐츠가 인증 여부에 따라 여기에 표시됩니다 -->
   </div>
