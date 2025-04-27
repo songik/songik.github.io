@@ -602,22 +602,55 @@ function renderEventsCalendar(events) {
   
   if (!calendarEl) return;
   
-// FullCalendar 초기화 - 수정된 안전한 방식
-try {
-  const calendar = new FullCalendar.Calendar(calendarEl, {
-    headerToolbar: {
-      left: 'prev,next today',
-      center: 'title',
-      right: 'dayGridMonth,timeGridWeek,timeGridDay'
-    },
-    initialView: 'dayGridMonth',
-    locale: 'ko',
-    events: events || [],
-    // ... 다른 설정들 ...
-  });
+  // 이전 인스턴스 제거 (있을 경우)
+  if (window.eventCalendar) {
+    window.eventCalendar.destroy();
+  }
   
-  calendar.render();
-} catch (error) {
+  try {
+    // FullCalendar 초기화
+    window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      initialView: 'dayGridMonth',
+      locale: 'ko',
+      events: events || [],
+      editable: true,
+      selectable: true,
+      selectMirror: true,
+      dayMaxEvents: true,
+      // 날짜 선택 시 이벤트 추가 폼 표시
+      select: function(info) {
+        showAddEventForm(info.startStr, info.endStr, info.allDay);
+      },
+      // 이벤트 클릭 시 편집 폼 표시
+      eventClick: function(info) {
+        editEvent(info.event.id);
+      },
+      // 이벤트 드래그 앤 드롭으로 변경
+      eventDrop: function(info) {
+        updateEventDates(info.event.id, info.event.start, info.event.end, info.event.allDay);
+      },
+      // 이벤트 리사이징으로 기간 변경
+      eventResize: function(info) {
+        updateEventDates(info.event.id, info.event.start, info.event.end, info.event.allDay);
+      }
+    });
+    
+    // 명시적으로 렌더링 호출
+    window.eventCalendar.render();
+    console.log("캘린더가 성공적으로 렌더링되었습니다.");
+  } catch (error) {
+    console.error("캘린더 초기화 중 오류 발생:", error);
+    if (calendarEl) {
+      calendarEl.innerHTML = '<p>캘린더를 로드하는 중 오류가 발생했습니다.</p>';
+    }
+  }
+}
+catch (error) {
   console.error("캘린더 초기화 중 오류 발생:", error);
   calendarEl.innerHTML = "<p>캘린더를 로드하는 중 오류가 발생했습니다.</p>";
 }
