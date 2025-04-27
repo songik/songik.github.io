@@ -16,7 +16,11 @@ let isModalOpen = false;
 // =========== 인증 관련 함수 ===========
 
 // 사용자 인증 확인
+// app.js 파일의 checkAuth 함수
 function checkAuth() {
+  // 인증 상태 초기화 (테스트를 위해 잠시 추가)
+  localStorage.removeItem("isAuthenticated");
+  
   const isAuth = localStorage.getItem("isAuthenticated");
   if (isAuth === "true") {
     isAuthenticated = true;
@@ -324,41 +328,42 @@ function closeModal() {
 
 // 홈 페이지 렌더링
 function renderHomePage(container) {
-  container.innerHTML = `
-    <div class="home-container">
-      <div class="home-content">
-        <div class="logo-container">
-          <h1 class="home-logo">흔들갈대</h1>
-        </div>
-        
-        <!-- 비디오 파일 대신 이미지나 텍스트로 대체 -->
-        <div class="character-container">
-          <div class="character-placeholder" style="background-color: #f5f5f5; padding: 40px; text-align: center; border-radius: 8px;">
-            <h3>비디오 콘텐츠가 준비 중입니다.</h3>
-            <p>현재 비디오 파일을 찾을 수 없습니다.</p>
-          </div>
-        </div>
-        
-        <div class="quote-container">
-          <h2 class="quote-text">
-            헛되이 보낸 오늘은, 죽은이가 그토록 바라던 내일이었다.
-          </h2>
-        </div>
-        
-        <div class="home-buttons">
-          <a href="#" class="home-button" onclick="navigateTo('calendar')">
-            일정 보기
-          </a>
-          <a href="#" class="home-button" onclick="navigateTo('todo')">
-            할 일 확인
-          </a>
-          <a href="#" class="home-button" onclick="navigateTo('diary')">
-            일기 쓰기
-          </a>
-        </div>
+// app.js 파일의 renderHomePage 함수 내부
+container.innerHTML = `
+  <div class="home-container">
+    <div class="home-content">
+      <div class="logo-container">
+        <h1 class="home-logo">흔들갈대</h1>
+      </div>
+      
+      <!-- 비디오 파일 직접 삽입 -->
+      <div class="character-container">
+        <video class="character-video" controls autoplay loop muted>
+          <source src="videos/character.mp4" type="video/mp4">
+          <p>브라우저가 비디오 태그를 지원하지 않습니다.</p>
+        </video>
+      </div>
+      
+      <div class="quote-container">
+        <h2 class="quote-text">
+          헛되이 보낸 오늘은, 죽은이가 그토록 바라던 내일이었다.
+        </h2>
+      </div>
+      
+      <div class="home-buttons">
+        <a href="#" class="home-button" onclick="navigateTo('calendar')">
+          일정 보기
+        </a>
+        <a href="#" class="home-button" onclick="navigateTo('todo')">
+          할 일 확인
+        </a>
+        <a href="#" class="home-button" onclick="navigateTo('diary')">
+          일기 쓰기
+        </a>
       </div>
     </div>
-  `;
+  </div>
+`;
 }
 
 // =========== 텍스트 에디터 관련 함수 ===========
@@ -750,41 +755,44 @@ function formatDateForInput(date) {
 }
 
 // 일정 저장
+// app.js 파일에 데이터 크기 체크 함수 추가 (파일 상단에 추가)
+function checkDataSize(data, maxSizeInBytes = 900000) {
+  // HTML이 포함된 텍스트의 경우 크기가 클 수 있음
+  if (data.description && data.description.length > 10000) {
+    console.warn("설명 필드가 너무 큽니다. 10,000자로 제한합니다.");
+    data.description = data.description.substring(0, 10000) + "... (잘림)";
+  }
+  return data;
+}
+
+// app.js 파일의 saveEvent, saveNote 등의 함수 수정
 async function saveEvent() {
-  const titleEl = document.getElementById('event-title');
-  const startEl = document.getElementById('event-start');
-  const endEl = document.getElementById('event-end');
-  const allDayEl = document.getElementById('event-all-day');
+  // ...
   
-  if (!titleEl.value || !startEl.value) {
-    alert('제목과 시작일시는 필수 입력 항목입니다.');
-    return;
+  // 일정 데이터 구성
+  const eventData = {
+    title: titleEl.value,
+    start: firebase.firestore.Timestamp.fromDate(new Date(startEl.value)),
+    allDay: allDayEl.checked
+  };
+  
+  // 선택적 필드 추가
+  if (endEl.value) {
+    eventData.end = firebase.firestore.Timestamp.fromDate(new Date(endEl.value));
   }
   
-  const description = getEditorContent('event-description-editor');
+  if (description) {
+    eventData.description = description;
+  }
   
-  try {
-    // 일정 데이터 구성
-    const eventData = {
-      title: titleEl.value,
-      start: firebase.firestore.Timestamp.fromDate(new Date(startEl.value)),
-      allDay: allDayEl.checked
-    };
-    
-    // 선택적 필드 추가
-    if (endEl.value) {
-      eventData.end = firebase.firestore.Timestamp.fromDate(new Date(endEl.value));
-    }
-    
-    if (description) {
-      eventData.description = description;
-    }
-    
-    // 저장 시간 추가
-    eventData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-    
-    // Firestore에 저장
-    await db.collection("events").add(eventData);
+  // 저장 시간 추가
+  eventData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+  
+  // 데이터 크기 확인 및 조정
+  const safeData = checkDataSize(eventData);
+  
+  // Firestore에 저장
+  await db.collection("events").add(safeData);
     
     // 모달 닫기
     closeModal();
@@ -1013,33 +1021,35 @@ function renderTodosList(todos) {
   
   let html = '<ul class="list-container">';
   
-  todos.forEach(todo => {
-    // 체크박스의 id를 고유하게 설정하여 충돌 방지
-    const checkboxId = `todo-checkbox-${todo.id}`;
-    
-    html += `
-      <li class="list-item" data-id="${todo.id}">
-        <div class="list-item-checkbox">
-          <input 
-            type="checkbox" 
-            id="${checkboxId}"
-            ${todo.completed ? 'checked' : ''} 
-            onchange="toggleTodoComplete('${todo.id}', ${!todo.completed})"
-          />
-          <label for="${checkboxId}" class="checkbox-label"></label>
-        </div>
-        <div class="list-item-content ${todo.completed ? 'completed' : ''}">
-          <div class="list-item-title">${todo.title}</div>
-          ${todo.dueDate ? `<div class="list-item-date">마감일: ${formatDate(todo.dueDate)}</div>` : ''}
-          ${todo.description ? `<div class="list-item-description">${todo.description}</div>` : ''}
-        </div>
-        <div class="list-item-actions">
-          <button onclick="editTodo('${todo.id}')">수정</button>
-          <button onclick="deleteTodo('${todo.id}')">삭제</button>
-        </div>
-      </li>
-    `;
-  });
+// app.js 파일의 renderTodosList 함수 내부
+todos.forEach(todo => {
+  // 체크박스의 id를 고유하게 설정하여 충돌 방지
+  const checkboxId = `todo-checkbox-${todo.id}`;
+  
+  html += `
+    <li class="list-item" data-id="${todo.id}">
+      <div class="list-item-checkbox">
+        <input 
+          type="checkbox" 
+          id="${checkboxId}"
+          ${todo.completed ? 'checked' : ''} 
+          onchange="toggleTodoComplete('${todo.id}', ${!todo.completed})"
+          style="display: inline-block; width: 20px; height: 20px; visibility: visible; opacity: 1;"
+        />
+        <label for="${checkboxId}" class="checkbox-label" style="display: inline-block;"></label>
+      </div>
+      <div class="list-item-content ${todo.completed ? 'completed' : ''}">
+        <div class="list-item-title">${todo.title}</div>
+        ${todo.dueDate ? `<div class="list-item-date">마감일: ${formatDate(todo.dueDate)}</div>` : ''}
+        ${todo.description ? `<div class="list-item-description">${todo.description}</div>` : ''}
+      </div>
+      <div class="list-item-actions">
+        <button onclick="editTodo('${todo.id}')">수정</button>
+        <button onclick="deleteTodo('${todo.id}')">삭제</button>
+      </div>
+    </li>
+  `;
+});
   
   html += '</ul>';
   todosListEl.innerHTML = html;
@@ -3859,21 +3869,27 @@ async function performSearch() {
   try {
     const results = [];
 
-    // 일정 검색
-    const eventsSnapshot = await db.collection("events").get();
-    eventsSnapshot.forEach(doc => {
-      const event = doc.data();
-      if (event.title.toLowerCase().includes(searchInput) || 
-          (event.description && event.description.toLowerCase().includes(searchInput))) {
-        results.push({
-          type: "일정",
-          id: doc.id,
-          title: event.title,
-          date: formatDate(event.start),
-          page: "calendar"
-        });
-      }
+// app.js 파일의 performSearch 함수 내부 - 일정 검색 부분
+const eventsSnapshot = await db.collection("events").get();
+eventsSnapshot.forEach(doc => {
+  const event = doc.data();
+  
+  // event.title이 undefined인 경우를 대비하여 안전하게 처리
+  const titleMatch = event.title && event.title.toLowerCase().includes(searchInput);
+  const descMatch = event.description && event.description.toLowerCase().includes(searchInput);
+  
+  if (searchInput && (titleMatch || descMatch)) {
+    results.push({
+      type: "일정",
+      id: doc.id,
+      title: event.title || "제목 없음",
+      date: formatDate(event.start),
+      page: "calendar"
     });
+  }
+});
+
+// 다른 검색 부분들도 동일한 방식으로 수정해주세요
 
     // 할 일 검색
     const todosSnapshot = await db.collection("todos").get();
