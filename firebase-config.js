@@ -9,11 +9,10 @@ const firebaseConfig = {
   measurementId: "G-J1DPBKM3ZJ"
 };
 
-// 전역 변수로 선언 (window 객체에 추가)
+// 전역 변수로 명확하게 선언
 window.db = null;
 window.auth = null;
 window.storage = null;
-// 기본 비밀번호 설정
 window.DEFAULT_PASSWORD = "sik282";
 
 // Firebase 초기화
@@ -24,7 +23,7 @@ try {
     firebase.app(); // 이미 초기화된 앱이 있다면 그것을 사용
   }
   
-  // Firebase 서비스 참조 생성 (window 객체에 할당)
+  // Firebase 서비스 참조 생성 (window 객체에 명시적으로 할당)
   window.db = firebase.firestore();
   window.auth = firebase.auth();
   window.storage = firebase.storage();
