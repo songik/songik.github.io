@@ -15,6 +15,12 @@ window.auth = null;
 window.storage = null;
 window.DEFAULT_PASSWORD = "sik282";
 
+// 전역 변수로 선언
+window.db = null;
+window.auth = null;
+window.storage = null;
+window.DEFAULT_PASSWORD = "sik282";
+
 // Firebase 초기화
 try {
   if (firebase.apps && firebase.apps.length === 0) {
@@ -23,7 +29,7 @@ try {
     firebase.app(); // 이미 초기화된 앱이 있다면 그것을 사용
   }
   
-  // Firebase 서비스 참조 생성 (window 객체에 명시적으로 할당)
+  // Firebase 서비스 참조 생성 (window 객체에 할당)
   window.db = firebase.firestore();
   window.auth = firebase.auth();
   window.storage = firebase.storage();
