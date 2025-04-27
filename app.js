@@ -232,8 +232,24 @@ function toggleView(view) {
       }
     }
     
+    console.log(`뷰 전환: ${view}`);
+    
     // 현재 페이지 컨텐츠 업데이트
     updatePageContent();
+    
+    // 뷰 컨테이너 표시/숨김 처리 명시적으로 설정
+    const listContainer = document.getElementById("list-view-container");
+    const calendarContainer = document.getElementById("calendar-view-container");
+    
+    if (listContainer && calendarContainer) {
+      if (view === "list") {
+        listContainer.style.display = "block";
+        calendarContainer.style.display = "none";
+      } else {
+        listContainer.style.display = "none";
+        calendarContainer.style.display = "block";
+      }
+    }
   }
 }
 
