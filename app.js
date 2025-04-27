@@ -623,6 +623,7 @@ function renderEventsList(events) {
 }
 
 // 일정 달력 렌더링
+// 일정 달력 렌더링
 function renderEventsCalendar(events) {
   const calendarEl = document.getElementById('calendar');
   
