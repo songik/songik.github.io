@@ -6,14 +6,13 @@ const firebaseConfig = {
   storageBucket: "song-homepage.firebasestorage.app",
   messagingSenderId: "772049031563",
   appId: "1:772049031563:web:bec6f81700c5e609689f8e",
-  measurementId: "G-J1DPBKM3ZJ",
-  databaseURL: "https://song-homepage-default-rtdb.firebaseio.com" // 추가
+  measurementId: "G-J1DPBKM3ZJ"
 };
 
-// 전역 변수로 선언
-let db;
-let auth;
-let storage;
+// 전역 변수로 선언 (var 또는 window 객체에 할당)
+var db;
+var auth;
+var storage;
 // 기본 비밀번호 설정
 const DEFAULT_PASSWORD = "sik282";
 
@@ -25,7 +24,7 @@ try {
     firebase.app(); // 이미 초기화된 앱이 있다면 그것을 사용
   }
   
-  // Firebase 서비스 참조 생성 (전역 변수 할당)
+  // Firebase 서비스 참조 생성 (전역 변수에 할당)
   db = firebase.firestore();
   auth = firebase.auth();
   storage = firebase.storage();
