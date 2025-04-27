@@ -63,6 +63,21 @@ function renderAuthPage() {
 // 비밀번호 확인
 async function checkPassword(password) {
   try {
+    // 먼저 기본 비밀번호 확인
+    if (password === DEFAULT_PASSWORD) {
+      localStorage.setItem("isAuthenticated", "true");
+      isAuthenticated = true;
+      renderApp();
+      return;
+    }
+
+    // Firestore가 제대로 초기화되었는지 확인
+    if (!db) {
+      console.error("Firebase Firestore가 초기화되지 않았습니다.");
+      alert("서버 연결에 문제가 있습니다. 기본 비밀번호로 로그인해 주세요.");
+      return;
+    }
+
     // Firestore에서 설정된 비밀번호를 확인
     const passwordRef = db.collection("settings").doc("password");
     const doc = await passwordRef.get();
@@ -72,28 +87,14 @@ async function checkPassword(password) {
       localStorage.setItem("isAuthenticated", "true");
       isAuthenticated = true;
       renderApp();
-    } else if (password === DEFAULT_PASSWORD) {
-      // 기본 비밀번호로 로그인 (Firebase 설정이 없을 경우)
-      localStorage.setItem("isAuthenticated", "true");
-      isAuthenticated = true;
-      
-      // 비밀번호 문서가 없으면 생성
-      if (!doc.exists) {
-        try {
-          await passwordRef.set({ value: DEFAULT_PASSWORD });
-        } catch (error) {
-          console.error("비밀번호 저장 중 오류 발생:", error);
-        }
-      }
-      
-      renderApp();
     } else {
       // 비밀번호 불일치
       document.getElementById("error-message").textContent = "비밀번호가 일치하지 않습니다.";
     }
   } catch (error) {
     console.error("비밀번호 확인 중 오류 발생:", error);
-    document.getElementById("error-message").textContent = "인증 중 오류가 발생했습니다.";
+    document.getElementById("error-message").textContent = 
+      "인증 중 오류가 발생했습니다. 기본 비밀번호(sik282)를 사용해보세요.";
   }
 }
 
