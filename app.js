@@ -3425,7 +3425,6 @@ function renderHabitsList(habits) {
 }
 
 // 습관 달력 렌더링
-// 습관 달력 렌더링
 function renderHabitsCalendar(habits) {
   const calendarEl = document.getElementById('habit-calendar');
   
@@ -3574,7 +3573,78 @@ async function updateHabitRecord(habitId, dateStr, completed) {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
+    // 날짜 선택/취소 토글 함수
+function toggleHabitDate(dateStr, element) {
+  // 체크 표시 부분 클릭인지 확인
+  const isCheckClick = event.target.classList.contains('habit-check-circle') ||
+                      event.target.parentElement.classList.contains('habit-check-circle');
+  
+  if (isCheckClick) {
+    // 체크 표시 클릭 시 완료 상태 토글
+    const checkCircle = element.querySelector('.habit-check-circle');
+    const isCompleted = checkCircle.classList.contains('checked');
     
+    if (isCompleted) {
+      // 체크 해제
+      checkCircle.classList.remove('checked');
+      checkCircle.textContent = '';
+      element.classList.remove('completed');
+      
+      // 이미 기록이 있으면, 상태만 업데이트
+      updateHabitCompletionStatus(dateStr, false);
+    } else {
+      // 체크 설정
+      checkCircle.classList.add('checked');
+      checkCircle.textContent = '✓';
+      element.classList.add('completed');
+      element.classList.remove('selected'); // 선택 상태 제거
+      
+      // 완료 상태로 업데이트
+      updateHabitCompletionStatus(dateStr, true);
+    }
+  } else {
+    // 날짜 영역 클릭 시 선택 상태 토글 (완료된 날짜는 선택 불가)
+    if (!element.classList.contains('completed')) {
+      element.classList.toggle('selected');
+    }
+  }
+}
+
+// 습관 완료 상태 업데이트 함수
+async function updateHabitCompletionStatus(dateStr, completed) {
+  const habitId = document.querySelector('.habit-detail').getAttribute('data-habit-id');
+  if (!habitId) return;
+  
+  try {
+    const date = new Date(dateStr);
+    const recordsRef = db.collection("habits").doc(habitId).collection("records");
+    
+    // 해당 날짜 기록 검색
+    const snapshot = await recordsRef
+      .where("date", ">=", new Date(date.setHours(0, 0, 0, 0)))
+      .where("date", "<", new Date(date.setHours(23, 59, 59, 999)))
+      .get();
+    
+    if (snapshot.empty) {
+      // 기록이 없으면 새로 생성
+      await recordsRef.add({
+        date: firebase.firestore.Timestamp.fromDate(new Date(dateStr)),
+        completed: completed,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      // 기존 기록 업데이트
+      const recordId = snapshot.docs[0].id;
+      await recordsRef.doc(recordId).update({
+        completed: completed,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  } catch (error) {
+    console.error('습관 상태 업데이트 중 오류 발생:', error);
+    alert('상태를 업데이트하는 중 오류가 발생했습니다.');
+  }
+}
     // 현재 뷰가 리스트면 리스트 새로고침, 달력이면 달력 새로고침
     loadHabits();
     
@@ -3588,7 +3658,6 @@ async function updateHabitRecord(habitId, dateStr, completed) {
   }
 }
 
-// 습관 개별 달력 표시
 // 습관 개별 달력 표시
 async function showHabitCalendar(habitId) {
   try {
@@ -3627,7 +3696,13 @@ async function showHabitCalendar(habitId) {
     
     // 달력 HTML 생성
     let calendarHTML = `
-      <h3>${year}년 ${month + 1}월</h3>
+      <div class="habit-calendar-header">
+        <h3>${year}년 ${month + 1}월</h3>
+        <div class="habit-calendar-actions">
+          <button id="select-all-btn" class="select-btn">모두 선택</button>
+          <button id="clear-selection-btn" class="select-btn">선택 해제</button>
+        </div>
+      </div>
       <div class="habit-calendar">
         ${['일', '월', '화', '수', '목', '금', '토'].map(day => `<div class="habit-day habit-day-header">${day}</div>`).join('')}
     `;
@@ -3657,16 +3732,20 @@ async function showHabitCalendar(habitId) {
       const isToday = date.getTime() === new Date().setHours(0, 0, 0, 0);
       
       // 날짜 클래스 구성
-      let dayClass = "habit-day";
+      let dayClass = "habit-day selectable-day";
       if (isCompleted) dayClass += " completed";
       if (isToday) dayClass += " today";
       
+      const dateStr = formatDate(date);
+      
       calendarHTML += `
         <div class="${dayClass}" 
-             data-date="${formatDate(date)}" 
-             onclick="updateHabitRecord('${habitId}', '${formatDate(date)}', ${!isCompleted})">
+             data-date="${dateStr}" 
+             onclick="toggleHabitDate('${dateStr}', this)">
           ${day}
-          ${isCompleted ? '<div class="habit-checkmark">✓</div>' : ''}
+          <div class="habit-check-circle ${isCompleted ? 'checked' : ''}">
+            ${isCompleted ? '✓' : ''}
+          </div>
         </div>
       `;
     }
@@ -3680,24 +3759,99 @@ async function showHabitCalendar(habitId) {
     
     calendarHTML += '</div>';
     
-    // 체크 표시용 CSS 추가
+    // 저장 버튼 영역
     calendarHTML += `
+      <div class="habit-calendar-save">
+        <button id="save-habit-dates" class="primary-button">저장하기</button>
+      </div>
+    `;
+    
+    // 체크 표시용 CSS 추가
+    let styleHTML = `
       <style>
-        .habit-checkmark {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          color: white;
-          font-weight: bold;
+        .habit-calendar-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 15px;
         }
-        .habit-day {
-          position: relative;
+        
+        .habit-calendar-actions {
+          display: flex;
+          gap: 10px;
         }
-        .habit-day.completed {
+        
+        .select-btn {
+          font-size: 0.8rem;
+          padding: 5px 10px;
+        }
+        
+        .primary-button {
           background-color: var(--primary-color);
           color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+          font-size: 1rem;
           cursor: pointer;
+          margin-top: 15px;
+        }
+        
+        .habit-calendar-save {
+          text-align: center;
+          margin-top: 20px;
+        }
+        
+        .habit-check-circle {
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          border: 2px solid var(--primary-color);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          top: 5px;
+          right: 5px;
+          background-color: white;
+          color: var(--primary-color);
+          font-size: 12px;
+          font-weight: bold;
+        }
+        
+        .habit-check-circle.checked {
+          background-color: var(--primary-color);
+          color: white;
+        }
+        
+        .habit-day {
+          position: relative;
+          min-height: 40px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        
+        .selectable-day {
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+        
+        .selectable-day:hover {
+          background-color: var(--primary-light);
+        }
+        
+        .habit-day.completed {
+          background-color: rgba(76, 175, 80, 0.2);
+        }
+        
+        .habit-day.selected {
+          background-color: rgba(33, 150, 243, 0.2);
+        }
+        
+        .habit-day.today {
+          font-weight: bold;
+          border: 2px solid var(--primary-color);
         }
       </style>
     `;
@@ -3707,14 +3861,84 @@ async function showHabitCalendar(habitId) {
         <div class="habit-info">
           <h3>${habit.name}</h3>
           <p>카테고리: ${habit.category || '기타'}</p>
+          <p class="habit-instruction">실행할 날짜를 클릭하여 선택하고, 완료한 날짜는 체크 표시를 클릭하세요.</p>
         </div>
         <div class="habit-calendar-container">
+          ${styleHTML}
           ${calendarHTML}
         </div>
       </div>
     `;
     
     showModal(habit.name, modalContent);
+    
+    // 모달이 표시된 후 이벤트 리스너 추가
+    setTimeout(() => {
+      // 모두 선택 버튼
+      document.getElementById('select-all-btn').addEventListener('click', () => {
+        document.querySelectorAll('.selectable-day').forEach(day => {
+          if (!day.classList.contains('selected') && !day.classList.contains('completed')) {
+            day.classList.add('selected');
+          }
+        });
+      });
+      
+      // 선택 해제 버튼
+      document.getElementById('clear-selection-btn').addEventListener('click', () => {
+        document.querySelectorAll('.selectable-day.selected').forEach(day => {
+          day.classList.remove('selected');
+        });
+      });
+      
+      // 저장 버튼
+      document.getElementById('save-habit-dates').addEventListener('click', async () => {
+        // 선택된 날짜들 수집
+        const selectedDates = [];
+        document.querySelectorAll('.selectable-day.selected').forEach(day => {
+          selectedDates.push(day.getAttribute('data-date'));
+        });
+        
+        // 선택된 날짜들 저장
+        if (selectedDates.length > 0) {
+          try {
+            const batch = firebase.firestore().batch();
+            const recordsRef = db.collection("habits").doc(habitId).collection("records");
+            
+            // 각 날짜에 대해 기록 추가
+            for (const dateStr of selectedDates) {
+              const date = new Date(dateStr);
+              
+              // 해당 날짜 기록이 있는지 확인
+              const snapshot = await recordsRef
+                .where("date", ">=", new Date(date.setHours(0, 0, 0, 0)))
+                .where("date", "<", new Date(date.setHours(23, 59, 59, 999)))
+                .get();
+              
+              if (snapshot.empty) {
+                // 새 문서 참조 생성
+                const newRecordRef = recordsRef.doc();
+                batch.set(newRecordRef, {
+                  date: firebase.firestore.Timestamp.fromDate(new Date(dateStr)),
+                  completed: false,
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+              }
+            }
+            
+            await batch.commit();
+            alert('선택한 날짜가 저장되었습니다.');
+            closeModal();
+            loadHabits();  // 습관 목록 새로고침
+          } catch (error) {
+            console.error('날짜 저장 중 오류 발생:', error);
+            alert('날짜를 저장하는 중 오류가 발생했습니다.');
+          }
+        } else {
+          alert('선택된 날짜가 없습니다.');
+        }
+      });
+    }, 300);
+    
   } catch (error) {
     console.error("습관 달력 로드 중 오류 발생:", error);
     alert('습관 달력을 불러오는 중 오류가 발생했습니다.');
