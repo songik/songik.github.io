@@ -3573,11 +3573,14 @@ async function updateHabitRecord(habitId, dateStr, completed) {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
-    // 날짜 선택/취소 토글 함수
+// 날짜 선택/취소 토글 함수
 function toggleHabitDate(dateStr, element) {
+  // 이벤트 캡처
+  const eventTarget = event.target;
+  
   // 체크 표시 부분 클릭인지 확인
-  const isCheckClick = event.target.classList.contains('habit-check-circle') ||
-                      event.target.parentElement.classList.contains('habit-check-circle');
+  const isCheckClick = eventTarget.classList.contains('habit-check-circle') ||
+                      (eventTarget.parentElement && eventTarget.parentElement.classList.contains('habit-check-circle'));
   
   if (isCheckClick) {
     // 체크 표시 클릭 시 완료 상태 토글
@@ -3591,7 +3594,10 @@ function toggleHabitDate(dateStr, element) {
       element.classList.remove('completed');
       
       // 이미 기록이 있으면, 상태만 업데이트
-      updateHabitCompletionStatus(dateStr, false);
+      const habitId = element.closest('.habit-detail').getAttribute('data-habit-id');
+      if (habitId) {
+        updateHabitRecord(habitId, dateStr, false);
+      }
     } else {
       // 체크 설정
       checkCircle.classList.add('checked');
@@ -3600,13 +3606,65 @@ function toggleHabitDate(dateStr, element) {
       element.classList.remove('selected'); // 선택 상태 제거
       
       // 완료 상태로 업데이트
-      updateHabitCompletionStatus(dateStr, true);
+      const habitId = element.closest('.habit-detail').getAttribute('data-habit-id');
+      if (habitId) {
+        updateHabitRecord(habitId, dateStr, true);
+      }
     }
   } else {
     // 날짜 영역 클릭 시 선택 상태 토글 (완료된 날짜는 선택 불가)
     if (!element.classList.contains('completed')) {
       element.classList.toggle('selected');
     }
+  }
+}
+
+// 선택된 날짜들 저장 함수
+async function saveSelectedHabitDates(habitId) {
+  // 선택된 날짜들 수집
+  const selectedDates = [];
+  document.querySelectorAll('.selectable-day.selected').forEach(day => {
+    selectedDates.push(day.getAttribute('data-date'));
+  });
+  
+  // 선택된 날짜들 저장
+  if (selectedDates.length > 0) {
+    try {
+      const batch = firebase.firestore().batch();
+      const recordsRef = db.collection("habits").doc(habitId).collection("records");
+      
+      // 각 날짜에 대해 기록 추가
+      for (const dateStr of selectedDates) {
+        const date = new Date(dateStr);
+        date.setHours(0, 0, 0, 0);
+        
+        // 해당 날짜 기록이 있는지 확인
+        const snapshot = await recordsRef
+          .where("date", ">=", date)
+          .where("date", "<", new Date(date.getTime() + 86400000)) // +1일
+          .get();
+        
+        if (snapshot.empty) {
+          // 새 문서 참조 생성
+          const newRecordRef = recordsRef.doc();
+          batch.set(newRecordRef, {
+            date: firebase.firestore.Timestamp.fromDate(new Date(dateStr)),
+            completed: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      }
+      
+      await batch.commit();
+      alert('선택한 날짜가 저장되었습니다.');
+      closeModal();
+      loadHabits();  // 습관 목록 새로고침
+    } catch (error) {
+      console.error('날짜 저장 중 오류 발생:', error);
+      alert('날짜를 저장하는 중 오류가 발생했습니다.');
+    }
+  } else {
+    alert('선택된 날짜가 없습니다.');
   }
 }
 
@@ -3658,6 +3716,7 @@ async function updateHabitCompletionStatus(dateStr, completed) {
   }
 }
 
+// 습관 개별 달력 표시
 // 습관 개별 달력 표시
 async function showHabitCalendar(habitId) {
   try {
@@ -3766,7 +3825,7 @@ async function showHabitCalendar(habitId) {
       </div>
     `;
     
-    // 체크 표시용 CSS 추가
+    // 스타일 추가
     let styleHTML = `
       <style>
         .habit-calendar-header {
@@ -3857,7 +3916,7 @@ async function showHabitCalendar(habitId) {
     `;
     
     const modalContent = `
-      <div class="habit-detail">
+      <div class="habit-detail" data-habit-id="${habitId}">
         <div class="habit-info">
           <h3>${habit.name}</h3>
           <p>카테고리: ${habit.category || '기타'}</p>
@@ -3891,51 +3950,8 @@ async function showHabitCalendar(habitId) {
       });
       
       // 저장 버튼
-      document.getElementById('save-habit-dates').addEventListener('click', async () => {
-        // 선택된 날짜들 수집
-        const selectedDates = [];
-        document.querySelectorAll('.selectable-day.selected').forEach(day => {
-          selectedDates.push(day.getAttribute('data-date'));
-        });
-        
-        // 선택된 날짜들 저장
-        if (selectedDates.length > 0) {
-          try {
-            const batch = firebase.firestore().batch();
-            const recordsRef = db.collection("habits").doc(habitId).collection("records");
-            
-            // 각 날짜에 대해 기록 추가
-            for (const dateStr of selectedDates) {
-              const date = new Date(dateStr);
-              
-              // 해당 날짜 기록이 있는지 확인
-              const snapshot = await recordsRef
-                .where("date", ">=", new Date(date.setHours(0, 0, 0, 0)))
-                .where("date", "<", new Date(date.setHours(23, 59, 59, 999)))
-                .get();
-              
-              if (snapshot.empty) {
-                // 새 문서 참조 생성
-                const newRecordRef = recordsRef.doc();
-                batch.set(newRecordRef, {
-                  date: firebase.firestore.Timestamp.fromDate(new Date(dateStr)),
-                  completed: false,
-                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-              }
-            }
-            
-            await batch.commit();
-            alert('선택한 날짜가 저장되었습니다.');
-            closeModal();
-            loadHabits();  // 습관 목록 새로고침
-          } catch (error) {
-            console.error('날짜 저장 중 오류 발생:', error);
-            alert('날짜를 저장하는 중 오류가 발생했습니다.');
-          }
-        } else {
-          alert('선택된 날짜가 없습니다.');
-        }
+      document.getElementById('save-habit-dates').addEventListener('click', () => {
+        saveSelectedHabitDates(habitId);
       });
     }, 300);
     
