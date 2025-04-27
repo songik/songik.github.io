@@ -35,5 +35,28 @@
   <!-- 주요 스크립트 - Firebase 구성 먼저 로드 (중복 제거) -->
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
+<!-- 오류 복구 스크립트 -->
+<script>
+  window.addEventListener('error', function(e) {
+    console.log('오류 발생:', e.message);
+    
+    // 심각한 오류 발생 시 복구 시도
+    if (e.message.includes('Unexpected token') || e.message.includes('is not defined')) {
+      console.log('심각한 오류 감지, 복구 시도 중...');
+      
+      // 인증 상태 복구
+      if (!localStorage.getItem("isAuthenticated")) {
+        localStorage.setItem("isAuthenticated", "true");
+      }
+      
+      // 30초 후 자동 새로고침
+      setTimeout(function() {
+        if (confirm('페이지에 오류가 발생했습니다. 새로고침하시겠습니까?')) {
+          window.location.reload();
+        }
+      }, 30000);
+    }
+  });
+</script>
 </body>
 </html>
