@@ -1080,7 +1080,10 @@ function renderTodosCalendar(todos) {
       title: todo.title,
       start: todo.dueDate,
       allDay: true,
-      color: todo.completed ? '#4caf50' : (todo.priority === 'high' ? '#f44336' : '#2196f3')
+      color: todo.completed ? '#4caf50' : (todo.priority === 'high' ? '#f44336' : '#2196f3'),
+      extendedProps: {
+        completed: todo.completed
+      }
     };
   });
   
@@ -1094,8 +1097,26 @@ function renderTodosCalendar(todos) {
     initialView: 'dayGridMonth',
     locale: 'ko',
     events: events,
+    eventDidMount: function(info) {
+      // 이벤트마다 체크박스 추가
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = info.event.extendedProps.completed;
+      checkbox.style.marginRight = '5px';
+      checkbox.addEventListener('change', function() {
+        toggleTodoComplete(info.event.id, checkbox.checked);
+      });
+      
+      const titleElement = info.el.querySelector('.fc-event-title');
+      if (titleElement) {
+        titleElement.parentNode.insertBefore(checkbox, titleElement);
+      }
+    },
     eventClick: function(info) {
-      editTodo(info.event.id);
+      // 체크박스가 아닌 부분을 클릭했을 때만 편집 화면 표시
+      if (!info.jsEvent.target.matches('input[type="checkbox"]')) {
+        editTodo(info.event.id);
+      }
     },
     dateClick: function(info) {
       showAddTodoForm(info.dateStr);
@@ -1112,7 +1133,27 @@ async function toggleTodoComplete(id, completed) {
       completed,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp() 
     });
-    loadTodos(); // 목록 새로고침
+    
+    // 두 뷰 모두 갱신
+    if (currentView === 'list') {
+      // 리스트 뷰만 부분적으로 업데이트
+      const checkbox = document.querySelector(`.list-item[data-id="${id}"] input[type="checkbox"]`);
+      if (checkbox) {
+        checkbox.checked = completed;
+      }
+      
+      const content = document.querySelector(`.list-item[data-id="${id}"] .list-item-content`);
+      if (content) {
+        if (completed) {
+          content.classList.add('completed');
+        } else {
+          content.classList.remove('completed');
+        }
+      }
+    } else {
+      // 달력 뷰면 달력만 새로고침
+      loadTodos(); 
+    }
   } catch (error) {
     console.error("할 일 상태 변경 중 오류 발생:", error);
   }
@@ -3384,6 +3425,7 @@ function renderHabitsList(habits) {
 }
 
 // 습관 달력 렌더링
+// 습관 달력 렌더링
 function renderHabitsCalendar(habits) {
   const calendarEl = document.getElementById('habit-calendar');
   
@@ -3399,7 +3441,11 @@ function renderHabitsCalendar(habits) {
           title: habit.name,
           start: record.date,
           allDay: true,
-          backgroundColor: getCategoryColor(habit.category)
+          backgroundColor: getCategoryColor(habit.category),
+          extendedProps: {
+            habitId: habit.id,
+            completed: true
+          }
         });
       }
     });
@@ -3415,6 +3461,21 @@ function renderHabitsCalendar(habits) {
     initialView: 'dayGridMonth',
     locale: 'ko',
     events: events,
+    eventDidMount: function(info) {
+      // 이벤트에 체크 표시 추가
+      const eventEl = info.el;
+      if (info.event.extendedProps.completed) {
+        const checkmark = document.createElement('span');
+        checkmark.innerHTML = '✓';
+        checkmark.style.marginRight = '5px';
+        checkmark.style.fontWeight = 'bold';
+        
+        const titleElement = eventEl.querySelector('.fc-event-title');
+        if (titleElement) {
+          titleElement.parentNode.insertBefore(checkmark, titleElement);
+        }
+      }
+    },
     dateClick: function(info) {
       showDayHabits(info.date, habits);
     }
@@ -3528,6 +3589,7 @@ async function updateHabitRecord(habitId, dateStr, completed) {
 }
 
 // 습관 개별 달력 표시
+// 습관 개별 달력 표시
 async function showHabitCalendar(habitId) {
   try {
     const habitDoc = await db.collection("habits").doc(habitId).get();
@@ -3545,12 +3607,11 @@ async function showHabitCalendar(habitId) {
     
     recordsSnapshot.forEach(recordDoc => {
       const record = recordDoc.data();
-      if (record.completed) {
-        records.push({
-          id: recordDoc.id,
-          date: record.date.toDate()
-        });
-      }
+      records.push({
+        id: recordDoc.id,
+        date: record.date.toDate(),
+        completed: record.completed || false
+      });
     });
     
     // 이번 달 달력 생성
@@ -3584,14 +3645,16 @@ async function showHabitCalendar(habitId) {
       date.setHours(0, 0, 0, 0);
       
       // 해당 날짜에 완료 여부 확인
-      const isCompleted = records.some(record => {
+      const record = records.find(record => {
         const recordDate = new Date(record.date);
         recordDate.setHours(0, 0, 0, 0);
         return recordDate.getTime() === date.getTime();
       });
       
+      const isCompleted = record && record.completed;
+      
       // 오늘 날짜 표시
-      const isToday = date.getTime() === today.setHours(0, 0, 0, 0);
+      const isToday = date.getTime() === new Date().setHours(0, 0, 0, 0);
       
       // 날짜 클래스 구성
       let dayClass = "habit-day";
@@ -3603,6 +3666,7 @@ async function showHabitCalendar(habitId) {
              data-date="${formatDate(date)}" 
              onclick="updateHabitRecord('${habitId}', '${formatDate(date)}', ${!isCompleted})">
           ${day}
+          ${isCompleted ? '<div class="habit-checkmark">✓</div>' : ''}
         </div>
       `;
     }
@@ -3615,6 +3679,28 @@ async function showHabitCalendar(habitId) {
     }
     
     calendarHTML += '</div>';
+    
+    // 체크 표시용 CSS 추가
+    calendarHTML += `
+      <style>
+        .habit-checkmark {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          color: white;
+          font-weight: bold;
+        }
+        .habit-day {
+          position: relative;
+        }
+        .habit-day.completed {
+          background-color: var(--primary-color);
+          color: white;
+          cursor: pointer;
+        }
+      </style>
+    `;
     
     const modalContent = `
       <div class="habit-detail">
