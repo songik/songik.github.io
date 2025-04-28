@@ -116,5 +116,32 @@
     }
   });
 </script>
+  <!-- 페이지 로드 시 음악 및 비디오 자동 재생 처리 -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // DOM이 로드된 후 배경음악 및 비디오 재생 시도
+    setTimeout(function() {
+      const bgMusic = document.getElementById('background-music');
+      if(bgMusic) {
+        bgMusic.play().catch(e => console.log("음악 자동 재생이 차단되었습니다: ", e));
+      }
+      
+      const videos = document.querySelectorAll('video');
+      videos.forEach(video => {
+        if(video.paused) {
+          video.play().catch(e => console.log("비디오 자동 재생이 차단되었습니다: ", e));
+        }
+      });
+    }, 1000);
+    
+    // 사용자 상호작용 시 배경음악 재생
+    document.addEventListener('click', function() {
+      const bgMusic = document.getElementById('background-music');
+      if(bgMusic && bgMusic.paused) {
+        bgMusic.play().catch(e => console.log("음악 재생 오류: ", e));
+      }
+    }, {once: true});
+  });
+</script>
 </body>
 </html>
