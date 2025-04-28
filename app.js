@@ -331,33 +331,10 @@ function renderHomePage(container) {
 container.innerHTML = `
   <div class="home-container">
     <div class="video-background">
-      <video autoplay loop muted playsinline disableRemotePlayback disablePictureInPicture>
+      <video autoplay loop muted playsinline>
         <source src="video.mp4" type="video/mp4">
         <p>브라우저가 비디오 태그를 지원하지 않습니다.</p>
       </video>
-    </div>
-    <div class="home-content">
-      <div class="logo-container">
-        <img src="logo.png" alt="흔들갈대" class="home-logo-image">
-      </div>
-      
-      <div class="quote-container">
-        <h2 class="quote-text">
-          헛되이 보낸 오늘은, 죽은이가 그토록 바라던 내일이었다.
-        </h2>
-      </div>
-      
-      <div class="home-buttons">
-        <a href="#" class="home-button" onclick="navigateTo('calendar')">
-          일정 보기
-        </a>
-        <a href="#" class="home-button" onclick="navigateTo('todo')">
-          할 일 확인
-        </a>
-        <a href="#" class="home-button" onclick="navigateTo('diary')">
-          일기 쓰기
-        </a>
-      </div>
     </div>
   </div>
   <audio id="background-music" loop autoplay>
@@ -365,10 +342,10 @@ container.innerHTML = `
   </audio>
 `;
 
-// 배경음악이 자동으로 재생되지 않을 경우 수동으로 재생 시도
+// 배경음악 자동 재생 시도
 const bgMusic = document.getElementById('background-music');
 if(bgMusic) {
-  bgMusic.volume = 0.3; // 볼륨 설정 (0.0 ~ 1.0)
+  bgMusic.volume = 0.3; // 볼륨 설정
   bgMusic.play().catch(e => console.log("자동 재생이 차단되었습니다: ", e));
 }
 }
