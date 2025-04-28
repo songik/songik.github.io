@@ -1002,3 +1002,92 @@ input:focus, select:focus, textarea:focus {
   height: 16px;
   cursor: pointer;
 }
+/* 습관 선택 및 완료 마커 스타일 */
+.habit-marker {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-color);
+  margin: 5px auto;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.habit-marker.selected {
+  background-color: var(--primary-light);
+}
+
+.habit-marker.completed {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.habit-marker.completed:after {
+  content: "✓";
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* 선택 모드/완료 모드 토글 버튼 */
+.habit-mode-toggle {
+  background-color: var(--background-color);
+  padding: 5px 10px;
+  border-radius: 20px;
+  margin-bottom: 15px;
+  display: inline-flex;
+  overflow: hidden;
+}
+
+.habit-mode-toggle button {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 15px;
+  transition: all 0.3s;
+  margin: 0 2px;
+}
+
+.habit-mode-toggle button.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* 습관 달력 일자 셀 */
+.habit-calendar-day {
+  border: 1px solid var(--border-color);
+  padding: 5px;
+  cursor: pointer;
+  text-align: center;
+  position: relative;
+  min-height: 75px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.habit-calendar-day:hover {
+  background-color: var(--primary-light);
+  opacity: 0.7;
+}
+
+.habit-calendar-day .date-number {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.habit-calendar-day.current-month {
+  background-color: var(--card-color);
+}
+
+.habit-calendar-day.today {
+  border: 2px solid var(--primary-color);
+}
+
+.habit-calendar-day.other-month {
+  background-color: #f9f9f9;
+  color: var(--text-light);
+}
