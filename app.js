@@ -328,20 +328,17 @@ function closeModal() {
 
 // 홈 페이지 렌더링
 function renderHomePage(container) {
-// app.js 파일의 renderHomePage 함수 내부
 container.innerHTML = `
   <div class="home-container">
+    <div class="video-background">
+      <video autoplay loop muted playsinline disableRemotePlayback disablePictureInPicture>
+        <source src="video.mp4" type="video/mp4">
+        <p>브라우저가 비디오 태그를 지원하지 않습니다.</p>
+      </video>
+    </div>
     <div class="home-content">
       <div class="logo-container">
-        <h1 class="home-logo">흔들갈대</h1>
-      </div>
-      
-      <!-- 비디오 파일 직접 삽입 -->
-      <div class="character-container">
-        <video class="character-video" controls autoplay loop muted>
-          <source src="videos/character.mp4" type="video/mp4">
-          <p>브라우저가 비디오 태그를 지원하지 않습니다.</p>
-        </video>
+        <img src="logo.png" alt="흔들갈대" class="home-logo-image">
       </div>
       
       <div class="quote-container">
@@ -363,7 +360,17 @@ container.innerHTML = `
       </div>
     </div>
   </div>
+  <audio id="background-music" loop autoplay>
+    <source src="bgm.mp3" type="audio/mpeg">
+  </audio>
 `;
+
+// 배경음악이 자동으로 재생되지 않을 경우 수동으로 재생 시도
+const bgMusic = document.getElementById('background-music');
+if(bgMusic) {
+  bgMusic.volume = 0.3; // 볼륨 설정 (0.0 ~ 1.0)
+  bgMusic.play().catch(e => console.log("자동 재생이 차단되었습니다: ", e));
+}
 }
 
 // =========== 텍스트 에디터 관련 함수 ===========
