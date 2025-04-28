@@ -336,8 +336,8 @@ input:focus, select:focus, textarea:focus {
 
 /* 인용구 컨테이너 스타일 수정 */
 .quote-container {
-  margin-top: 20px; /* 동영상과의 간격 */
-  padding: 15px;
+  margin-top: 5px; /* 동영상과의 간격 줄임 */
+  padding: 10px;
   background-color: rgba(255, 255, 255, 0.7); /* 반투명 배경 */
   border-radius: 8px;
   text-align: center;
@@ -353,6 +353,7 @@ input:focus, select:focus, textarea:focus {
   color: #333;
   line-height: 1.4;
   font-style: italic;
+  margin: 0; /* 기본 마진 제거 */
 }
 
 .home-buttons {
