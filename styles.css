@@ -274,8 +274,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 .video-background video {
-  width: 100%;
-  max-width: 1200px; /* 비디오 최대 크기 제한 */
+  width: 50%;
+  max-width: 300px; /* 비디오 최대 크기 제한 */
   height: auto;
   margin: 0 auto;
   display: block;
