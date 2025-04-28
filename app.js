@@ -337,7 +337,7 @@ function renderHomePage(container) {
         </video>
       </div>
       <div class="quote-container">
-        <h2 class="quote-text">헛되이 보냈던 오늘은, 죽은 이가 그토록 바라던 내일이었다.</h2>
+        <h2 class="quote-text">헛되이 보낸 오늘은, 죽은 이가 그토록 바라던 내일이었다.</h2>
       </div>
     </div>
     <audio id="background-music" loop autoplay>
