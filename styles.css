@@ -274,8 +274,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 .video-background video {
-  width: 50%; /* 화면 너비의 50%로 설정 */
-  max-width: 600px; /* 최대 크기도 반으로 줄임 */
+  width: 40%; /* 화면 너비의 40%로 설정 */
+  max-width: 300px; /* 최대 크기도 반으로 줄임 */
   height: auto;
   margin: 0 auto;
   display: block;
