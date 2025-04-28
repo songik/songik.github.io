@@ -247,6 +247,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* 홈 화면 스타일 */
+/* 화면을 덮고 있는 흰색 네모 제거를 위한 수정 */
 .home-container {
   display: flex;
   flex-direction: column;
@@ -254,44 +255,51 @@ input:focus, select:focus, textarea:focus {
   align-items: center;
   min-height: calc(100vh - 80px);
   padding: 20px;
-  background-color: #f5f5f5; /* 기본 배경색 */
+  background: transparent; /* 배경을 투명하게 설정 */
 }
 
-/* 동영상 배경과 일치하는 배경색 추가 */
 .home-container::before {
   content: '';
   position: fixed;
   top: 60px; /* 네비게이션 바 바로 아래 */
   left: 0;
   width: 100%;
-  height: 100vh;
-  background-color: #e8d5c4; /* 동영상 배경색과 일치하도록 설정 - 중간톤의 살색(베이지) 계열 */
+  height: calc(100vh - 60px);
+  background-color: #e8d5c4; /* 중간톤의 살색(베이지) 배경색 */
   z-index: -2; /* 동영상보다 뒤에 배치 */
 }
 
-/* 네비게이션 바 로고 이미지 스타일 추가 */
-.navbar-logo-image {
-  height: 40px;
-  width: auto;
-}
-
-/* 비디오 배경 스타일 수정 */
 .video-background {
-  position: absolute;
-  top: 60px; /* 네비게이션 바 바로 아래에 위치 */
+  position: fixed; /* absolute에서 fixed로 변경 */
+  top: 60px;
   left: 0;
   width: 100%;
   height: calc(100vh - 60px);
-  overflow: hidden;
-  z-index: -1; /* 컨텐츠보다는 뒤, 배경색보다는 앞에 위치 */
+  overflow: visible; /* hidden에서 visible로 변경 */
+  z-index: -1;
 }
 
 .video-background video {
-  width: 40%; /* 화면 너비의 40%로 설정 */
-  max-width: 300px; /* 최대 크기도 반으로 줄임 */
+  width: 50%;
+  max-width: 600px;
   height: auto;
   margin: 0 auto;
   display: block;
+}
+
+/* 혹시 추가된 다른 스타일이 문제를 일으키는지 확인 */
+.home-content {
+  background: transparent; /* 배경을 투명하게 설정 */
+  position: relative;
+  z-index: 1;
+}
+
+/* 콘텐츠 영역 스타일 수정 */
+.content {
+  margin-top: 60px;
+  padding: 0; /* 패딩 제거 */
+  min-height: calc(100vh - 60px);
+  background: transparent; /* 배경을 투명하게 설정 */
 }
 
 /* 홈 컨테이너 조정 */
