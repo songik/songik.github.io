@@ -853,3 +853,136 @@ input:focus, select:focus, textarea:focus {
   height: 16px;
   cursor: pointer;
 }
+
+/* 습관 관리 CSS 스타일 */
+
+/* 습관 모드 토글 버튼 */
+.habit-mode-toggle {
+  display: flex;
+  margin-right: 10px;
+}
+
+.habit-mode-toggle button {
+  padding: 8px 12px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-right: 5px;
+  transition: all 0.3s;
+}
+
+.habit-mode-toggle button.active {
+  background-color: #4285F4;
+  color: white;
+  border-color: #4285F4;
+}
+
+/* 습관 달력 스타일 */
+.habit-calendar-container {
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: 400px;
+}
+
+/* 선택된 날짜 스타일 */
+.selected-date {
+  background-color: rgba(66, 133, 244, 0.2) !important;
+  border-radius: 50%;
+}
+
+/* 완료된 날짜 스타일 */
+.completed-date {
+  background-color: rgba(76, 175, 80, 0.2) !important;
+}
+
+/* 습관 체크박스 컨테이너 */
+.habit-checkboxes {
+  display: flex;
+  flex-direction: column;
+  margin-top: 5px;
+  gap: 3px;
+}
+
+/* 습관 체크박스 */
+.habit-checkbox {
+  display: flex;
+  align-items: center;
+  font-size: 0.7rem;
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #ddd;
+  background-color: #f9f9f9;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.habit-checkbox:hover {
+  background-color: #f0f0f0;
+}
+
+.habit-checkbox.completed {
+  background-color: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+}
+
+.habit-checkbox-title {
+  margin-left: 3px;
+  font-size: 0.65rem;
+}
+
+/* 선택된 날짜 목록 */
+.selected-dates-container,
+.completed-dates-container {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.selected-dates-list,
+.completed-dates-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.selected-dates-list li,
+.completed-dates-list li {
+  padding: 5px 0;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.selected-dates-list li:last-child,
+.completed-dates-list li:last-child {
+  border-bottom: none;
+}
+
+/* 습관 통계 스타일 */
+.habit-stats {
+  margin-top: 5px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.habit-completion-stats {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
