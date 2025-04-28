@@ -3412,7 +3412,6 @@ function renderHabitsList(habits) {
 }
 
 // 습관 달력 렌더링
-// 습관 달력 렌더링
 function renderHabitsCalendar(habits) {
   const calendarEl = document.getElementById('habit-calendar');
   
@@ -3525,6 +3524,101 @@ function showDayHabits(date, habits) {
   `;
   
   showModal(`${formattedDate} 습관`, modalContent);
+}
+
+// 습관 달력 날짜 다중 선택 및 토글 기능
+let selectedDays = [];
+
+function toggleHabitDaySelection(element, habitId, dateStr, completed) {
+  // 선택한 날짜 요소의 상태 토글
+  if (element.classList.contains('selected')) {
+    element.classList.remove('selected');
+    selectedDays = selectedDays.filter(day => day.dateStr !== dateStr);
+  } else {
+    element.classList.add('selected');
+    selectedDays.push({ element, habitId, dateStr, completed });
+  }
+  
+  // Shift 키를 누르고 있는지 확인
+  if (window.event && window.event.shiftKey && selectedDays.length >= 2) {
+    // 다중 선택 처리
+    const lastIndex = selectedDays.length - 1;
+    const firstSelectedDate = new Date(selectedDays[0].dateStr);
+    const lastSelectedDate = new Date(selectedDays[lastIndex].dateStr);
+    
+    // 날짜 범위 결정 (처음 선택한 날짜와 마지막 선택한 날짜 사이)
+    const startDate = firstSelectedDate < lastSelectedDate ? firstSelectedDate : lastSelectedDate;
+    const endDate = firstSelectedDate < lastSelectedDate ? lastSelectedDate : firstSelectedDate;
+    
+    // 현재 표시된 모든 habit-day 요소 찾기
+    const allDays = document.querySelectorAll('.habit-day');
+    
+    allDays.forEach(dayEl => {
+      const dayDateStr = dayEl.getAttribute('data-date');
+      if (dayDateStr) {
+        const dayDate = new Date(dayDateStr);
+        
+        // 범위 내에 있는 날짜인지 확인
+        if (dayDate >= startDate && dayDate <= endDate) {
+          dayEl.classList.add('selected');
+          
+          // 이미 선택 목록에 없으면 추가
+          const isAlreadySelected = selectedDays.some(day => day.dateStr === dayDateStr);
+          if (!isAlreadySelected) {
+            selectedDays.push({ 
+              element: dayEl, 
+              habitId, 
+              dateStr: dayDateStr, 
+              completed 
+            });
+          }
+        }
+      }
+    });
+  }
+}
+
+// 선택한 모든 날짜의 습관 상태 일괄 변경
+function updateSelectedHabitDays(completed) {
+  if (selectedDays.length === 0) return;
+  
+  // 선택한 모든 날짜에 대해 상태 변경
+  selectedDays.forEach(day => {
+    updateHabitRecord(day.habitId, day.dateStr, completed);
+  });
+  
+  // 선택 초기화
+  selectedDays.forEach(day => {
+    day.element.classList.remove('selected');
+  });
+  selectedDays = [];
+}
+
+// 달력 모달에 버튼 추가 함수
+function addHabitCalendarButtons(modalElement, habitId) {
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'habit-calendar-buttons';
+  
+  const completeButton = document.createElement('button');
+  completeButton.textContent = '선택한 날짜 완료 표시';
+  completeButton.onclick = function() {
+    updateSelectedHabitDays(true);
+  };
+  
+  const uncompleteButton = document.createElement('button');
+  uncompleteButton.textContent = '선택한 날짜 미완료 표시';
+  uncompleteButton.onclick = function() {
+    updateSelectedHabitDays(false);
+  };
+  
+  buttonContainer.appendChild(completeButton);
+  buttonContainer.appendChild(uncompleteButton);
+  
+  // 모달 내 적절한 위치에 버튼 컨테이너 삽입
+  const habitCalendarContainer = modalElement.querySelector('.habit-calendar-container');
+  if (habitCalendarContainer) {
+    habitCalendarContainer.after(buttonContainer);
+  }
 }
 
 // 습관 완료 상태 토글 (오늘)
@@ -3644,18 +3738,19 @@ async function showHabitCalendar(habitId) {
       const isToday = date.getTime() === new Date().setHours(0, 0, 0, 0);
       
       // 날짜 클래스 구성
-      let dayClass = "habit-day";
-      if (isCompleted) dayClass += " completed";
-      if (isToday) dayClass += " today";
-      
-      calendarHTML += `
-        <div class="${dayClass}" 
-             data-date="${formatDate(date)}" 
-             onclick="updateHabitRecord('${habitId}', '${formatDate(date)}', ${!isCompleted})">
-          ${day}
-          ${isCompleted ? '<div class="habit-checkmark">✓</div>' : ''}
-        </div>
-      `;
+// 달력 HTML 생성 부분 안에서 습관 날짜 클릭 이벤트 수정
+let dayClass = "habit-day";
+if (isCompleted) dayClass += " completed";
+if (isToday) dayClass += " today";
+
+calendarHTML += `
+  <div class="${dayClass}" 
+       data-date="${formatDate(date)}" 
+       onclick="toggleHabitDaySelection(this, '${habitId}', '${formatDate(date)}', ${!isCompleted})">
+    ${day}
+    ${isCompleted ? '<div class="habit-checkmark">✓</div>' : ''}
+  </div>
+`;
     }
     
     // 다음 달의 첫 날짜들로 채우기
@@ -3702,12 +3797,20 @@ async function showHabitCalendar(habitId) {
     `;
     
     showModal(habit.name, modalContent);
+    
+    // 모달에 버튼 추가 - 함수 내부에 위치해야 함
+    setTimeout(() => {
+      const modalElement = document.querySelector('.modal');
+      if (modalElement) {
+        addHabitCalendarButtons(modalElement, habitId);
+      }
+    }, 100);
+    
   } catch (error) {
     console.error("습관 달력 로드 중 오류 발생:", error);
     alert('습관 달력을 불러오는 중 오류가 발생했습니다.');
   }
 }
-    
 
 // 습관 추가 폼 표시
 function showAddHabitForm() {
