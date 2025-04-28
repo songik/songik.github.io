@@ -62,9 +62,37 @@
     <!-- 앱 콘텐츠가 인증 여부에 따라 여기에 표시됩니다 -->
   </div>
 
-  <!-- 주요 스크립트 - Firebase 구성 먼저 로드 (중복 제거) -->
+<!-- 주요 스크립트 - Firebase 구성 먼저 로드 (중복 제거) -->
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
+  
+  <!-- 페이지 로드 시 음악 및 비디오 자동 재생 처리 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // DOM이 로드된 후 배경음악 및 비디오 재생 시도
+      setTimeout(function() {
+        const bgMusic = document.getElementById('background-music');
+        if(bgMusic) {
+          bgMusic.play().catch(e => console.log("음악 자동 재생이 차단되었습니다: ", e));
+        }
+        
+        const videos = document.querySelectorAll('video');
+        videos.forEach(video => {
+          if(video.paused) {
+            video.play().catch(e => console.log("비디오 자동 재생이 차단되었습니다: ", e));
+          }
+        });
+      }, 1000);
+      
+      // 사용자 상호작용 시 배경음악 재생
+      document.addEventListener('click', function() {
+        const bgMusic = document.getElementById('background-music');
+        if(bgMusic && bgMusic.paused) {
+          bgMusic.play().catch(e => console.log("음악 재생 오류: ", e));
+        }
+      }, {once: true});
+    });
+  </script>
 <!-- 오류 복구 스크립트 -->
 <script>
   window.addEventListener('error', function(e) {
