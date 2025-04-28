@@ -4195,8 +4195,44 @@ function toggleHabitDate(dateStr, element) {
       selectedDates = JSON.parse(savedDates);
     } catch (e) {
       console.error("선택된 날짜 파싱 오류:", e);
+      selectedDates = [];
     }
   }
+  
+  // 선택 상태에 따라 날짜 추가 또는 제거
+  const index = selectedDates.indexOf(dateStr);
+  if (element.classList.contains('selected')) {
+    // 선택된 상태라면 추가
+    if (index === -1) {
+      selectedDates.push(dateStr);
+    }
+  } else {
+    // 선택 해제 상태라면 제거
+    if (index > -1) {
+      selectedDates.splice(index, 1);
+    }
+  }
+  
+  // 로컬 스토리지에 저장
+  localStorage.setItem('selectedDates', JSON.stringify(selectedDates));
+}
+
+// 습관 날짜 토글 (선택/해제)
+function toggleHabitDate(dateStr, element) {
+  // 날짜 선택 상태 토글
+  element.classList.toggle('selected');
+  
+// 로컬 스토리지에서 선택된 날짜 불러오기
+let selectedDates = [];
+const savedDates = localStorage.getItem('selectedDates');
+if (savedDates) {
+  try {
+    selectedDates = JSON.parse(savedDates);
+  } catch (e) {
+    console.error("선택된 날짜 파싱 오류:", e);
+    selectedDates = [];
+  }
+}
   
   // 선택 상태에 따라 날짜 추가 또는 제거
   const index = selectedDates.indexOf(dateStr);
