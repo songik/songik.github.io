@@ -111,7 +111,7 @@ function renderApp() {
     <nav class="navbar">
       <div class="navbar-container">
         <div class="navbar-logo">
-          <a href="#" onclick="navigateTo('home')">흔들갈대</a>
+          <a href="#" onclick="navigateTo('home')"><img src="logo.png" alt="흔들갈대" class="navbar-logo-image"></a>
         </div>
         <div class="menu-icon" onclick="toggleMenu()">
           <i class="fas fa-bars"></i>
