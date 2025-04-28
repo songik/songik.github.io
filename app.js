@@ -4185,7 +4185,12 @@ async function deleteHabit(habitId) {
 // 습관 날짜 토글 (선택/해제)
 function toggleHabitDate(dateStr, element) {
   // 날짜 선택 상태 토글
-  element.classList.toggle('selected');
+  if (element.classList.contains('selected')) {
+    element.classList.remove('selected');
+  } else {
+    element.classList.add('selected');
+  }
+}
   
   // 로컬 스토리지에서 선택된 날짜 불러오기
   let selectedDates = [];
