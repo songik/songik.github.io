@@ -328,26 +328,29 @@ function closeModal() {
 
 // 홈 페이지 렌더링
 function renderHomePage(container) {
-container.innerHTML = `
-  <div class="home-container">
-    <div class="video-background">
-      <video autoplay loop muted playsinline>
-        <source src="video.mp4" type="video/mp4">
-        <p>브라우저가 비디오 태그를 지원하지 않습니다.</p>
-      </video>
+  container.innerHTML = `
+    <div class="home-container">
+      <div class="video-background">
+        <video autoplay loop muted playsinline>
+          <source src="video.mp4" type="video/mp4">
+          <p>브라우저가 비디오 태그를 지원하지 않습니다.</p>
+        </video>
+      </div>
+      <div class="quote-container">
+        <h2 class="quote-text">헛되이 보냈던 오늘은, 죽은 이가 그토록 바라던 내일이었다.</h2>
+      </div>
     </div>
-  </div>
-  <audio id="background-music" loop autoplay>
-    <source src="bgm.mp3" type="audio/mpeg">
-  </audio>
-`;
+    <audio id="background-music" loop autoplay>
+      <source src="bgm.mp3" type="audio/mpeg">
+    </audio>
+  `;
 
-// 배경음악 자동 재생 시도
-const bgMusic = document.getElementById('background-music');
-if(bgMusic) {
-  bgMusic.volume = 0.3; // 볼륨 설정
-  bgMusic.play().catch(e => console.log("자동 재생이 차단되었습니다: ", e));
-}
+  // 배경음악 자동 재생 시도
+  const bgMusic = document.getElementById('background-music');
+  if(bgMusic) {
+    bgMusic.volume = 0.3; // 볼륨 설정
+    bgMusic.play().catch(e => console.log("자동 재생이 차단되었습니다: ", e));
+  }
 }
 
 // =========== 텍스트 에디터 관련 함수 ===========
