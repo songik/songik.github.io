@@ -336,7 +336,7 @@ input:focus, select:focus, textarea:focus {
 
 /* 인용구 컨테이너 스타일 수정 */
 .quote-container {
-  margin-top: 5px; /* 동영상과의 간격 줄임 */
+  margin-top: 8px; /* 동영상과의 간격 줄임 */
   padding: 10px;
   background-color: rgba(255, 255, 255, 0.7); /* 반투명 배경 */
   border-radius: 8px;
