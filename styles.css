@@ -1,17 +1,11 @@
+/* 습관 색상을 파스텔톤으로 변경 */
 :root {
-  --primary-color: #4caf50;
-  --primary-dark: #388e3c;
-  --primary-light: #a5d6a7;
-  --secondary-color: #2196f3;
-  --secondary-dark: #1976d2;
-  --text-color: #333;
-  --text-light: #666;
-  --background-color: #f5f5f5;
-  --card-color: #fff;
-  --border-color: #e0e0e0;
-  --error-color: #f44336;
-  --success-color: #4caf50;
-  --warning-color: #ff9800;
+  /* 기존 색상 유지하고 파스텔톤 색상 추가 */
+  --pastel-green: #a8e6cf;
+  --pastel-blue: #aec6cf;
+  --pastel-yellow: #fdfd96;
+  --pastel-pink: #ffb3ba;
+  --pastel-purple: #dcd3ff;
 }
 
 * {
@@ -678,6 +672,47 @@ input:focus, select:focus, textarea:focus {
   color: white;
 }
 
+/* 버튼 컨테이너 스타일 */
+.habit-calendar-buttons {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+  gap: 10px;
+}
+
+.habit-calendar-buttons button {
+  background-color: var(--pastel-blue);
+  color: #333;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.habit-calendar-buttons button:hover {
+  background-color: var(--pastel-green);
+}
+
+/* 선택된 날짜 스타일 */
+.habit-day.selected {
+  border: 2px solid var(--pastel-blue);
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+.habit-day.today {
+  border: 2px solid var(--primary-color);
+}
+
+/* 파스텔톤 색상으로 완료된 습관 표시 */
+.habit-day.completed {
+  background-color: var(--pastel-green);
+  color: #333;
+  border-color: #8bdbad;
+}
+
 /* 검색 스타일 */
 .search-form {
   display: flex;
@@ -878,20 +913,19 @@ input:focus, select:focus, textarea:focus {
   color: white;
 }
 
+/* 체크마크 색상 변경 */
 .habit-checkmark {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
+  color: #388e3c;
   font-weight: bold;
-  font-size: 1.2em;
 }
 
+/* 습관 달력 날짜 스타일 수정 */
 .habit-day {
   position: relative;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
 }
 
 .habit-day:hover {
