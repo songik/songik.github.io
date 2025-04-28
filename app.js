@@ -3012,3 +3012,624 @@ async function updateDiary() {
     
     // Firestore에 업데이트
     await db.collection("diaries").doc(diaryId).update(diaryData);
+
+  // =========== 습관 관리 기능 ===========
+
+// 습관 페이지 렌더링
+function renderHabitsPage(container) {
+  container.innerHTML = `
+    <div class="page-container">
+      <div class="page-header">
+        <h1>습관 관리</h1>
+        <div class="page-actions">
+          <div class="habit-mode-toggle">
+            <button id="selection-mode-button" class="${habitMode === 'selection' ? 'active' : ''}" onclick="toggleHabitMode('selection')">
+              <i class="fas fa-calendar-check"></i> 날짜 선택 모드
+            </button>
+            <button id="completion-mode-button" class="${habitMode === 'completion' ? 'active' : ''}" onclick="toggleHabitMode('completion')">
+              <i class="fas fa-check-circle"></i> 완료 체크 모드
+            </button>
+          </div>
+          <button onclick="showAddHabitForm()">습관 추가</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2 class="card-title">습관 달력</h2>
+        <div class="habit-calendar-container">
+          <div id="habit-calendar"></div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2 class="card-title">습관 목록</h2>
+        <div id="habits-list">
+          <p>습관을 불러오는 중...</p>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 습관 데이터 불러오기
+  loadHabits();
+}
+
+// 습관 모드 전환
+function toggleHabitMode(mode) {
+  if (habitMode !== mode) {
+    habitMode = mode;
+    
+    // 모드 토글 버튼 업데이트
+    const selectionModeButton = document.getElementById("selection-mode-button");
+    const completionModeButton = document.getElementById("completion-mode-button");
+    
+    if (selectionModeButton && completionModeButton) {
+      if (mode === "selection") {
+        selectionModeButton.classList.add("active");
+        completionModeButton.classList.remove("active");
+      } else {
+        selectionModeButton.classList.remove("active");
+        completionModeButton.classList.add("active");
+      }
+    }
+    
+    // 선택된 날짜 초기화
+    selectedDates = [];
+    
+    // 캘린더 새로고침
+    renderHabitCalendar();
+  }
+}
+
+// 습관 데이터 불러오기
+async function loadHabits() {
+  try {
+    const habitsRef = db.collection("habits");
+    const snapshot = await habitsRef.orderBy("createdAt", "desc").get();
+    
+    const habits = [];
+    completedDates = {}; // 완료된 날짜 초기화
+    
+    // 습관 데이터와 완료된 날짜 불러오기
+    for (const doc of snapshot.docs) {
+      const habit = doc.data();
+      const habitId = doc.id;
+      
+      habits.push({
+        id: habitId,
+        title: habit.title,
+        description: habit.description || '',
+        createdAt: habit.createdAt ? habit.createdAt.toDate() : new Date()
+      });
+      
+      // 완료된 날짜 불러오기
+      const completionsSnapshot = await habitsRef.doc(habitId).collection("completions").get();
+      
+      completedDates[habitId] = [];
+      
+      completionsSnapshot.forEach(completionDoc => {
+        const completion = completionDoc.data();
+        if (completion.date) {
+          // Firestore Timestamp를 문자열로 변환하여 저장
+          const dateStr = formatDate(completion.date.toDate());
+          completedDates[habitId].push({
+            dateStr: dateStr,
+            id: completionDoc.id
+          });
+        }
+      });
+    }
+    
+    // 습관 목록 렌더링
+    renderHabitsList(habits);
+    
+    // 습관 캘린더 렌더링
+    renderHabitCalendar(habits);
+  } catch (error) {
+    console.error("습관을 불러오는 중 오류 발생:", error);
+    document.getElementById("habits-list").innerHTML = '<p>습관을 불러오는 중 오류가 발생했습니다.</p>';
+  }
+}
+
+// 습관 목록 렌더링
+function renderHabitsList(habits) {
+  const habitsListEl = document.getElementById("habits-list");
+  
+  if (habits.length === 0) {
+    habitsListEl.innerHTML = '<p>등록된 습관이 없습니다.</p>';
+    return;
+  }
+  
+  let html = '<ul class="list-container">';
+  
+  habits.forEach(habit => {
+    // 완료된 날짜 개수 계산
+    const completedCount = completedDates[habit.id] ? completedDates[habit.id].length : 0;
+    
+    html += `
+      <li class="list-item" data-id="${habit.id}">
+        <div class="list-item-content">
+          <div class="list-item-title">${habit.title}</div>
+          ${habit.description ? `<div class="list-item-description">${habit.description}</div>` : ''}
+          <div class="habit-stats">완료한 날짜: ${completedCount}일</div>
+        </div>
+        <div class="list-item-actions">
+          <button onclick="viewHabitDetails('${habit.id}')">상세</button>
+          <button onclick="editHabit('${habit.id}')">수정</button>
+          <button onclick="deleteHabit('${habit.id}')">삭제</button>
+        </div>
+      </li>
+    `;
+  });
+  
+  html += '</ul>';
+  habitsListEl.innerHTML = html;
+}
+
+// 습관 캘린더 렌더링
+function renderHabitCalendar(habits) {
+  const calendarEl = document.getElementById('habit-calendar');
+  
+  if (!calendarEl) return;
+  
+  // 이전 인스턴스 제거 (있을 경우)
+  if (window.habitCalendar) {
+    try {
+      window.habitCalendar.destroy();
+    } catch (err) {
+      console.error("캘린더 제거 중 오류:", err);
+    }
+  }
+  
+  try {
+    // 캘린더에 표시할 이벤트 준비
+    const events = [];
+    
+    // 선택 모드일 때 선택된 날짜 표시
+    if (habitMode === 'selection') {
+      selectedDates.forEach(dateStr => {
+        events.push({
+          title: '선택됨',
+          start: dateStr,
+          allDay: true,
+          color: '#4285F4',
+          classNames: ['selected-date']
+        });
+      });
+    } 
+    // 완료 모드일 때 모든 습관의 완료된 날짜 표시
+    else if (habits && habits.length > 0) {
+      habits.forEach(habit => {
+        const habitCompletions = completedDates[habit.id] || [];
+        
+        habitCompletions.forEach(completion => {
+          events.push({
+            id: `${habit.id}-${completion.dateStr}`,
+            title: habit.title,
+            start: completion.dateStr,
+            allDay: true,
+            color: '#4CAF50',
+            habitId: habit.id,
+            completionId: completion.id
+          });
+        });
+      });
+    }
+    
+    // 달력 옵션
+    const calendarOptions = {
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth'
+      },
+      initialView: 'dayGridMonth',
+      locale: 'ko',
+      events: events,
+      selectable: habitMode === 'selection', // 선택 모드일 때만 날짜 선택 가능
+      unselectAuto: false, // 다른 곳 클릭해도 선택 해제 안 됨
+      dateClick: function(info) {
+        if (habitMode === 'selection') {
+          toggleDateSelection(info.dateStr);
+        }
+      },
+      eventClick: function(info) {
+        if (habitMode === 'completion' && info.event.extendedProps.habitId) {
+          toggleHabitCompletion(
+            info.event.extendedProps.habitId, 
+            info.event.start,
+            info.event.extendedProps.completionId
+          );
+        }
+      }
+    };
+    
+    // 캘린더 초기화
+    window.habitCalendar = new FullCalendar.Calendar(calendarEl, calendarOptions);
+    window.habitCalendar.render();
+    
+    // 날짜 셀에 체크박스 추가 (완료 모드일 때)
+    if (habitMode === 'completion' && habits && habits.length > 0) {
+      setTimeout(() => {
+        addCheckboxesToCalendar(habits);
+      }, 100);
+    }
+  } catch (error) {
+    console.error("습관 캘린더 초기화 중 오류 발생:", error);
+    if (calendarEl) {
+      calendarEl.innerHTML = '<p>캘린더를 로드하는 중 오류가 발생했습니다.</p>';
+    }
+  }
+}
+
+// 날짜 선택/해제 토글
+function toggleDateSelection(dateStr) {
+  const index = selectedDates.indexOf(dateStr);
+  
+  if (index === -1) {
+    // 선택되지 않은 날짜면 추가
+    selectedDates.push(dateStr);
+  } else {
+    // 이미 선택된 날짜면 제거
+    selectedDates.splice(index, 1);
+  }
+  
+  // 캘린더 업데이트
+  renderHabitCalendar();
+}
+
+// 습관 완료 상태 토글
+async function toggleHabitCompletion(habitId, date, completionId = null) {
+  try {
+    const dateStr = formatDate(date);
+    const habitRef = db.collection("habits").doc(habitId);
+    
+    // 이미 완료된 날짜인지 확인
+    if (completionId) {
+      // 완료 취소하기
+      await habitRef.collection("completions").doc(completionId).delete();
+      
+      // 로컬 상태 업데이트
+      const habitCompletions = completedDates[habitId] || [];
+      const index = habitCompletions.findIndex(c => c.id === completionId);
+      
+      if (index !== -1) {
+        habitCompletions.splice(index, 1);
+        completedDates[habitId] = habitCompletions;
+      }
+    } else {
+      // 완료 추가하기
+      const completionData = {
+        date: firebase.firestore.Timestamp.fromDate(new Date(date)),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      const docRef = await habitRef.collection("completions").add(completionData);
+      
+      // 로컬 상태 업데이트
+      if (!completedDates[habitId]) {
+        completedDates[habitId] = [];
+      }
+      
+      completedDates[habitId].push({
+        dateStr: dateStr,
+        id: docRef.id
+      });
+    }
+    
+    // 캘린더 및 목록 새로고침
+    loadHabits();
+  } catch (error) {
+    console.error("습관 완료 상태 변경 중 오류 발생:", error);
+    alert('습관 완료 상태를 변경하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 캘린더 날짜 셀에 체크박스 추가
+function addCheckboxesToCalendar(habits) {
+  // 모든 날짜 셀에 대해
+  document.querySelectorAll('.fc-daygrid-day').forEach(dayCell => {
+    const date = dayCell.getAttribute('data-date');
+    
+    if (!date) return;
+    
+    // 셀에 체크박스를 담을 컨테이너 추가
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.className = 'habit-checkboxes';
+    
+    // 각 습관에 대한 체크박스 추가
+    habits.forEach(habit => {
+      // 해당 날짜에 완료된 습관인지 확인
+      const habitCompletions = completedDates[habit.id] || [];
+      const completion = habitCompletions.find(c => c.dateStr === date);
+      
+      // 체크박스 요소 생성
+      const checkbox = document.createElement('div');
+      checkbox.className = `habit-checkbox ${completion ? 'completed' : ''}`;
+      checkbox.title = habit.title;
+      checkbox.innerHTML = `<span class="habit-checkbox-title">${habit.title}</span>`;
+      
+      // 클릭 이벤트 추가
+      checkbox.addEventListener('click', function(e) {
+        e.stopPropagation(); // 날짜 셀 클릭 이벤트 방지
+        
+        if (completion) {
+          toggleHabitCompletion(habit.id, date, completion.id);
+        } else {
+          toggleHabitCompletion(habit.id, date);
+        }
+      });
+      
+      checkboxContainer.appendChild(checkbox);
+    });
+    
+    // 날짜 셀에 체크박스 컨테이너 추가
+    const cellContent = dayCell.querySelector('.fc-daygrid-day-bottom');
+    if (cellContent) {
+      cellContent.appendChild(checkboxContainer);
+    }
+  });
+}
+
+// 습관 추가 폼 표시
+function showAddHabitForm() {
+  const modalContent = `
+    <form id="habit-form">
+      <div class="form-group">
+        <label for="habit-title">습관 제목</label>
+        <input type="text" id="habit-title" required>
+      </div>
+      <div class="form-group">
+        <label for="habit-description">설명 (선택사항)</label>
+        <textarea id="habit-description" rows="3" placeholder="습관에 대한 설명을 입력하세요..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>선택한 날짜 (${selectedDates.length}일)</label>
+        <div class="selected-dates-container">
+          ${selectedDates.length > 0 ? 
+            `<ul class="selected-dates-list">
+              ${selectedDates.map(date => `<li>${date}</li>`).join('')}
+            </ul>` 
+            : '<p>날짜를 선택하지 않았습니다. 캘린더에서 날짜를 선택해주세요.</p>'
+          }
+        </div>
+      </div>
+    </form>
+  `;
+  
+  showModal("습관 추가", modalContent, saveHabit);
+}
+
+// 습관 저장
+async function saveHabit() {
+  const titleEl = document.getElementById('habit-title');
+  const descriptionEl = document.getElementById('habit-description');
+  
+  if (!titleEl.value) {
+    alert('습관 제목은 필수 입력 항목입니다.');
+    return;
+  }
+  
+  try {
+    // 습관 데이터 구성
+    const habitData = {
+      title: titleEl.value,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    if (descriptionEl.value.trim()) {
+      habitData.description = descriptionEl.value.trim();
+    }
+    
+    // Firestore에 습관 저장
+    const habitRef = await db.collection("habits").add(habitData);
+    
+    // 선택된 날짜가 있으면 완료 정보 저장
+    if (selectedDates.length > 0) {
+      const batch = db.batch();
+      
+      selectedDates.forEach(dateStr => {
+        const completionRef = habitRef.collection("completions").doc();
+        batch.set(completionRef, {
+          date: firebase.firestore.Timestamp.fromDate(new Date(dateStr)),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+      
+      await batch.commit();
+    }
+    
+    // 모달 닫기
+    closeModal();
+    
+    // 선택된 날짜 초기화
+    selectedDates = [];
+    
+    // 습관 목록 새로고침
+    loadHabits();
+  } catch (error) {
+    console.error("습관 저장 중 오류 발생:", error);
+    alert('습관을 저장하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 습관 상세 보기
+async function viewHabitDetails(habitId) {
+  try {
+    const habitDoc = await db.collection("habits").doc(habitId).get();
+    
+    if (!habitDoc.exists) {
+      alert('습관 정보를 찾을 수 없습니다.');
+      return;
+    }
+    
+    const habit = habitDoc.data();
+    const habitCompletions = completedDates[habitId] || [];
+    
+    // 날짜를 YYYY-MM-DD 형식에서 사용자 친화적인 형식으로 변환
+    const formattedDates = habitCompletions.map(completion => {
+      const dateParts = completion.dateStr.split('-');
+      return `${dateParts[0]}년 ${dateParts[1]}월 ${dateParts[2]}일`;
+    });
+    
+    const modalContent = `
+      <div class="habit-details">
+        <h3>${habit.title}</h3>
+        ${habit.description ? `<p>${habit.description}</p>` : ''}
+        
+        <div class="habit-completion-stats">
+          <h4>완료한 날짜 (${habitCompletions.length}일)</h4>
+          ${habitCompletions.length > 0 ? 
+            `<ul class="completed-dates-list">
+              ${formattedDates.map(date => `<li>${date}</li>`).join('')}
+            </ul>` 
+            : '<p>아직 완료한 날짜가 없습니다.</p>'
+          }
+        </div>
+      </div>
+    `;
+    
+    showModal(`습관 상세 정보`, modalContent);
+  } catch (error) {
+    console.error("습관 정보 로드 중 오류 발생:", error);
+    alert('습관 정보를 불러오는 중 오류가 발생했습니다.');
+  }
+}
+
+// 습관 편집 폼 표시
+async function editHabit(habitId) {
+  try {
+    const habitDoc = await db.collection("habits").doc(habitId).get();
+    
+    if (!habitDoc.exists) {
+      alert('습관 정보를 찾을 수 없습니다.');
+      return;
+    }
+    
+    const habit = habitDoc.data();
+    const habitCompletions = completedDates[habitId] || [];
+    
+    const modalContent = `
+      <form id="habit-form">
+        <input type="hidden" id="habit-id" value="${habitId}">
+        <div class="form-group">
+          <label for="habit-title">습관 제목</label>
+          <input type="text" id="habit-title" value="${habit.title}" required>
+        </div>
+        <div class="form-group">
+          <label for="habit-description">설명 (선택사항)</label>
+          <textarea id="habit-description" rows="3" placeholder="습관에 대한 설명을 입력하세요...">${habit.description || ''}</textarea>
+        </div>
+        <div class="form-group">
+          <label>완료한 날짜 (${habitCompletions.length}일)</label>
+          <div class="completed-dates-container">
+            ${habitCompletions.length > 0 ? 
+              `<ul class="completed-dates-list">
+                ${habitCompletions.map(completion => `
+                  <li>
+                    ${completion.dateStr}
+                    <button type="button" onclick="removeCompletionDate('${habitId}', '${completion.id}')">삭제</button>
+                  </li>
+                `).join('')}
+              </ul>` 
+              : '<p>완료한 날짜가 없습니다.</p>'
+            }
+          </div>
+        </div>
+      </form>
+    `;
+    
+    showModal("습관 수정", modalContent, updateHabit);
+  } catch (error) {
+    console.error("습관 정보 로드 중 오류 발생:", error);
+    alert('습관 정보를 불러오는 중 오류가 발생했습니다.');
+  }
+}
+
+// 완료 날짜 삭제
+async function removeCompletionDate(habitId, completionId) {
+  try {
+    await db.collection("habits").doc(habitId).collection("completions").doc(completionId).delete();
+    
+    // 로컬 상태 업데이트
+    const habitCompletions = completedDates[habitId] || [];
+    const index = habitCompletions.findIndex(c => c.id === completionId);
+    
+    if (index !== -1) {
+      habitCompletions.splice(index, 1);
+      completedDates[habitId] = habitCompletions;
+    }
+    
+    // 모달 내용 새로고침 (현재 모달을 닫고 다시 열기)
+    closeModal();
+    editHabit(habitId);
+  } catch (error) {
+    console.error("완료 날짜 삭제 중 오류 발생:", error);
+    alert('완료 날짜를 삭제하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 습관 업데이트
+async function updateHabit() {
+  const habitId = document.getElementById('habit-id').value;
+  const titleEl = document.getElementById('habit-title');
+  const descriptionEl = document.getElementById('habit-description');
+  
+  if (!titleEl.value) {
+    alert('습관 제목은 필수 입력 항목입니다.');
+    return;
+  }
+  
+  try {
+    // 습관 데이터 구성
+    const habitData = {
+      title: titleEl.value,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    if (descriptionEl.value.trim()) {
+      habitData.description = descriptionEl.value.trim();
+    } else {
+      habitData.description = firebase.firestore.FieldValue.delete();
+    }
+    
+    // Firestore에 업데이트
+    await db.collection("habits").doc(habitId).update(habitData);
+    
+    // 모달 닫기
+    closeModal();
+    
+    // 습관 목록 새로고침
+    loadHabits();
+  } catch (error) {
+    console.error("습관 업데이트 중 오류 발생:", error);
+    alert('습관을 업데이트하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 습관 삭제
+async function deleteHabit(habitId) {
+  if (confirm('정말로 이 습관을 삭제하시겠습니까? 모든 완료 정보도 함께 삭제됩니다.')) {
+    try {
+      // 먼저 모든 완료 정보 삭제
+      const completionsSnapshot = await db.collection("habits").doc(habitId).collection("completions").get();
+      const batch = db.batch();
+      
+      completionsSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      
+      // 배치 작업 실행
+      await batch.commit();
+      
+      // 습관 삭제
+      await db.collection("habits").doc(habitId).delete();
+      
+      // 습관 목록 새로고침
+      loadHabits();
+    } catch (error) {
+      console.error("습관 삭제 중 오류 발생:", error);
+      alert('습관을 삭제하는 중 오류가 발생했습니다.');
+    }
+  }
+}
