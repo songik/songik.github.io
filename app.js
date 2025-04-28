@@ -3737,6 +3737,13 @@ async function showHabitCalendar(habitId) {
     const daysInMonth = lastDay.getDate();
     const firstDayOfWeek = firstDay.getDay(); // 0: 일요일, 1: 월요일, ...
     
+    // 로컬 스토리지에서 선택된 날짜 불러오기
+    let selectedDates = [];
+    const savedDates = localStorage.getItem('selectedDates');
+    if (savedDates) {
+      selectedDates = JSON.parse(savedDates);
+    }
+    
     // 달력 HTML 생성
     let calendarHTML = `
       <div class="habit-calendar-header">
@@ -3771,6 +3778,10 @@ async function showHabitCalendar(habitId) {
       
       const isCompleted = record && record.completed;
       
+      // 이 날짜가 선택되었는지 확인
+      const dateStr = formatDate(date);
+      const isSelected = selectedDates.includes(dateStr);
+      
       // 오늘 날짜 표시
       const isToday = date.getTime() === new Date().setHours(0, 0, 0, 0);
       
@@ -3778,13 +3789,12 @@ async function showHabitCalendar(habitId) {
       let dayClass = "habit-day selectable-day";
       if (isCompleted) dayClass += " completed";
       if (isToday) dayClass += " today";
-      
-      const dateStr = formatDate(date);
+      if (isSelected) dayClass += " selected";
       
       calendarHTML += `
         <div class="${dayClass}" 
              data-date="${dateStr}" 
-             onclick="toggleHabitDate('${dateStr}', this)">
+             onclick="toggleHabitDay('${habitId}', '${dateStr}', ${isSelected}, ${isCompleted})">
           ${day}
           <div class="habit-check-circle ${isCompleted ? 'checked' : ''}">
             ${isCompleted ? '✓' : ''}
@@ -3922,20 +3932,35 @@ async function showHabitCalendar(habitId) {
         document.querySelectorAll('.selectable-day').forEach(day => {
           if (!day.classList.contains('selected') && !day.classList.contains('completed')) {
             day.classList.add('selected');
+            const dateStr = day.getAttribute('data-date');
+            if (dateStr && !selectedDates.includes(dateStr)) {
+              selectedDates.push(dateStr);
+            }
           }
         });
+        // 로컬 스토리지에 저장
+        localStorage.setItem('selectedDates', JSON.stringify(selectedDates));
       });
       
       // 선택 해제 버튼
       document.getElementById('clear-selection-btn').addEventListener('click', () => {
         document.querySelectorAll('.selectable-day.selected').forEach(day => {
           day.classList.remove('selected');
+          const dateStr = day.getAttribute('data-date');
+          if (dateStr) {
+            const index = selectedDates.indexOf(dateStr);
+            if (index > -1) {
+              selectedDates.splice(index, 1);
+            }
+          }
         });
+        // 로컬 스토리지에 저장
+        localStorage.setItem('selectedDates', JSON.stringify(selectedDates));
       });
       
       // 저장 버튼
       document.getElementById('save-habit-dates').addEventListener('click', () => {
-        saveSelectedHabitDates(habitId);
+        saveHabitCalendar(habitId);
       });
     }, 300);
     
@@ -4148,6 +4173,117 @@ async function deleteHabit(habitId) {
       console.error("습관 삭제 중 오류 발생:", error);
       alert('습관을 삭제하는 중 오류가 발생했습니다.');
     }
+  }
+}
+
+// 습관 날짜 토글 (선택/해제 및 완료/미완료)
+async function toggleHabitDay(habitId, dateStr, isSelected, isCompleted) {
+  try {
+    // 로컬 스토리지에서 선택된 날짜 불러오기
+    let selectedDates = [];
+    const savedDates = localStorage.getItem('selectedDates');
+    if (savedDates) {
+      selectedDates = JSON.parse(savedDates);
+    }
+    
+    // 날짜 선택 상태 토글
+    const selectedIndex = selectedDates.indexOf(dateStr);
+    if (selectedIndex > -1) {
+      // 이미 선택된 날짜면 제거
+      selectedDates.splice(selectedIndex, 1);
+      
+      // 모달에서 선택 표시 제거
+      const dayEl = document.querySelector(`.habit-day[data-date="${dateStr}"]`);
+      if (dayEl) {
+        dayEl.classList.remove('selected');
+      }
+    } else {
+      // 선택되지 않은 날짜면 추가
+      selectedDates.push(dateStr);
+      
+      // 모달에서 선택 표시 추가
+      const dayEl = document.querySelector(`.habit-day[data-date="${dateStr}"]`);
+      if (dayEl) {
+        dayEl.classList.add('selected');
+      }
+    }
+    
+    // 로컬 스토리지에 저장
+    localStorage.setItem('selectedDates', JSON.stringify(selectedDates));
+    
+    // 완료 상태 토글 (클릭했을 때 체크 표시 부분을 누른 경우)
+    const clickTarget = event.target;
+    if (clickTarget.classList.contains('habit-check-circle')) {
+      const date = new Date(dateStr);
+      date.setHours(0, 0, 0, 0);
+      
+      const nextDate = new Date(date);
+      nextDate.setDate(date.getDate() + 1);
+      
+      // 해당 날짜의 기록 확인
+      const recordsRef = db.collection("habits").doc(habitId).collection("records");
+      const snapshot = await recordsRef
+        .where("date", ">=", date)
+        .where("date", "<", nextDate)
+        .get();
+      
+      if (snapshot.empty && !isCompleted) {
+        // 기록이 없고 완료되지 않은 상태라면 완료 기록 추가
+        await recordsRef.add({
+          date: firebase.firestore.Timestamp.fromDate(date),
+          completed: true,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // 완료 표시 업데이트
+        clickTarget.classList.add('checked');
+        clickTarget.innerHTML = '✓';
+        clickTarget.parentElement.classList.add('completed');
+      } else if (!snapshot.empty && isCompleted) {
+        // 기록이 있고 완료된 상태라면 완료 기록 삭제
+        await snapshot.docs[0].ref.update({
+          completed: false,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // 완료 표시 업데이트
+        clickTarget.classList.remove('checked');
+        clickTarget.innerHTML = '';
+        clickTarget.parentElement.classList.remove('completed');
+      }
+    }
+  } catch (error) {
+    console.error("습관 날짜 토글 중 오류 발생:", error);
+    alert('습관 날짜 상태를 변경하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 습관 달력 설정 저장 및 모달 닫기
+function saveHabitCalendar(habitId) {
+  // 추가 저장 로직이 필요한 경우 여기에 구현
+  
+  // 모달 닫기
+  closeModal();
+  
+  // 습관 목록 새로고침
+  loadHabits();
+}
+
+// 이전 버전과의 호환성을 위한 래퍼 함수
+function toggleHabitDate(dateStr, element) {
+  // 현재 활성화된 습관 ID 찾기
+  const habitDetail = element.closest('.habit-detail');
+  const habitId = habitDetail ? habitDetail.getAttribute('data-habit-id') : null;
+  
+  if (habitId) {
+    // 현재 상태 확인
+    const isSelected = element.classList.contains('selected');
+    const isCompleted = element.classList.contains('completed');
+    
+    // 새로운 함수로 전달
+    toggleHabitDay(habitId, dateStr, isSelected, isCompleted);
+  } else {
+    console.error('습관 ID를 찾을 수 없습니다.');
   }
 }
 
