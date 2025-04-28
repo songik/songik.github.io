@@ -3283,32 +3283,32 @@ function renderHabitsPage(container) {
       <div class="page-header">
         <h1>습관 관리</h1>
         <div class="page-actions">
-          <div class="view-toggle">
-            <button id="list-view-button" class="${currentView === 'list' ? 'active' : ''}" onclick="toggleView('list')">
-              <i class="fas fa-list"></i> 리스트
-            </button>
-            <button id="calendar-view-button" class="${currentView === 'calendar' ? 'active' : ''}" onclick="toggleView('calendar')">
-              <i class="fas fa-calendar-alt"></i> 달력
-            </button>
-          </div>
           <button onclick="showAddHabitForm()">습관 추가</button>
         </div>
       </div>
       
-      <div id="calendar-view-container" class="calendar-container" style="display: ${currentView === 'calendar' ? 'block' : 'none'}">
-        <div id="habit-calendar"></div>
+      <div class="card">
+        <h2 class="card-title">습관 달력</h2>
+        <div class="habit-mode-toggle">
+          <button id="selection-mode-btn" class="active" onclick="toggleHabitMode('selection')">날짜 선택 모드</button>
+          <button id="completion-mode-btn" onclick="toggleHabitMode('completion')">완료 체크 모드</button>
+        </div>
+        <div id="habit-calendar-container">
+          <!-- 달력이 여기에 표시됩니다 -->
+        </div>
       </div>
       
-      <div id="list-view-container" style="display: ${currentView === 'list' ? 'block' : 'none'}">
-        <div class="card">
-          <h2 class="card-title">습관 목록</h2>
-          <div id="habits-list">
-            <p>습관을 불러오는 중...</p>
-          </div>
+      <div class="card">
+        <h2 class="card-title">습관 목록</h2>
+        <div id="habits-list">
+          <p>습관을 불러오는 중...</p>
         </div>
       </div>
     </div>
   `;
+  
+  // 현재 연도와 월로 달력 렌더링
+  renderHabitCalendar(new Date().getFullYear(), new Date().getMonth());
   
   // 습관 데이터 불러오기
   loadHabits();
@@ -4166,7 +4166,288 @@ async function deleteHabit(habitId) {
     }
   }
 }
+// 전역 변수 추가 (파일 상단의 app 상태 변수 근처에 추가)
+let habitMode = 'selection'; // 'selection' 또는 'completion'
+let selectedDates = []; // 선택된 날짜들을 저장
+let completedDates = {}; // 완료된 날짜들을 저장 (habitId를 키로 사용)
 
+// 습관 모드 전환 (선택 모드 <-> 완료 모드)
+function toggleHabitMode(mode) {
+  habitMode = mode;
+  
+  // 버튼 활성화 상태 변경
+  document.getElementById('selection-mode-btn').classList.toggle('active', mode === 'selection');
+  document.getElementById('completion-mode-btn').classList.toggle('active', mode === 'completion');
+  
+  // 달력 UI 업데이트
+  updateHabitCalendarUI();
+}
+
+// 습관 달력 렌더링
+function renderHabitCalendar(year, month) {
+  const calendarContainer = document.getElementById('habit-calendar-container');
+  
+  // 현재 날짜 정보
+  const today = new Date();
+  const currentDate = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const firstDayOfWeek = currentDate.getDay(); // 0: 일요일, 1: 월요일, ...
+  
+  // 달력 헤더 생성
+  let calendarHTML = `
+    <div class="calendar-header">
+      <button onclick="navigateHabitCalendar(${year}, ${month-1})" class="prev-month">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h3>${year}년 ${month+1}월</h3>
+      <button onclick="navigateHabitCalendar(${year}, ${month+1})" class="next-month">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+    
+    <div class="calendar-weekdays">
+      <div>일</div>
+      <div>월</div>
+      <div>화</div>
+      <div>수</div>
+      <div>목</div>
+      <div>금</div>
+      <div>토</div>
+    </div>
+    
+    <div class="calendar-days" id="habit-calendar-days">
+  `;
+  
+  // 이전 달의 마지막 날짜들로 채우기
+  const prevMonth = new Date(year, month, 0);
+  const prevMonthLastDay = prevMonth.getDate();
+  const prevMonthYear = prevMonth.getFullYear();
+  const prevMonthMonth = prevMonth.getMonth();
+  
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    const day = prevMonthLastDay - firstDayOfWeek + i + 1;
+    const dateStr = `${prevMonthYear}-${(prevMonthMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    
+    calendarHTML += `
+      <div class="habit-calendar-day other-month" data-date="${dateStr}" onclick="toggleDateSelection('${dateStr}')">
+        <span class="date-number">${day}</span>
+        <div class="habit-marker" data-date="${dateStr}"></div>
+      </div>
+    `;
+  }
+  
+  // 이번 달 날짜 채우기
+  for (let day = 1; day <= lastDay; day++) {
+    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+    
+    calendarHTML += `
+      <div class="habit-calendar-day current-month ${isToday ? 'today' : ''}" data-date="${dateStr}" onclick="toggleDateSelection('${dateStr}')">
+        <span class="date-number">${day}</span>
+        <div class="habit-marker" data-date="${dateStr}"></div>
+      </div>
+    `;
+  }
+  
+  // 다음 달의 첫 날짜들로 채우기
+  const nextMonth = new Date(year, month + 1, 1);
+  const nextMonthYear = nextMonth.getFullYear();
+  const nextMonthMonth = nextMonth.getMonth();
+  const lastDayOfWeek = new Date(year, month + 1, 0).getDay();
+  const daysToAdd = 6 - lastDayOfWeek;
+  
+  for (let day = 1; day <= daysToAdd; day++) {
+    const dateStr = `${nextMonthYear}-${(nextMonthMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    
+    calendarHTML += `
+      <div class="habit-calendar-day other-month" data-date="${dateStr}" onclick="toggleDateSelection('${dateStr}')">
+        <span class="date-number">${day}</span>
+        <div class="habit-marker" data-date="${dateStr}"></div>
+      </div>
+    `;
+  }
+  
+  calendarHTML += '</div>';
+  calendarContainer.innerHTML = calendarHTML;
+  
+  // 달력 UI 업데이트
+  updateHabitCalendarUI();
+}
+
+// 날짜 선택/해제 토글
+function toggleDateSelection(dateStr) {
+  if (habitMode === 'selection') {
+    // 선택 모드에서는 날짜 선택/해제
+    const index = selectedDates.indexOf(dateStr);
+    if (index > -1) {
+      // 이미 선택된 날짜면 선택 해제
+      selectedDates.splice(index, 1);
+    } else {
+      // 선택되지 않은 날짜면 선택
+      selectedDates.push(dateStr);
+    }
+  } else if (habitMode === 'completion') {
+    // 완료 모드에서는 완료 상태 토글
+    // 선택된 날짜에 대해서만 완료 토글 가능
+    if (selectedDates.includes(dateStr)) {
+      const currentHabitId = document.querySelector('#habits-list .active-habit')?.dataset.id;
+      if (currentHabitId) {
+        if (!completedDates[currentHabitId]) {
+          completedDates[currentHabitId] = [];
+        }
+        
+        const index = completedDates[currentHabitId].indexOf(dateStr);
+        if (index > -1) {
+          // 이미 완료된 날짜면 완료 해제
+          completedDates[currentHabitId].splice(index, 1);
+          updateHabitRecord(currentHabitId, dateStr, false);
+        } else {
+          // 완료되지 않은 날짜면 완료 표시
+          completedDates[currentHabitId].push(dateStr);
+          updateHabitRecord(currentHabitId, dateStr, true);
+        }
+      }
+    }
+  }
+  
+  // 달력 UI 업데이트
+  updateHabitCalendarUI();
+  
+  // 선택된 날짜 저장 (로컬 스토리지)
+  localStorage.setItem('selectedDates', JSON.stringify(selectedDates));
+}
+
+// 달력 네비게이션 (월 변경)
+function navigateHabitCalendar(year, month) {
+  // 월이 범위를 벗어나면 연도 조정
+  if (month < 0) {
+    month = 11;
+    year--;
+  } else if (month > 11) {
+    month = 0;
+    year++;
+  }
+  
+  renderHabitCalendar(year, month);
+}
+
+// 달력 UI 업데이트
+function updateHabitCalendarUI() {
+  const markers = document.querySelectorAll('.habit-marker');
+  const currentHabitId = document.querySelector('#habits-list .active-habit')?.dataset.id;
+  
+  markers.forEach(marker => {
+    const dateStr = marker.dataset.date;
+    
+    // 선택 상태 표시
+    marker.classList.toggle('selected', selectedDates.includes(dateStr));
+    
+    // 완료 상태 표시 (현재 선택된 습관에 대해서만)
+    if (currentHabitId && completedDates[currentHabitId]) {
+      marker.classList.toggle('completed', completedDates[currentHabitId].includes(dateStr));
+    } else {
+      marker.classList.remove('completed');
+    }
+  });
+}
+
+// 습관 선택 이벤트 핸들러 (습관 목록에서 클릭했을 때)
+function selectHabit(habitId) {
+  // 기존 선택 제거
+  document.querySelectorAll('#habits-list .list-item').forEach(item => {
+    item.classList.remove('active-habit');
+  });
+  
+  // 새 선택 추가
+  document.querySelector(`.list-item[data-id="${habitId}"]`).classList.add('active-habit');
+  
+  // 달력 UI 업데이트
+  updateHabitCalendarUI();
+}
+
+// 기존 loadHabits 함수 수정
+async function loadHabits() {
+  try {
+    const habitsRef = db.collection("habits");
+    const snapshot = await habitsRef.orderBy("createdAt", "desc").get();
+    
+    const habits = [];
+    
+    for (const doc of snapshot.docs) {
+      const habit = doc.data();
+      
+      // 습관 완료 기록 불러오기
+      const recordsSnapshot = await db.collection("habits").doc(doc.id).collection("records").get();
+      
+      // completedDates 객체에 저장
+      completedDates[doc.id] = [];
+      
+      recordsSnapshot.forEach(recordDoc => {
+        const record = recordDoc.data();
+        if (record.completed) {
+          const dateStr = formatDate(record.date.toDate());
+          completedDates[doc.id].push(dateStr);
+        }
+      });
+      
+      habits.push({
+        id: doc.id,
+        name: habit.name,
+        category: habit.category || '기타',
+        createdAt: habit.createdAt.toDate()
+      });
+    }
+    
+    // 선택된 날짜 불러오기 (로컬 스토리지)
+    const savedSelectedDates = localStorage.getItem('selectedDates');
+    if (savedSelectedDates) {
+      selectedDates = JSON.parse(savedSelectedDates);
+    }
+    
+    renderHabitsList(habits);
+    updateHabitCalendarUI();
+  } catch (error) {
+    console.error("습관을 불러오는 중 오류 발생:", error);
+    document.getElementById("habits-list").innerHTML = '<p>습관을 불러오는 중 오류가 발생했습니다.</p>';
+  }
+}
+
+// 습관 리스트 렌더링 함수 수정
+function renderHabitsList(habits) {
+  const habitsListEl = document.getElementById("habits-list");
+  
+  if (habits.length === 0) {
+    habitsListEl.innerHTML = '<p>등록된 습관이 없습니다.</p>';
+    return;
+  }
+  
+  let html = '<ul class="list-container">';
+  
+  habits.forEach((habit, index) => {
+    html += `
+      <li class="list-item ${index === 0 ? 'active-habit' : ''}" data-id="${habit.id}" onclick="selectHabit('${habit.id}')">
+        <div class="list-item-content">
+          <div class="list-item-title">${habit.name}</div>
+          <div class="list-item-description">
+            <span class="habit-category">${habit.category}</span>
+          </div>
+        </div>
+        <div class="list-item-actions">
+          <button onclick="editHabit('${habit.id}'); event.stopPropagation();">수정</button>
+          <button onclick="deleteHabit('${habit.id}'); event.stopPropagation();">삭제</button>
+        </div>
+      </li>
+    `;
+  });
+  
+  html += '</ul>';
+  habitsListEl.innerHTML = html;
+  
+  // 첫 번째 습관 선택 (있는 경우)
+  if (habits.length > 0) {
+    selectHabit(habits[0].id);
+  }
+}
 // =========== 검색 기능 ===========
 
 // 검색 페이지 렌더링
