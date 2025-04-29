@@ -1633,8 +1633,8 @@ function renderProgressPage(container) {
 async function loadGoals() {
   try {
     const goalsRef = db.collection("goals");
-    // 간단하게 변경 - 모든 목표 가져오기
-    const snapshot = await goalsRef.get();
+    // createdAt 필드로만 정렬 (모든 목표에 있을 가능성이 높은 필드)
+    const snapshot = await goalsRef.orderBy("createdAt", "desc").get();
       
     const goalsContainerEl = document.getElementById("goals-container");
     
