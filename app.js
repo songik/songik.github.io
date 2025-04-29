@@ -609,7 +609,119 @@ function renderEventsList(events) {
   eventsListEl.innerHTML = html;
 }
 
-// 일정 달력 렌더링
+// 날짜 배경색 설정 함수
+function showDateColorForm(date) {
+  const formattedDate = formatDate(date);
+  
+  const modalContent = `
+    <form id="date-color-form">
+      <div class="form-group">
+        <label for="background-color">배경색 선택</label>
+        <input type="color" id="background-color" value="#e8f5e9">
+      </div>
+      <div class="form-group">
+        <label for="color-note">메모 (선택사항)</label>
+        <input type="text" id="color-note" placeholder="이 날짜 메모 (예: 중요한 날)">
+      </div>
+    </form>
+  `;
+  
+  showModal(`${formattedDate} 배경색 설정`, modalContent, function() {
+    saveDateBackground(date, document.getElementById('background-color').value, document.getElementById('color-note').value);
+  });
+}
+
+// 날짜 배경색 저장
+async function saveDateBackground(date, color, note = '') {
+  try {
+    const formattedDate = formatDate(date);
+    
+    // 날짜 배경색 데이터 생성
+    const colorData = {
+      date: firebase.firestore.Timestamp.fromDate(new Date(formattedDate)),
+      color: color,
+      note: note,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // 기존 설정 확인
+    const dateColorRef = db.collection("dateColors");
+    const snapshot = await dateColorRef.where("date", "==", colorData.date).get();
+    
+    if (snapshot.empty) {
+      // 새로 추가
+      await dateColorRef.add(colorData);
+    } else {
+      // 업데이트
+      await dateColorRef.doc(snapshot.docs[0].id).update({
+        color: color,
+        note: note,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    
+    // 모달 닫기
+    closeModal();
+    
+    // 달력 새로고침
+    loadEvents();
+    
+  } catch (error) {
+    console.error("날짜 배경색 저장 중 오류 발생:", error);
+    alert('날짜 배경색을 저장하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 날짜 배경색 삭제
+async function deleteDateBackground(date) {
+  if (confirm('이 날짜의 배경색 설정을 삭제하시겠습니까?')) {
+    try {
+      const formattedDate = formatDate(date);
+      const dateTs = firebase.firestore.Timestamp.fromDate(new Date(formattedDate));
+      
+      // 기존 설정 확인
+      const dateColorRef = db.collection("dateColors");
+      const snapshot = await dateColorRef.where("date", "==", dateTs).get();
+      
+      if (!snapshot.empty) {
+        // 삭제
+        await dateColorRef.doc(snapshot.docs[0].id).delete();
+      }
+      
+      // 달력 새로고침
+      loadEvents();
+      
+    } catch (error) {
+      console.error("날짜 배경색 삭제 중 오류 발생:", error);
+      alert('날짜 배경색을 삭제하는 중 오류가 발생했습니다.');
+    }
+  }
+}
+
+// 로딩 시 날짜 배경색 적용
+async function loadDateColors() {
+  try {
+    const dateColorRef = db.collection("dateColors");
+    const snapshot = await dateColorRef.get();
+    
+    const dateColors = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      dateColors.push({
+        id: doc.id,
+        date: data.date.toDate(),
+        color: data.color,
+        note: data.note || ''
+      });
+    });
+    
+    return dateColors;
+  } catch (error) {
+    console.error("날짜 배경색 로드 중 오류 발생:", error);
+    return [];
+  }
+}
+
 // 일정 달력 렌더링
 function renderEventsCalendar(events) {
   const calendarEl = document.getElementById('calendar');
@@ -625,42 +737,185 @@ function renderEventsCalendar(events) {
     }
   }
   
-  try {
-    // FullCalendar 초기화
-    window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
-      headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay'
-      },
-      initialView: 'dayGridMonth',
-      locale: 'ko',
-      events: events || [],
-      editable: true,
-      selectable: true,
-      selectMirror: true,
-      dayMaxEvents: true,
-      // 날짜 선택 시 이벤트 추가 폼 표시
-      select: function(info) {
-        showAddEventForm(info.startStr, info.endStr, info.allDay);
-      },
-      // 이벤트 클릭 시 편집 폼 표시
-      eventClick: function(info) {
-        editEvent(info.event.id);
-      },
-      // 이벤트 드래그 앤 드롭으로 변경
-      eventDrop: function(info) {
-        updateEventDates(info.event.id, info.event.start, info.event.end, info.event.allDay);
-      },
-      // 이벤트 리사이징으로 기간 변경
-      eventResize: function(info) {
-        updateEventDates(info.event.id, info.event.start, info.event.end, info.event.allDay);
-      }
-    });
+  // 한국 공휴일 추가 함수
+  function addKoreanHolidays(year) {
+    const holidays = [
+      // 양력 공휴일
+      { title: '신정', start: `${year}-01-01` },
+      { title: '3·1절', start: `${year}-03-01` },
+      { title: '어린이날', start: `${year}-05-05` },
+      { title: '현충일', start: `${year}-06-06` },
+      { title: '광복절', start: `${year}-08-15` },
+      { title: '개천절', start: `${year}-10-03` },
+      { title: '한글날', start: `${year}-10-09` },
+      { title: '크리스마스', start: `${year}-12-25` }
+    ];
     
-    // 명시적으로 렌더링 호출
-    window.eventCalendar.render();
-    console.log("캘린더가 성공적으로 렌더링되었습니다.");
+    // 설날(음력 1/1) - 3일
+    // 추석(음력 8/15) - 3일
+    // 부처님 오신 날(음력 4/8) - 1일
+    // 이 날짜들은 해당 연도의 음력 날짜를 양력으로 변환해야 함
+    // 여기서는 2025년도 기준으로 고정 날짜 기입
+    if (year === 2025) {
+      // 2025년 설날
+      holidays.push({ title: '설날 연휴', start: '2025-01-28' });
+      holidays.push({ title: '설날', start: '2025-01-29' });
+      holidays.push({ title: '설날 연휴', start: '2025-01-30' });
+      
+      // 2025년 부처님 오신 날
+      holidays.push({ title: '부처님 오신 날', start: '2025-05-05' });
+      
+      // 2025년 추석
+      holidays.push({ title: '추석 연휴', start: '2025-09-29' });
+      holidays.push({ title: '추석', start: '2025-09-30' });
+      holidays.push({ title: '추석 연휴', start: '2025-10-01' });
+    }
+    
+    // 대체 공휴일 처리는 필요시 추가
+    
+    return holidays.map(holiday => ({
+      ...holiday,
+      display: 'background',
+      color: '#ffcdd2',
+      classNames: ['holiday-event']
+    }));
+  }
+  
+  try {
+    // 현재 연도와 전후 1년의 공휴일 추가
+    const currentYear = new Date().getFullYear();
+    const koreanHolidays = [
+      ...addKoreanHolidays(currentYear - 1),
+      ...addKoreanHolidays(currentYear),
+      ...addKoreanHolidays(currentYear + 1)
+    ];
+    
+try {
+    // 날짜 배경색 로드
+    loadDateColors().then(dateColors => {
+      // 현재 연도와 전후 1년의 공휴일 추가 (이 부분은 공휴일 코드가 추가되어 있다고 가정)
+      const currentYear = new Date().getFullYear();
+      const koreanHolidays = []; // 공휴일 데이터 (1.01 기능에서 추가됨)
+      
+      // 날짜 배경색을 이벤트로 변환
+      const colorEvents = dateColors.map(dc => ({
+        start: formatDate(dc.date),
+        end: formatDate(dc.date),
+        display: 'background',
+        color: dc.color,
+        classNames: ['date-color-event'],
+        extendedProps: {
+          isDateColor: true,
+          note: dc.note
+        }
+      }));
+      
+      // FullCalendar 초기화
+      window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        initialView: 'dayGridMonth',
+        locale: 'ko',
+        events: [...events, ...koreanHolidays, ...colorEvents],
+        editable: true,
+        selectable: true,
+        selectMirror: true,
+        dayMaxEvents: true,
+        // 날짜 선택 시 이벤트 추가 폼 표시
+        select: function(info) {
+          showAddEventForm(info.startStr, info.endStr, info.allDay);
+        },
+        // 이벤트 클릭 시 편집 폼 표시
+        eventClick: function(info) {
+          if (!info.event.extendedProps.isHoliday && !info.event.extendedProps.isDateColor) {
+            editEvent(info.event.id);
+          }
+        },
+        // 이벤트 드래그 앤 드롭으로 변경
+        eventDrop: function(info) {
+          updateEventDates(info.event.id, info.event.start, info.event.end, info.event.allDay);
+        },
+        // 이벤트 리사이징으로 기간 변경
+        eventResize: function(info) {
+          updateEventDates(info.event.id, info.event.start, info.event.end, info.event.allDay);
+        },
+        dateClick: function(info) {
+          // 날짜를 클릭했을 때 컨텍스트 메뉴 표시
+          const dateStr = info.dateStr;
+          const menuItems = [
+            {
+              label: '일정 추가',
+              action: () => showAddEventForm(dateStr)
+            },
+            {
+              label: '배경색 설정',
+              action: () => showDateColorForm(new Date(dateStr))
+            }
+          ];
+          
+          // 해당 날짜에 이미 배경색이 있는지 확인
+          const hasColorBackground = dateColors.some(dc => 
+            formatDate(dc.date) === dateStr);
+          
+          if (hasColorBackground) {
+            menuItems.push({
+              label: '배경색 삭제',
+              action: () => deleteDateBackground(new Date(dateStr))
+            });
+          }
+          
+          // 컨텍스트 메뉴 생성
+          const menu = document.createElement('div');
+          menu.className = 'date-context-menu';
+          menu.style.position = 'absolute';
+          menu.style.left = info.jsEvent.pageX + 'px';
+          menu.style.top = info.jsEvent.pageY + 'px';
+          menu.style.backgroundColor = 'white';
+          menu.style.padding = '5px';
+          menu.style.border = '1px solid #ccc';
+          menu.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+          menu.style.zIndex = '9999';
+          
+          menuItems.forEach(item => {
+            const menuItem = document.createElement('div');
+            menuItem.textContent = item.label;
+            menuItem.style.padding = '5px 10px';
+            menuItem.style.cursor = 'pointer';
+            menuItem.style.borderBottom = '1px solid #eee';
+            menuItem.addEventListener('click', () => {
+              document.body.removeChild(menu);
+              item.action();
+            });
+            menuItem.addEventListener('mouseover', () => {
+              menuItem.style.backgroundColor = '#f5f5f5';
+            });
+            menuItem.addEventListener('mouseout', () => {
+              menuItem.style.backgroundColor = 'transparent';
+            });
+            menu.appendChild(menuItem);
+          });
+          
+          document.body.appendChild(menu);
+          
+          // 메뉴 외부 클릭 시 메뉴 제거
+          document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target)) {
+              if (document.body.contains(menu)) {
+                document.body.removeChild(menu);
+              }
+              document.removeEventListener('click', closeMenu);
+            }
+          });
+        }
+      });
+      
+      // 명시적으로 렌더링 호출
+      window.eventCalendar.render();
+      console.log("캘린더가 성공적으로 렌더링되었습니다.");
+    });
   } catch (error) {
     console.error("캘린더 초기화 중 오류 발생:", error);
     if (calendarEl) {
