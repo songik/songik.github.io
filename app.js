@@ -1633,9 +1633,9 @@ function renderProgressPage(container) {
 async function loadGoals() {
   try {
     const goalsRef = db.collection("goals");
-    // 순서 필드 추가: 사용자가 지정한 순서로 정렬, 완료 상태로 구분, 마지막으로 생성일 역순
-    const snapshot = await goalsRef.orderBy("order", "asc").orderBy("completed", "asc").orderBy("createdAt", "desc").get();
-    
+    // 간단하게 변경 - 모든 목표 가져오기
+    const snapshot = await goalsRef.get();
+      
     const goalsContainerEl = document.getElementById("goals-container");
     
     if (snapshot.empty) {
