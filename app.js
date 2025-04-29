@@ -18,8 +18,6 @@ let isModalOpen = false;
 // 사용자 인증 확인
 // app.js 파일의 checkAuth 함수
 function checkAuth() {
-  // 인증 상태 초기화 (테스트를 위해 잠시 추가)
-  localStorage.removeItem("isAuthenticated");
   
   const isAuth = localStorage.getItem("isAuthenticated");
   if (isAuth === "true") {
