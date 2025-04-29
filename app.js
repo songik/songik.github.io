@@ -751,11 +751,7 @@ function renderEventsCalendar(events) {
       { title: '크리스마스', start: `${year}-12-25` }
     ];
     
-    // 설날(음력 1/1) - 3일
-    // 추석(음력 8/15) - 3일
-    // 부처님 오신 날(음력 4/8) - 1일
-    // 이 날짜들은 해당 연도의 음력 날짜를 양력으로 변환해야 함
-    // 여기서는 2025년도 기준으로 고정 날짜 기입
+    // 2025년 기준으로 음력 휴일 추가
     if (year === 2025) {
       // 2025년 설날
       holidays.push({ title: '설날 연휴', start: '2025-01-28' });
@@ -771,31 +767,27 @@ function renderEventsCalendar(events) {
       holidays.push({ title: '추석 연휴', start: '2025-10-01' });
     }
     
-    // 대체 공휴일 처리는 필요시 추가
-    
     return holidays.map(holiday => ({
       ...holiday,
       display: 'background',
       color: '#ffcdd2',
-      classNames: ['holiday-event']
+      classNames: ['holiday-event'],
+      extendedProps: {
+        isHoliday: true
+      }
     }));
   }
   
   try {
-    // 현재 연도와 전후 1년의 공휴일 추가
-    const currentYear = new Date().getFullYear();
-    const koreanHolidays = [
-      ...addKoreanHolidays(currentYear - 1),
-      ...addKoreanHolidays(currentYear),
-      ...addKoreanHolidays(currentYear + 1)
-    ];
-    
-try {
-    // 날짜 배경색 로드
+    // 날짜 배경색 로드 및 캘린더 초기화
     loadDateColors().then(dateColors => {
-      // 현재 연도와 전후 1년의 공휴일 추가 (이 부분은 공휴일 코드가 추가되어 있다고 가정)
+      // 현재 연도와 전후 1년의 공휴일 추가
       const currentYear = new Date().getFullYear();
-      const koreanHolidays = []; // 공휴일 데이터 (1.01 기능에서 추가됨)
+      const koreanHolidays = [
+        ...addKoreanHolidays(currentYear - 1),
+        ...addKoreanHolidays(currentYear),
+        ...addKoreanHolidays(currentYear + 1)
+      ];
       
       // 날짜 배경색을 이벤트로 변환
       const colorEvents = dateColors.map(dc => ({
@@ -915,6 +907,11 @@ try {
       // 명시적으로 렌더링 호출
       window.eventCalendar.render();
       console.log("캘린더가 성공적으로 렌더링되었습니다.");
+    }).catch(error => {
+      console.error("날짜 배경색 로드 중 오류 발생:", error);
+      if (calendarEl) {
+        calendarEl.innerHTML = '<p>날짜 배경색을 로드하는 중 오류가 발생했습니다.</p>';
+      }
     });
   } catch (error) {
     console.error("캘린더 초기화 중 오류 발생:", error);
