@@ -1625,28 +1625,33 @@ function renderProgressPage(container) {
     </div>
   `;
   
-  // 목표 데이터 불러오기
-  loadGoals();
-}
 
-// 목표 데이터 불러오기
+// 목표 데이터 불러오기 함수 수정
 async function loadGoals() {
   try {
-    const goalsRef = db.collection("goals");
-    // createdAt 필드로만 정렬 (모든 목표에 있을 가능성이 높은 필드)
-    const snapshot = await goalsRef.orderBy("createdAt", "desc").get();
-      
+    // 진행 중인 목표와 완료된 목표를 별도로 불러오는 방식으로 변경
     const goalsContainerEl = document.getElementById("goals-container");
+    goalsContainerEl.innerHTML = '<p>목표를 불러오는 중...</p>';
     
-    if (snapshot.empty) {
-      goalsContainerEl.innerHTML = '<p>등록된 목표가 없습니다.</p>';
-      return;
-    }
+    // 1. 진행 중인 목표 불러오기 (completed=false)
+    const activeGoalsRef = db.collection("goals")
+      .where("completed", "==", false)
+      .orderBy("order", "asc");
     
-    let html = '';
+    const activeSnapshot = await activeGoalsRef.get();
+    
+    // 2. 완료된 목표 불러오기 (completed=true)
+    const completedGoalsRef = db.collection("goals")
+      .where("completed", "==", true)
+      .orderBy("createdAt", "desc");
+    
+    const completedSnapshot = await completedGoalsRef.get();
+    
+    // 목표 데이터를 저장할 배열
     const goals = [];
     
-    for (const doc of snapshot.docs) {
+    // 진행 중인 목표 처리
+    for (const doc of activeSnapshot.docs) {
       const goal = doc.data();
       const goalId = doc.id;
       
@@ -1686,24 +1691,61 @@ async function loadGoals() {
         tasks,
         progress,
         isCompleted,
-        order: goal.order !== undefined ? goal.order : 9999, // 기본 순서 값
+        order: goal.order !== undefined ? goal.order : 9999,
         createdAt: goal.createdAt
       });
     }
     
-    // 완료된 목표와 진행 중인 목표 구분
-    goals.sort((a, b) => {
-      // 먼저 완료 상태로 정렬
-      if (a.isCompleted !== b.isCompleted) {
-        return a.isCompleted ? 1 : -1;
-      }
-      // 그 다음 순서로 정렬
-      return a.order - b.order;
-    });
+    // 완료된 목표 처리
+    for (const doc of completedSnapshot.docs) {
+      const goal = doc.data();
+      const goalId = doc.id;
+      
+      // 목표에 속한 세부 항목 불러오기
+      const tasksSnapshot = await db.collection("goals").doc(goalId).collection("tasks").get();
+      const tasks = [];
+      let completedTasks = 0;
+      
+      tasksSnapshot.forEach(taskDoc => {
+        const task = taskDoc.data();
+        tasks.push({
+          id: taskDoc.id,
+          title: task.title,
+          completed: task.completed || false
+        });
+        
+        if (task.completed) {
+          completedTasks++;
+        }
+      });
+      
+      const progress = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+      
+      // 목표 정보를 배열에 저장
+      goals.push({
+        id: goalId,
+        title: goal.title,
+        tasks,
+        progress,
+        isCompleted: true,
+        order: goal.order !== undefined ? goal.order : 9999,
+        createdAt: goal.createdAt
+      });
+    }
+
+    // 목표가 없는 경우 처리
+    if (goals.length === 0) {
+      goalsContainerEl.innerHTML = '<p>등록된 목표가 없습니다.</p>';
+      return;
+    }
     
     // 목표 리스트 HTML 생성
+    let html = '';
+    
     goals.forEach((goal, index) => {
       const isLastItem = index === goals.length - 1;
+      const isFirstActiveGoal = index === 0 && !goal.isCompleted;
+      const isLastActiveGoal = !goal.isCompleted && (index === goals.length - 1 || goals[index + 1].isCompleted);
       
       html += `
         <div class="progress-goal ${goal.isCompleted ? 'completed' : ''}" data-id="${goal.id}">
@@ -1711,10 +1753,10 @@ async function loadGoals() {
             <h2>${goal.title}</h2>
             <div class="list-item-actions">
               ${!goal.isCompleted ? `
-                <button onclick="moveGoalUp('${goal.id}')" ${index === 0 || goals[index-1].isCompleted ? 'disabled' : ''}>
+                <button onclick="moveGoalUp('${goal.id}')" ${isFirstActiveGoal ? 'disabled' : ''}>
                   <i class="fas fa-arrow-up"></i>
                 </button>
-                <button onclick="moveGoalDown('${goal.id}')" ${isLastItem || goals[index+1].isCompleted ? 'disabled' : ''}>
+                <button onclick="moveGoalDown('${goal.id}')" ${isLastActiveGoal ? 'disabled' : ''}>
                   <i class="fas fa-arrow-down"></i>
                 </button>
               ` : ''}
@@ -1764,27 +1806,29 @@ async function loadGoals() {
   }
 }
 
-// 목표 위로 이동 함수
+// 목표 위로 이동 함수 수정
 async function moveGoalUp(goalId) {
   try {
-    // 모든 목표를 순서대로 가져오기
+    // 진행 중인 목표만 가져오기
     const goalsRef = db.collection("goals");
-    const snapshot = await goalsRef.orderBy("order", "asc").orderBy("completed", "asc").get();
+    const snapshot = await goalsRef
+      .where("completed", "==", false)
+      .orderBy("order", "asc")
+      .get();
     
     const goals = [];
     snapshot.forEach(doc => {
       goals.push({
         id: doc.id,
-        order: doc.data().order !== undefined ? doc.data().order : 9999,
-        completed: doc.data().completed || false
+        order: doc.data().order !== undefined ? doc.data().order : 9999
       });
     });
     
     // 현재 목표의 인덱스 찾기
     const currentIndex = goals.findIndex(g => g.id === goalId);
     
-    // 첫 번째거나 이전 목표가 완료된 경우 이동 불가
-    if (currentIndex <= 0 || goals[currentIndex - 1].completed) {
+    // 첫 번째이면 이동 불가
+    if (currentIndex <= 0) {
       return;
     }
     
@@ -1812,27 +1856,29 @@ async function moveGoalUp(goalId) {
   }
 }
 
-// 목표 아래로 이동 함수
+// 목표 아래로 이동 함수 수정
 async function moveGoalDown(goalId) {
   try {
-    // 모든 목표를 순서대로 가져오기
+    // 진행 중인 목표만 가져오기
     const goalsRef = db.collection("goals");
-    const snapshot = await goalsRef.orderBy("order", "asc").orderBy("completed", "asc").get();
+    const snapshot = await goalsRef
+      .where("completed", "==", false)
+      .orderBy("order", "asc")
+      .get();
     
     const goals = [];
     snapshot.forEach(doc => {
       goals.push({
         id: doc.id,
-        order: doc.data().order !== undefined ? doc.data().order : 9999,
-        completed: doc.data().completed || false
+        order: doc.data().order !== undefined ? doc.data().order : 9999
       });
     });
     
     // 현재 목표의 인덱스 찾기
     const currentIndex = goals.findIndex(g => g.id === goalId);
     
-    // 마지막이거나 다음 목표가 완료된 경우 이동 불가
-    if (currentIndex >= goals.length - 1 || goals[currentIndex + 1].completed) {
+    // 마지막이면 이동 불가
+    if (currentIndex >= goals.length - 1) {
       return;
     }
     
@@ -1883,7 +1929,7 @@ function showAddGoalForm() {
   }, 100);
 }
 
-// 목표 저장
+// 목표 저장 함수 수정 - 새 목표 생성 시
 async function saveGoal() {
   const titleEl = document.getElementById('goal-title');
   
@@ -1895,9 +1941,14 @@ async function saveGoal() {
   const description = getEditorContent('goal-description-editor');
   
   try {
-    // 현재 최소 순서 값 가져오기
+    // 현재 최소 순서 값 가져오기 (진행 중인 목표만)
     const goalsRef = db.collection("goals");
-    const snapshot = await goalsRef.orderBy("order", "asc").limit(1).get();
+    const snapshot = await goalsRef
+      .where("completed", "==", false)
+      .orderBy("order", "asc")
+      .limit(1)
+      .get();
+    
     let minOrder = 10; // 기본 시작 값
     
     if (!snapshot.empty) {
