@@ -210,7 +210,7 @@ function navigateTo(page) {
 
 // 로그아웃
 function logout() {
-  localStorage.removeItem("isAuthenticated");
+  localStorage.removeItem("isAuthenticated"); // 이 줄은 유지해야 합니다
   isAuthenticated = false;
   renderAuthPage();
 }
