@@ -4609,3 +4609,4 @@ function navigateToResult(page, id) {
 // 초기화 함수 호출
 checkAuth();
 // end marker
+console.log("App loaded @", new Date());
