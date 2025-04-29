@@ -905,3 +905,35 @@ input:focus, select:focus, textarea:focus {
   height: 16px;
   cursor: pointer;
 }
+
+/* 날짜 배경색 컨텍스트 메뉴 스타일 */
+.date-context-menu {
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.date-context-menu div:last-child {
+  border-bottom: none;
+}
+
+/* 공휴일 스타일 */
+.holiday-event {
+  font-weight: bold;
+  color: #d50000 !important;
+}
+
+.fc-day-today {
+  background-color: #e3f2fd !important;
+}
+
+/* 날짜에 메모가 있을 경우 툴팁 스타일 */
+.date-tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  z-index: 10000;
+  pointer-events: none;
+}
