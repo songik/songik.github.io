@@ -52,7 +52,7 @@
       
       if (!appElem || !appElem.innerHTML) {
         alert('앱이 정상적으로 렌더링되지 않았습니다. 수동으로 새로고침합니다.');
-        localStorage.removeItem('isAuthenticated');
+        
         window.location.reload();
       }
     }, 3000); // 3초 후 확인
