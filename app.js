@@ -2009,7 +2009,9 @@ document.head.appendChild(styleEl);
 const setupEventListeners = () => {
   // 위로 이동 버튼
   document.querySelectorAll('.move-goal-up-btn').forEach(button => {
-    button.addEventListener('click', function() {
+    button.addEventListener('click', function(event) {
+      event.stopPropagation(); // 이벤트 전파 방지
+      event.preventDefault(); // 기본 동작 방지
       const goalId = this.getAttribute('data-goal-id');
       console.log('위로 이동 버튼 클릭:', goalId);
       moveGoalUp(goalId);
@@ -2018,12 +2020,15 @@ const setupEventListeners = () => {
 
   // 아래로 이동 버튼
   document.querySelectorAll('.move-goal-down-btn').forEach(button => {
-    button.addEventListener('click', function() {
+    button.addEventListener('click', function(event) {
+      event.stopPropagation(); // 이벤트 전파 방지
+      event.preventDefault(); // 기본 동작 방지
       const goalId = this.getAttribute('data-goal-id');
       console.log('아래로 이동 버튼 클릭:', goalId);
       moveGoalDown(goalId);
     });
   });
+  
 
   // 항목 추가 버튼
   document.querySelectorAll('.add-task-btn').forEach(button => {
@@ -2081,7 +2086,16 @@ const setupEventListeners = () => {
 
 // 이벤트 리스너 설정 호출
 setupEventListeners();
-    console.log("목표 렌더링 완료");
+console.log("목표 렌더링 완료");
+
+// 추가 디버깅 로그
+console.log("이벤트 리스너 설정 완료, 상하 버튼 개수: ", 
+  document.querySelectorAll('.move-goal-up-btn').length,
+  document.querySelectorAll('.move-goal-down-btn').length);
+
+// 완료된 목표 갯수 확인
+console.log("완료된 목표 갯수:", document.querySelectorAll('.progress-goal.completed').length);
+console.log("전체 목표 갯수:", document.querySelectorAll('.progress-goal').length);
     
   } catch (error) {
     console.error("목표를 불러오는 중 오류 발생:", error);
@@ -2513,7 +2527,6 @@ async function updateTask() {
   }
 }
 
-// 세부 항목 완료 상태 토글
 async function toggleTaskComplete(goalId, taskId, completed) {
   try {
     console.log(`세부 항목 토글: 목표 ID ${goalId}, 작업 ID ${taskId}, 완료 ${completed}`);
