@@ -1625,6 +1625,9 @@ function renderProgressPage(container) {
     </div>
   `;
   
+  // 목표 데이터 불러오기 함수 호출 추가
+  loadGoals();
+}
 
 // 목표 데이터 불러오기 함수 수정
 async function loadGoals() {
@@ -4608,3 +4611,5 @@ function navigateToResult(page, id) {
 
 // 초기화 함수 호출
 checkAuth();
+// 브라우저 콘솔에 로드 완료 메시지 출력
+console.log("앱 초기화가 완료되었습니다.");
