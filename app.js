@@ -2090,10 +2090,9 @@ setupEventListeners();
   }
 }
 
-// 목표 위로 이동 함수 수정
 async function moveGoalUp(goalId) {
   try {
-    console.log("moveGoalUp 실행:", goalId); // 디버깅용 로그 추가
+    console.log("moveGoalUp 실행:", goalId);
     
     // 진행 중인 목표만 가져오기
     const goalsRef = db.collection("goals");
@@ -2110,11 +2109,11 @@ async function moveGoalUp(goalId) {
       });
     });
     
-    console.log("정렬된 목표 목록:", goals); // 디버깅용 로그 추가
+    console.log("정렬된 목표 목록:", goals);
     
     // 현재 목표의 인덱스 찾기
     const currentIndex = goals.findIndex(g => g.id === goalId);
-    console.log("현재 목표 인덱스:", currentIndex); // 디버깅용 로그 추가
+    console.log("현재 목표 인덱스:", currentIndex);
     
     // 첫 번째이면 이동 불가
     if (currentIndex <= 0) {
@@ -2128,7 +2127,7 @@ async function moveGoalUp(goalId) {
     
     console.log("교환할 목표:", 
                "이전:", prevGoal.id, prevGoal.order, 
-               "현재:", currentGoal.id, currentGoal.order); // 디버깅용 로그 추가
+               "현재:", currentGoal.id, currentGoal.order);
     
     // 두 목표의 순서 교환
     const tempOrder = prevGoal.order;
@@ -2144,7 +2143,7 @@ async function moveGoalUp(goalId) {
     });
     
     await batch.commit();
-    console.log("배치 업데이트 완료"); // 디버깅용 로그 추가
+    console.log("배치 업데이트 완료");
     
     // 목표 목록 새로고침 시 await 추가
     await loadGoals();
@@ -2155,10 +2154,9 @@ async function moveGoalUp(goalId) {
   }
 }
 
-// 목표 아래로 이동 함수 수정
 async function moveGoalDown(goalId) {
   try {
-    console.log("moveGoalDown 실행:", goalId); // 디버깅용 로그 추가
+    console.log("moveGoalDown 실행:", goalId);
     
     // 진행 중인 목표만 가져오기
     const goalsRef = db.collection("goals");
@@ -2175,11 +2173,11 @@ async function moveGoalDown(goalId) {
       });
     });
     
-    console.log("정렬된 목표 목록:", goals); // 디버깅용 로그 추가
+    console.log("정렬된 목표 목록:", goals);
     
     // 현재 목표의 인덱스 찾기
     const currentIndex = goals.findIndex(g => g.id === goalId);
-    console.log("현재 목표 인덱스:", currentIndex); // 디버깅용 로그 추가
+    console.log("현재 목표 인덱스:", currentIndex);
     
     // 마지막이면 이동 불가
     if (currentIndex >= goals.length - 1) {
@@ -2193,7 +2191,7 @@ async function moveGoalDown(goalId) {
     
     console.log("교환할 목표:", 
                "다음:", nextGoal.id, nextGoal.order, 
-               "현재:", currentGoal.id, currentGoal.order); // 디버깅용 로그 추가
+               "현재:", currentGoal.id, currentGoal.order);
     
     // 두 목표의 순서 교환
     const tempOrder = nextGoal.order;
@@ -2209,10 +2207,11 @@ async function moveGoalDown(goalId) {
     });
     
     await batch.commit();
-    console.log("배치 업데이트 완료"); // 디버깅용 로그 추가
+    console.log("배치 업데이트 완료");
     
-    // 목표 목록 새로고침
-    loadGoals();
+    // 목표 목록 새로고침 (여기서 await 추가)
+    await loadGoals();
+    console.log("목표 목록 새로고침 완료");
   } catch (error) {
     console.error("목표 순서 변경 중 오류 발생:", error);
     alert("목표 순서를 변경하는 중 오류가 발생했습니다.");
@@ -2551,7 +2550,7 @@ async function toggleTaskComplete(goalId, taskId, completed) {
     console.log(`목표 ID ${goalId} 완료 상태 업데이트: ${isCompleted}`);
     
     // 목표 목록 새로고침
-    loadGoals();
+    await loadGoals();
   } catch (error) {
     console.error("세부 항목 상태 변경 중 오류 발생:", error);
     alert("세부 항목 상태를 변경하는 중 오류가 발생했습니다.");
