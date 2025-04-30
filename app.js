@@ -550,14 +550,46 @@ async function loadEvents() {
     const events = [];
     snapshot.forEach(doc => {
       const event = doc.data();
-      events.push({
+      const eventObj = {
         id: doc.id,
         title: event.title,
         start: event.start.toDate(),
-        end: event.end ? event.end.toDate() : null,
         description: event.description || '',
         allDay: event.allDay || false
-      });
+      };
+      
+      // 종료일 처리 - 중요한 부분!
+      if (event.end) {
+        const startDate = eventObj.start;
+        const endDate = event.end.toDate();
+        
+        // 종일 이벤트일 경우
+        if (event.allDay) {
+          // 날짜 차이 계산 (밀리초 단위를 일 단위로 변환)
+          const diffTime = Math.abs(endDate - startDate);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          console.log("일정 ID:", doc.id, "시작일:", startDate, "종료일:", endDate, "일 수 차이:", diffDays);
+          
+          // 시작일과 종료일이 같거나, 차이가 1일인 경우 (종료일 = 내일)
+          if (diffDays <= 1) {
+            // 종료일을 강제로 시작일 + 2일로 설정 (FullCalendar에서 정확히 2일로 표시되게)
+            const adjustedEnd = new Date(startDate);
+            adjustedEnd.setDate(adjustedEnd.getDate() + 2);
+            eventObj.end = adjustedEnd;
+          } else {
+            // 차이가 2일 이상인 경우, 종료일에 1일을 더해서 FullCalendar의 exclusive 종료일 로직에 맞춤
+            const adjustedEnd = new Date(endDate);
+            adjustedEnd.setDate(adjustedEnd.getDate() + 1);
+            eventObj.end = adjustedEnd;
+          }
+        } else {
+          // 종일 이벤트가 아닌 경우는 그대로 설정
+          eventObj.end = endDate;
+        }
+      }
+      
+      events.push(eventObj);
     });
     
     // 뷰에 따라 다르게 표시
@@ -814,6 +846,16 @@ function renderEventsCalendar(events) {
         selectable: true,
         selectMirror: true,
         dayMaxEvents: true,
+
+          // 디버깅용 이벤트 핸들러 추가
+  eventDidMount: function(info) {
+    console.log("이벤트 표시:", info.event.id, 
+                "제목:", info.event.title,
+                "시작일:", info.event.start, 
+                "종료일:", info.event.end,
+                "allDay:", info.event.allDay);
+  },
+        
         // 날짜 선택 시 이벤트 추가 폼 표시
         select: function(info) {
           showAddEventForm(info.startStr, info.endStr, info.allDay);
@@ -1015,19 +1057,33 @@ async function saveEvent() {
     return;
   }
   
+  // 시작일과 종료일 파싱
+  const startDate = new Date(startEl.value);
+  let endDate = null;
+  
+  if (endEl.value) {
+    endDate = new Date(endEl.value);
+    
+    // 종료일이 시작일보다 이전이면 경고
+    if (endDate < startDate) {
+      alert('종료일은 시작일 이후여야 합니다.');
+      return;
+    }
+  }
+  
   const description = getEditorContent('event-description-editor');
   
   try {
     // 일정 데이터 구성
     const eventData = {
       title: titleEl.value,
-      start: firebase.firestore.Timestamp.fromDate(new Date(startEl.value)),
+      start: firebase.firestore.Timestamp.fromDate(startDate),
       allDay: allDayEl.checked
     };
     
-    // 선택적 필드 추가
-    if (endEl.value) {
-      eventData.end = firebase.firestore.Timestamp.fromDate(new Date(endEl.value));
+    // 종료일 추가
+    if (endDate) {
+      eventData.end = firebase.firestore.Timestamp.fromDate(endDate);
     }
     
     if (description) {
@@ -1119,20 +1175,36 @@ async function updateEvent() {
     return;
   }
   
+  // 시작일과 종료일 파싱
+  const startDate = new Date(startEl.value);
+  let endDate = null;
+  
+  if (endEl.value) {
+    endDate = new Date(endEl.value);
+    
+    // 종료일이 시작일보다 이전이면 경고
+    if (endDate < startDate) {
+      alert('종료일은 시작일 이후여야 합니다.');
+      return;
+    }
+  }
+  
   const description = getEditorContent('event-description-editor');
   
   try {
     // 일정 데이터 구성
     const eventData = {
       title: titleEl.value,
-      start: firebase.firestore.Timestamp.fromDate(new Date(startEl.value)),
+      start: firebase.firestore.Timestamp.fromDate(startDate),
       allDay: allDayEl.checked,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
-    // 선택적 필드 추가
-    if (endEl.value) {
-      eventData.end = firebase.firestore.Timestamp.fromDate(new Date(endEl.value));
+    // 종료일 추가 또는 삭제
+    if (endDate) {
+      eventData.end = firebase.firestore.Timestamp.fromDate(endDate);
+    } else {
+      eventData.end = firebase.firestore.FieldValue.delete();
     }
     
     if (description) {
@@ -1156,6 +1228,13 @@ async function updateEvent() {
 // 일정 날짜 업데이트 (드래그 앤 드롭)
 async function updateEventDates(eventId, start, end, allDay) {
   try {
+    // 먼저 원래 이벤트 데이터를 가져옴
+    const eventDoc = await db.collection("events").doc(eventId).get();
+    if (!eventDoc.exists) {
+      console.error("이벤트를 찾을 수 없습니다.");
+      return;
+    }
+    
     const eventData = {
       start: firebase.firestore.Timestamp.fromDate(start),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1163,10 +1242,27 @@ async function updateEventDates(eventId, start, end, allDay) {
     };
     
     if (end) {
-      eventData.end = firebase.firestore.Timestamp.fromDate(end);
+      // allDay 이벤트일 경우, FullCalendar의 종료일에서 1일을 빼서 실제 종료일로 저장
+      if (allDay) {
+        const adjustedEnd = new Date(end);
+        adjustedEnd.setDate(adjustedEnd.getDate() - 1);
+        
+        // 그런데 만약 조정된 종료일이 시작일보다 작거나 같게 되면, 시작일 + 1일로 설정
+        if (adjustedEnd <= start) {
+          adjustedEnd.setTime(start.getTime());
+          adjustedEnd.setDate(adjustedEnd.getDate() + 1);
+        }
+        
+        eventData.end = firebase.firestore.Timestamp.fromDate(adjustedEnd);
+      } else {
+        eventData.end = firebase.firestore.Timestamp.fromDate(end);
+      }
+    } else {
+      eventData.end = firebase.firestore.FieldValue.delete();
     }
     
     await db.collection("events").doc(eventId).update(eventData);
+    console.log("이벤트 날짜 업데이트 완료:", eventId);
   } catch (error) {
     console.error("일정 날짜 업데이트 중 오류 발생:", error);
     alert('일정 날짜를 업데이트하는 중 오류가 발생했습니다.');
