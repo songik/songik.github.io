@@ -2224,7 +2224,7 @@ async function moveGoalUp(goalId) {
     await batch.commit();
     console.log("배치 업데이트 완료");
     
-    // 목표 목록 새로고침 시 await 추가
+    // 목표 목록 새로고침 (await 추가)
     await loadGoals();
     console.log("목표 목록 새로고침 완료");
   } catch (error) {
@@ -2288,7 +2288,7 @@ async function moveGoalDown(goalId) {
     await batch.commit();
     console.log("배치 업데이트 완료");
     
-    // 목표 목록 새로고침 (여기서 await 추가)
+    // 목표 목록 새로고침 (await 추가)
     await loadGoals();
     console.log("목표 목록 새로고침 완료");
   } catch (error) {
