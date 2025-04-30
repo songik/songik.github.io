@@ -1876,58 +1876,59 @@ sortedGoals.forEach((goal, index) => {
   const isFirstActiveGoal = !goal.isCompleted && activeGoals.indexOf(goal) === 0;
   const isLastActiveGoal = !goal.isCompleted && activeGoals.indexOf(goal) === activeGoals.length - 1;
   
-  html += `
-    <div class="progress-goal ${goal.isCompleted ? 'completed' : ''}" data-id="${goal.id}">
-      <div class="progress-goal-title">
-        <h2>${goal.title}</h2>
-        <div class="list-item-actions">
-          ${!goal.isCompleted ? `
-            <button class="move-goal-up-btn" data-goal-id="${goal.id}" ${isFirstActiveGoal ? 'disabled' : ''}>
-              <i class="fas fa-arrow-up"></i>
-            </button>
-            <button class="move-goal-down-btn" data-goal-id="${goal.id}" ${isLastActiveGoal ? 'disabled' : ''}>
-              <i class="fas fa-arrow-down"></i>
-            </button>
-          ` : ''}
-          <button class="add-task-btn" data-goal-id="${goal.id}">항목 추가</button>
-          <button class="edit-goal-btn" data-goal-id="${goal.id}">수정</button>
-          <button class="delete-goal-btn" data-goal-id="${goal.id}">삭제</button>
-        </div>
-      </div>
-      <div class="progress-container">
-        <div class="progress-bar" style="width: ${goal.progress}%;"></div>
-      </div>
-      <div class="progress-percentage">${goal.progress}% 완료</div>
-      
-      <div class="progress-goal-tasks">
-        ${goal.tasks.length > 0 ? 
-          `<ul class="list-container">
-            ${goal.tasks.map(task => `
-              <li class="progress-task" data-id="${task.id}">
-                <div class="progress-task-checkbox">
-                  <input 
-                    type="checkbox" 
-                    class="task-checkbox"
-                    data-goal-id="${goal.id}"
-                    data-task-id="${task.id}"
-                    ${task.completed ? 'checked' : ''}
-                  />
-                </div>
-                <div class="list-item-content ${task.completed ? 'completed' : ''}">
-                  <div>${task.title}</div>
-                </div>
-                <div class="list-item-actions">
-                  <button class="edit-task-btn" data-goal-id="${goal.id}" data-task-id="${task.id}">수정</button>
-                  <button class="delete-task-btn" data-goal-id="${goal.id}" data-task-id="${task.id}">삭제</button>
-                </div>
-              </li>
-            `).join('')}
-          </ul>` 
-          : '<p>등록된 세부 항목이 없습니다.</p>'
-        }
+html += `
+  <div class="progress-goal ${goal.isCompleted ? 'completed' : ''}" data-id="${goal.id}">
+    <div class="progress-goal-title">
+      <h2>${goal.title}</h2>
+      <div class="list-item-actions">
+        ${!goal.isCompleted ? `
+          <button onclick="moveGoalUp('${goal.id}')" class="move-goal-up-btn" data-goal-id="${goal.id}" ${isFirstActiveGoal ? 'disabled' : ''}>
+            <i class="fas fa-arrow-up"></i>
+          </button>
+          <button onclick="moveGoalDown('${goal.id}')" class="move-goal-down-btn" data-goal-id="${goal.id}" ${isLastActiveGoal ? 'disabled' : ''}>
+            <i class="fas fa-arrow-down"></i>
+          </button>
+        ` : ''}
+        <button onclick="showAddTaskForm('${goal.id}')" class="add-task-btn" data-goal-id="${goal.id}">항목 추가</button>
+        <button onclick="editGoal('${goal.id}')" class="edit-goal-btn" data-goal-id="${goal.id}">수정</button>
+        <button onclick="deleteGoal('${goal.id}')" class="delete-goal-btn" data-goal-id="${goal.id}">삭제</button>
       </div>
     </div>
-  `;
+    <div class="progress-container">
+      <div class="progress-bar" style="width: ${goal.progress}%;"></div>
+    </div>
+    <div class="progress-percentage">${goal.progress}% 완료</div>
+    
+    <div class="progress-goal-tasks">
+      ${goal.tasks.length > 0 ? 
+        `<ul class="list-container">
+          ${goal.tasks.map(task => `
+            <li class="progress-task" data-id="${task.id}">
+              <div class="progress-task-checkbox">
+                <input 
+                  type="checkbox" 
+                  class="task-checkbox"
+                  data-goal-id="${goal.id}"
+                  data-task-id="${task.id}"
+                  ${task.completed ? 'checked' : ''}
+                  onclick="toggleTaskComplete('${goal.id}', '${task.id}', ${!task.completed})"
+                />
+              </div>
+              <div class="list-item-content ${task.completed ? 'completed' : ''}">
+                <div>${task.title}</div>
+              </div>
+              <div class="list-item-actions">
+                <button onclick="editTask('${goal.id}', '${task.id}')" class="edit-task-btn" data-goal-id="${goal.id}" data-task-id="${task.id}">수정</button>
+                <button onclick="deleteTask('${goal.id}', '${task.id}')" class="delete-task-btn" data-goal-id="${goal.id}" data-task-id="${task.id}">삭제</button>
+              </div>
+            </li>
+          `).join('')}
+        </ul>` 
+        : '<p>등록된 세부 항목이 없습니다.</p>'
+      }
+    </div>
+  </div>
+`;
 });
 
 goalsContainerEl.innerHTML = html;
@@ -2005,88 +2006,152 @@ styleEl.textContent = `
 `;
 document.head.appendChild(styleEl);
 
-// 이벤트 리스너 설정 함수
-const setupEventListeners = () => {
+function setupEventListeners() {
+  console.log('setupEventListeners 실행 시작!');
+  
+  const upButtons = document.querySelectorAll('.move-goal-up-btn');
+  const downButtons = document.querySelectorAll('.move-goal-down-btn');
+  const addTaskButtons = document.querySelectorAll('.add-task-btn');
+  const editGoalButtons = document.querySelectorAll('.edit-goal-btn');
+  const deleteGoalButtons = document.querySelectorAll('.delete-goal-btn');
+  const checkboxes = document.querySelectorAll('.task-checkbox');
+  const editTaskButtons = document.querySelectorAll('.edit-task-btn');
+  const deleteTaskButtons = document.querySelectorAll('.delete-task-btn');
+  
+  console.log('버튼 개수 확인:', 
+    '위로:', upButtons.length, 
+    '아래로:', downButtons.length,
+    '항목 추가:', addTaskButtons.length,
+    '체크박스:', checkboxes.length
+  );
+  
   // 위로 이동 버튼
-  document.querySelectorAll('.move-goal-up-btn').forEach(button => {
-    button.addEventListener('click', function(event) {
-      event.stopPropagation(); // 이벤트 전파 방지
-      event.preventDefault(); // 기본 동작 방지
-      const goalId = this.getAttribute('data-goal-id');
-      console.log('위로 이동 버튼 클릭:', goalId);
-      moveGoalUp(goalId);
-    });
-  });
-
-  // 아래로 이동 버튼
-  document.querySelectorAll('.move-goal-down-btn').forEach(button => {
-    button.addEventListener('click', function(event) {
-      event.stopPropagation(); // 이벤트 전파 방지
-      event.preventDefault(); // 기본 동작 방지
-      const goalId = this.getAttribute('data-goal-id');
-      console.log('아래로 이동 버튼 클릭:', goalId);
-      moveGoalDown(goalId);
-    });
+  upButtons.forEach(button => {
+    if (!button.disabled) {
+      button.onclick = function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const goalId = this.getAttribute('data-goal-id');
+        console.log('위로 이동 버튼 클릭 직접 처리:', goalId);
+        moveGoalUp(goalId);
+        return false;
+      };
+    }
   });
   
-
+  // 아래로 이동 버튼
+  downButtons.forEach(button => {
+    if (!button.disabled) {
+      button.onclick = function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const goalId = this.getAttribute('data-goal-id');
+        console.log('아래로 이동 버튼 클릭 직접 처리:', goalId);
+        moveGoalDown(goalId);
+        return false;
+      };
+    }
+  });
+  
   // 항목 추가 버튼
-  document.querySelectorAll('.add-task-btn').forEach(button => {
-    button.addEventListener('click', function() {
+  addTaskButtons.forEach(button => {
+    button.onclick = function(e) {
+      e.stopPropagation();
       const goalId = this.getAttribute('data-goal-id');
+      console.log('항목 추가 버튼 클릭:', goalId);
       showAddTaskForm(goalId);
-    });
+      return false;
+    };
   });
-
+  
   // 목표 수정 버튼
-  document.querySelectorAll('.edit-goal-btn').forEach(button => {
-    button.addEventListener('click', function() {
+  editGoalButtons.forEach(button => {
+    button.onclick = function(e) {
+      e.stopPropagation();
       const goalId = this.getAttribute('data-goal-id');
+      console.log('목표 수정 버튼 클릭:', goalId);
       editGoal(goalId);
-    });
+      return false;
+    };
   });
-
+  
   // 목표 삭제 버튼
-  document.querySelectorAll('.delete-goal-btn').forEach(button => {
-    button.addEventListener('click', function() {
+  deleteGoalButtons.forEach(button => {
+    button.onclick = function(e) {
+      e.stopPropagation();
       const goalId = this.getAttribute('data-goal-id');
+      console.log('목표 삭제 버튼 클릭:', goalId);
       deleteGoal(goalId);
-    });
+      return false;
+    };
   });
-
+  
   // 작업 체크박스
-  document.querySelectorAll('.task-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
+  checkboxes.forEach(checkbox => {
+    checkbox.onchange = function(e) {
+      e.stopPropagation();
       const goalId = this.getAttribute('data-goal-id');
       const taskId = this.getAttribute('data-task-id');
       const completed = this.checked;
       console.log('체크박스 변경:', goalId, taskId, completed);
       toggleTaskComplete(goalId, taskId, completed);
-    });
+    };
   });
-
+  
   // 작업 수정 버튼
-  document.querySelectorAll('.edit-task-btn').forEach(button => {
-    button.addEventListener('click', function() {
+  editTaskButtons.forEach(button => {
+    button.onclick = function(e) {
+      e.stopPropagation();
       const goalId = this.getAttribute('data-goal-id');
       const taskId = this.getAttribute('data-task-id');
+      console.log('작업 수정 버튼 클릭:', goalId, taskId);
       editTask(goalId, taskId);
-    });
+      return false;
+    };
   });
-
+  
   // 작업 삭제 버튼
-  document.querySelectorAll('.delete-task-btn').forEach(button => {
-    button.addEventListener('click', function() {
+  deleteTaskButtons.forEach(button => {
+    button.onclick = function(e) {
+      e.stopPropagation();
       const goalId = this.getAttribute('data-goal-id');
       const taskId = this.getAttribute('data-task-id');
+      console.log('작업 삭제 버튼 클릭:', goalId, taskId);
       deleteTask(goalId, taskId);
+      return false;
+    };
+  });
+  
+  // 부모 요소로의 이벤트 전파 방지를 위한 추가 처리
+  document.querySelectorAll('.progress-goal').forEach(goal => {
+    goal.addEventListener('click', function(e) {
+      if (e.target === this) {
+        console.log('목표 컨테이너 클릭');
+      }
     });
   });
-};
+  
+  console.log('setupEventListeners 실행 완료!');
+}
 
-// 이벤트 리스너 설정 호출
-setupEventListeners();
-console.log("목표 렌더링 완료");
+// 목표 렌더링 완료
+console.log("목표 렌더링 시작, 이벤트 리스너 설정 전");
+try {
+  // 렌더링이 DOM에 반영될 시간을 주기 위해 약간의 지연 추가
+  setTimeout(() => {
+    setupEventListeners();
+    console.log("목표 렌더링 및 이벤트 리스너 설정 완료");
+    
+    // 완료된 목표 스타일 강제 적용
+    document.querySelectorAll('.progress-goal.completed').forEach(elem => {
+      elem.style.backgroundColor = '#f5f5f5';
+      elem.style.opacity = '0.8';
+      elem.style.borderLeft = '5px solid #9e9e9e';
+    });
+  }, 100);
+} catch (err) {
+  console.error("이벤트 리스너 설정 중 오류:", err);
+}
 
 // 추가 디버깅 로그
 console.log("이벤트 리스너 설정 완료, 상하 버튼 개수: ", 
@@ -2562,8 +2627,16 @@ async function toggleTaskComplete(goalId, taskId, completed) {
     
     console.log(`목표 ID ${goalId} 완료 상태 업데이트: ${isCompleted}`);
     
-    // 목표 목록 새로고침
-    await loadGoals();
+    try {
+      // 목표 목록 새로고침 - 안전하게 처리
+      console.log("loadGoals 호출 시작");
+      await loadGoals();
+      console.log("loadGoals 호출 완료");
+    } catch (refreshError) {
+      console.error("목표 목록 새로고침 중 오류:", refreshError);
+      // 오류가 발생해도 페이지를 다시 로드하여 복구 시도
+      location.reload();
+    }
   } catch (error) {
     console.error("세부 항목 상태 변경 중 오류 발생:", error);
     alert("세부 항목 상태를 변경하는 중 오류가 발생했습니다.");
