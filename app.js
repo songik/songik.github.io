@@ -1869,66 +1869,218 @@ async function loadGoals() {
       return;
     }
     
-    // 목표 리스트 HTML 생성
-    let html = '';
-    
-    sortedGoals.forEach((goal, index) => {
-      const isFirstActiveGoal = !goal.isCompleted && activeGoals.indexOf(goal) === 0;
-      const isLastActiveGoal = !goal.isCompleted && activeGoals.indexOf(goal) === activeGoals.length - 1;
-      
-      html += `
-        <div class="progress-goal ${goal.isCompleted ? 'completed' : ''}" data-id="${goal.id}">
-          <div class="progress-goal-title">
-            <h2>${goal.title}</h2>
-            <div class="list-item-actions">
-              ${!goal.isCompleted ? `
-                <button onclick="moveGoalUp('${goal.id}')" ${isFirstActiveGoal ? 'disabled' : ''}>
-                  <i class="fas fa-arrow-up"></i>
-                </button>
-                <button onclick="moveGoalDown('${goal.id}')" ${isLastActiveGoal ? 'disabled' : ''}>
-                  <i class="fas fa-arrow-down"></i>
-                </button>
-              ` : ''}
-              <button onclick="showAddTaskForm('${goal.id}')">항목 추가</button>
-              <button onclick="editGoal('${goal.id}')">수정</button>
-              <button onclick="deleteGoal('${goal.id}')">삭제</button>
-            </div>
-          </div>
-          <div class="progress-container">
-            <div class="progress-bar" style="width: ${goal.progress}%;"></div>
-          </div>
-          <div class="progress-percentage">${goal.progress}% 완료</div>
-          
-          <div class="progress-goal-tasks">
-            ${goal.tasks.length > 0 ? 
-              `<ul class="list-container">
-                ${goal.tasks.map(task => `
-                  <li class="progress-task" data-id="${task.id}">
-                    <div class="progress-task-checkbox">
-                      <input 
-                        type="checkbox" 
-                        ${task.completed ? 'checked' : ''} 
-                        onchange="toggleTaskComplete('${goal.id}', '${task.id}', ${!task.completed})"
-                      />
-                    </div>
-                    <div class="list-item-content ${task.completed ? 'completed' : ''}">
-                      <div>${task.title}</div>
-                    </div>
-                    <div class="list-item-actions">
-                      <button onclick="editTask('${goal.id}', '${task.id}')">수정</button>
-                      <button onclick="deleteTask('${goal.id}', '${task.id}')">삭제</button>
-                    </div>
-                  </li>
-                `).join('')}
-              </ul>` 
-              : '<p>등록된 세부 항목이 없습니다.</p>'
-            }
-          </div>
+// 목표 리스트 HTML 생성
+let html = '';
+
+sortedGoals.forEach((goal, index) => {
+  const isFirstActiveGoal = !goal.isCompleted && activeGoals.indexOf(goal) === 0;
+  const isLastActiveGoal = !goal.isCompleted && activeGoals.indexOf(goal) === activeGoals.length - 1;
+  
+  html += `
+    <div class="progress-goal ${goal.isCompleted ? 'completed' : ''}" data-id="${goal.id}">
+      <div class="progress-goal-title">
+        <h2>${goal.title}</h2>
+        <div class="list-item-actions">
+          ${!goal.isCompleted ? `
+            <button class="move-goal-up-btn" data-goal-id="${goal.id}" ${isFirstActiveGoal ? 'disabled' : ''}>
+              <i class="fas fa-arrow-up"></i>
+            </button>
+            <button class="move-goal-down-btn" data-goal-id="${goal.id}" ${isLastActiveGoal ? 'disabled' : ''}>
+              <i class="fas fa-arrow-down"></i>
+            </button>
+          ` : ''}
+          <button class="add-task-btn" data-goal-id="${goal.id}">항목 추가</button>
+          <button class="edit-goal-btn" data-goal-id="${goal.id}">수정</button>
+          <button class="delete-goal-btn" data-goal-id="${goal.id}">삭제</button>
         </div>
-      `;
+      </div>
+      <div class="progress-container">
+        <div class="progress-bar" style="width: ${goal.progress}%;"></div>
+      </div>
+      <div class="progress-percentage">${goal.progress}% 완료</div>
+      
+      <div class="progress-goal-tasks">
+        ${goal.tasks.length > 0 ? 
+          `<ul class="list-container">
+            ${goal.tasks.map(task => `
+              <li class="progress-task" data-id="${task.id}">
+                <div class="progress-task-checkbox">
+                  <input 
+                    type="checkbox" 
+                    class="task-checkbox"
+                    data-goal-id="${goal.id}"
+                    data-task-id="${task.id}"
+                    ${task.completed ? 'checked' : ''}
+                  />
+                </div>
+                <div class="list-item-content ${task.completed ? 'completed' : ''}">
+                  <div>${task.title}</div>
+                </div>
+                <div class="list-item-actions">
+                  <button class="edit-task-btn" data-goal-id="${goal.id}" data-task-id="${task.id}">수정</button>
+                  <button class="delete-task-btn" data-goal-id="${goal.id}" data-task-id="${task.id}">삭제</button>
+                </div>
+              </li>
+            `).join('')}
+          </ul>` 
+          : '<p>등록된 세부 항목이 없습니다.</p>'
+        }
+      </div>
+    </div>
+  `;
+});
+
+goalsContainerEl.innerHTML = html;
+
+// CSS 스타일이 제대로 적용되지 않을 경우를 대비해 직접 스타일 추가
+const styleEl = document.createElement('style');
+styleEl.textContent = `
+  /* 진행률 바 스타일 */
+  .progress-container {
+    width: 100%;
+    height: 24px;
+    background-color: #e0e0e0;
+    border-radius: 12px;
+    margin: 10px 0;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background-color: #4caf50;
+    border-radius: 12px;
+    transition: width 0.3s ease;
+  }
+
+  .progress-goal {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+  }
+
+  /* 완료된 목표 스타일 */
+  .progress-goal.completed {
+    background-color: #f5f5f5 !important;
+    opacity: 0.8 !important;
+    border-left: 5px solid #9e9e9e !important;
+  }
+
+  .progress-goal.completed .progress-bar {
+    background-color: #9e9e9e !important;
+  }
+
+  .progress-goal.completed .progress-goal-title h2 {
+    color: #757575 !important;
+  }
+
+  .progress-goal-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .progress-goal-tasks {
+    margin-top: 15px;
+  }
+
+  .progress-task {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .progress-task-checkbox {
+    margin-right: 10px;
+  }
+
+  /* 완료된 항목 스타일 */
+  .list-item-content.completed {
+    text-decoration: line-through !important;
+    color: #757575 !important;
+  }
+`;
+document.head.appendChild(styleEl);
+
+// 이벤트 리스너 설정 함수
+const setupEventListeners = () => {
+  // 위로 이동 버튼
+  document.querySelectorAll('.move-goal-up-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const goalId = this.getAttribute('data-goal-id');
+      console.log('위로 이동 버튼 클릭:', goalId);
+      moveGoalUp(goalId);
     });
-    
-    goalsContainerEl.innerHTML = html;
+  });
+
+  // 아래로 이동 버튼
+  document.querySelectorAll('.move-goal-down-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const goalId = this.getAttribute('data-goal-id');
+      console.log('아래로 이동 버튼 클릭:', goalId);
+      moveGoalDown(goalId);
+    });
+  });
+
+  // 항목 추가 버튼
+  document.querySelectorAll('.add-task-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const goalId = this.getAttribute('data-goal-id');
+      showAddTaskForm(goalId);
+    });
+  });
+
+  // 목표 수정 버튼
+  document.querySelectorAll('.edit-goal-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const goalId = this.getAttribute('data-goal-id');
+      editGoal(goalId);
+    });
+  });
+
+  // 목표 삭제 버튼
+  document.querySelectorAll('.delete-goal-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const goalId = this.getAttribute('data-goal-id');
+      deleteGoal(goalId);
+    });
+  });
+
+  // 작업 체크박스
+  document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+      const goalId = this.getAttribute('data-goal-id');
+      const taskId = this.getAttribute('data-task-id');
+      const completed = this.checked;
+      console.log('체크박스 변경:', goalId, taskId, completed);
+      toggleTaskComplete(goalId, taskId, completed);
+    });
+  });
+
+  // 작업 수정 버튼
+  document.querySelectorAll('.edit-task-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const goalId = this.getAttribute('data-goal-id');
+      const taskId = this.getAttribute('data-task-id');
+      editTask(goalId, taskId);
+    });
+  });
+
+  // 작업 삭제 버튼
+  document.querySelectorAll('.delete-task-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const goalId = this.getAttribute('data-goal-id');
+      const taskId = this.getAttribute('data-task-id');
+      deleteTask(goalId, taskId);
+    });
+  });
+};
+
+// 이벤트 리스너 설정 호출
+setupEventListeners();
     console.log("목표 렌더링 완료");
     
   } catch (error) {
@@ -1994,8 +2146,9 @@ async function moveGoalUp(goalId) {
     await batch.commit();
     console.log("배치 업데이트 완료"); // 디버깅용 로그 추가
     
-    // 목표 목록 새로고침
-    loadGoals();
+    // 목표 목록 새로고침 시 await 추가
+    await loadGoals();
+    console.log("목표 목록 새로고침 완료");
   } catch (error) {
     console.error("목표 순서 변경 중 오류 발생:", error);
     alert("목표 순서를 변경하는 중 오류가 발생했습니다.");
@@ -2361,7 +2514,6 @@ async function updateTask() {
   }
 }
 
-// 세부 항목 완료 상태 토글
 // 세부 항목 완료 상태 토글
 async function toggleTaskComplete(goalId, taskId, completed) {
   try {
@@ -2878,26 +3030,24 @@ function renderTransactionsList(transactions) {
   transactions.forEach(transaction => {
     const isExpense = transaction.type === 'expense';
     
-    html += `
-      <li class="list-item" data-id="${transaction.id}">
-        <div class="list-item-content">
-          <div class="list-item-title">
-            <span style="color: ${isExpense ? 'var(--error-color)' : 'var(--success-color)'}">
-              ${isExpense ? '-' : '+'} ${transaction.amount.toLocaleString()}원
-            </span>
-            <span>${transaction.category}${transaction.subCategory ? ` > ${transaction.subCategory}` : ''}</span>
-          </div>
-          <div class="list-item-date">${formatDate(transaction.date)}</div>
-          <div class="list-item-description">
-            결제방법: ${transaction.paymentMethod || '기타'}
-            ${transaction.description ? `<br>${transaction.description}` : ''}
-          </div>
-        </div>
-        <div class="list-item-actions">
-          <button onclick="editTransaction('${transaction.id}')">수정</button>
-          <button onclick="deleteTransaction('${transaction.id}')">삭제</button>
-        </div>
-      </li>
+html += `
+  <div class="progress-goal ${goal.isCompleted ? 'completed' : ''}" data-id="${goal.id}">
+    <div class="progress-goal-title">
+      <h2>${goal.title}</h2>
+      <div class="list-item-actions">
+        ${!goal.isCompleted ? `
+          <button class="move-goal-up-btn" data-goal-id="${goal.id}" ${isFirstActiveGoal ? 'disabled' : ''}>
+            <i class="fas fa-arrow-up"></i>
+          </button>
+          <button class="move-goal-down-btn" data-goal-id="${goal.id}" ${isLastActiveGoal ? 'disabled' : ''}>
+            <i class="fas fa-arrow-down"></i>
+          </button>
+        ` : ''}
+        <button class="add-task-btn" data-goal-id="${goal.id}">항목 추가</button>
+        <button class="edit-goal-btn" data-goal-id="${goal.id}">수정</button>
+        <button class="delete-goal-btn" data-goal-id="${goal.id}">삭제</button>
+      </div>
+    </div>
     `;
   });
   
