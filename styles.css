@@ -627,6 +627,7 @@ input:focus, select:focus, textarea:focus {
   transition: all 0.3s ease;
 }
 
+/* 완료된 목표 스타일 */
 .progress-goal.completed {
   background-color: #f5f5f5;
   opacity: 0.8;
@@ -660,6 +661,12 @@ input:focus, select:focus, textarea:focus {
 
 .progress-task-checkbox {
   margin-right: 10px;
+}
+
+/* 완료된 항목 스타일 */
+.list-item-content.completed {
+  text-decoration: line-through;
+  color: var(--text-light);
 }
 
 /* 습관 달력 스타일 */
