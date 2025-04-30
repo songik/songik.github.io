@@ -1632,112 +1632,125 @@ function renderProgressPage(container) {
 // 목표 데이터 불러오기 함수 수정
 async function loadGoals() {
   try {
-    // 진행 중인 목표와 완료된 목표를 별도로 불러오는 방식으로 변경
+    console.log("목표 데이터 로딩 시작..."); // 디버깅 로그 추가
+    
     const goalsContainerEl = document.getElementById("goals-container");
     goalsContainerEl.innerHTML = '<p>목표를 불러오는 중...</p>';
     
-    // 1. 진행 중인 목표 불러오기 (completed=false)
-    const activeGoalsRef = db.collection("goals")
-      .where("completed", "==", false)
-      .orderBy("order", "asc");
+    // 모든 목표 불러오기 (필터 없이)
+    const goalsRef = db.collection("goals");
+    console.log("Firestore 쿼리 생성됨");
     
-    const activeSnapshot = await activeGoalsRef.get();
+    const snapshot = await goalsRef.get();
+    console.log("Firestore에서 데이터 받음, 문서 수:", snapshot.size);
     
-    // 2. 완료된 목표 불러오기 (completed=true)
-    const completedGoalsRef = db.collection("goals")
-      .where("completed", "==", true)
-      .orderBy("createdAt", "desc");
-    
-    const completedSnapshot = await completedGoalsRef.get();
+    if (snapshot.empty) {
+      console.log("Firebase에서 목표를 찾을 수 없습니다");
+      goalsContainerEl.innerHTML = '<p>등록된 목표가 없습니다.</p>';
+      return;
+    }
     
     // 목표 데이터를 저장할 배열
     const goals = [];
     
-    // 진행 중인 목표 처리
-    for (const doc of activeSnapshot.docs) {
+    // 모든 목표 처리
+    for (const doc of snapshot.docs) {
       const goal = doc.data();
       const goalId = doc.id;
       
-      // 목표에 속한 세부 항목 불러오기
-      const tasksSnapshot = await db.collection("goals").doc(goalId).collection("tasks").get();
-      const tasks = [];
-      let completedTasks = 0;
+      console.log("목표 ID:", goalId, "제목:", goal.title || "제목 없음", "completed 필드:", goal.completed);
       
-      tasksSnapshot.forEach(taskDoc => {
-        const task = taskDoc.data();
-        tasks.push({
-          id: taskDoc.id,
-          title: task.title,
-          completed: task.completed || false
+      // 목표에 속한 세부 항목 불러오기
+      try {
+        const tasksRef = db.collection("goals").doc(goalId).collection("tasks");
+        const tasksSnapshot = await tasksRef.get();
+        console.log(`목표 ID ${goalId}의 작업 수:`, tasksSnapshot.size);
+        
+        const tasks = [];
+        let completedTasks = 0;
+        
+        tasksSnapshot.forEach(taskDoc => {
+          const task = taskDoc.data();
+          tasks.push({
+            id: taskDoc.id,
+            title: task.title || "제목 없음",
+            completed: task.completed || false
+          });
+          
+          if (task.completed) {
+            completedTasks++;
+          }
         });
         
-        if (task.completed) {
-          completedTasks++;
+        const progress = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+        
+        // completed 필드가 undefined인 경우를 처리
+        let isCompleted;
+        if (goal.completed !== undefined) {
+          isCompleted = goal.completed;
+        } else {
+          isCompleted = progress === 100;
+          // completed 필드가 없으면 설정
+          try {
+            await db.collection("goals").doc(goalId).update({
+              completed: isCompleted,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`목표 ID ${goalId}의 completed 필드를 ${isCompleted}로 업데이트했습니다`);
+          } catch (updateError) {
+            console.error(`목표 ID ${goalId}의 completed 필드 업데이트 실패:`, updateError);
+          }
         }
-      });
-      
-      const progress = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
-      const isCompleted = progress === 100;
-      
-      // 완료 상태 저장 (완료여부가 바뀌었을 경우 업데이트)
-      if (isCompleted !== (goal.completed || false)) {
-        db.collection("goals").doc(goalId).update({
-          completed: isCompleted,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        
+        // 목표 정보를 배열에 저장
+        goals.push({
+          id: goalId,
+          title: goal.title || "제목 없음",
+          tasks,
+          progress,
+          isCompleted,
+          order: goal.order !== undefined ? goal.order : 9999,
+          createdAt: goal.createdAt
+        });
+      } catch (taskError) {
+        console.error(`목표 ID ${goalId}의 작업 로드 중 오류:`, taskError);
+        // 오류가 발생해도 기본 목표 정보는 추가
+        goals.push({
+          id: goalId,
+          title: goal.title || "제목 없음",
+          tasks: [],
+          progress: 0,
+          isCompleted: goal.completed || false,
+          order: goal.order !== undefined ? goal.order : 9999,
+          createdAt: goal.createdAt
         });
       }
-      
-      // 목표 정보를 배열에 저장
-      goals.push({
-        id: goalId,
-        title: goal.title,
-        tasks,
-        progress,
-        isCompleted,
-        order: goal.order !== undefined ? goal.order : 9999,
-        createdAt: goal.createdAt
-      });
     }
     
-    // 완료된 목표 처리
-    for (const doc of completedSnapshot.docs) {
-      const goal = doc.data();
-      const goalId = doc.id;
-      
-      // 목표에 속한 세부 항목 불러오기
-      const tasksSnapshot = await db.collection("goals").doc(goalId).collection("tasks").get();
-      const tasks = [];
-      let completedTasks = 0;
-      
-      tasksSnapshot.forEach(taskDoc => {
-        const task = taskDoc.data();
-        tasks.push({
-          id: taskDoc.id,
-          title: task.title,
-          completed: task.completed || false
-        });
-        
-        if (task.completed) {
-          completedTasks++;
-        }
-      });
-      
-      const progress = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
-      
-      // 목표 정보를 배열에 저장
-      goals.push({
-        id: goalId,
-        title: goal.title,
-        tasks,
-        progress,
-        isCompleted: true,
-        order: goal.order !== undefined ? goal.order : 9999,
-        createdAt: goal.createdAt
-      });
-    }
-
+    console.log("처리된 총 목표 수:", goals.length);
+    
+    // 목표를 활성/완료 상태로 분류
+    const activeGoals = goals.filter(goal => !goal.isCompleted);
+    const completedGoals = goals.filter(goal => goal.isCompleted);
+    
+    // 활성 목표는 order로 정렬
+    activeGoals.sort((a, b) => a.order - b.order);
+    
+    // 완료된 목표는 createdAt으로 정렬
+    completedGoals.sort((a, b) => {
+      if (!a.createdAt || !b.createdAt) return 0;
+      const dateA = a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const dateB = b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return dateB - dateA; // 내림차순
+    });
+    
+    // 정렬된 목표 배열 병합
+    const sortedGoals = [...activeGoals, ...completedGoals];
+    
+    console.log("정렬 후 활성 목표:", activeGoals.length, "완료된 목표:", completedGoals.length);
+    
     // 목표가 없는 경우 처리
-    if (goals.length === 0) {
+    if (sortedGoals.length === 0) {
       goalsContainerEl.innerHTML = '<p>등록된 목표가 없습니다.</p>';
       return;
     }
@@ -1745,10 +1758,9 @@ async function loadGoals() {
     // 목표 리스트 HTML 생성
     let html = '';
     
-    goals.forEach((goal, index) => {
-      const isLastItem = index === goals.length - 1;
-      const isFirstActiveGoal = index === 0 && !goal.isCompleted;
-      const isLastActiveGoal = !goal.isCompleted && (index === goals.length - 1 || goals[index + 1].isCompleted);
+    sortedGoals.forEach((goal, index) => {
+      const isFirstActiveGoal = !goal.isCompleted && activeGoals.indexOf(goal) === 0;
+      const isLastActiveGoal = !goal.isCompleted && activeGoals.indexOf(goal) === activeGoals.length - 1;
       
       html += `
         <div class="progress-goal ${goal.isCompleted ? 'completed' : ''}" data-id="${goal.id}">
@@ -1803,8 +1815,11 @@ async function loadGoals() {
     });
     
     goalsContainerEl.innerHTML = html;
+    console.log("목표 렌더링 완료");
+    
   } catch (error) {
     console.error("목표를 불러오는 중 오류 발생:", error);
+    console.error("오류 상세:", error.message, error.stack);
     document.getElementById("goals-container").innerHTML = '<p>목표를 불러오는 중 오류가 발생했습니다.</p>';
   }
 }
