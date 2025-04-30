@@ -1832,15 +1832,33 @@ async function loadGoals() {
     // 활성 목표는 order로 정렬
     activeGoals.sort((a, b) => a.order - b.order);
     
-    // 완료된 목표는 createdAt으로 정렬
+    // 완료된 목표는 createdAt으로 정렬 (최신순)
     completedGoals.sort((a, b) => {
       if (!a.createdAt || !b.createdAt) return 0;
-      const dateA = a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-      const dateB = b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      
+      // Firestore Timestamp를 Date로 변환
+      let dateA, dateB;
+      
+      if (a.createdAt && typeof a.createdAt.toDate === 'function') {
+        dateA = a.createdAt.toDate();
+      } else if (a.createdAt) {
+        dateA = new Date(a.createdAt);
+      } else {
+        dateA = new Date(0); // 기본값
+      }
+      
+      if (b.createdAt && typeof b.createdAt.toDate === 'function') {
+        dateB = b.createdAt.toDate();
+      } else if (b.createdAt) {
+        dateB = new Date(b.createdAt);
+      } else {
+        dateB = new Date(0); // 기본값
+      }
+      
       return dateB - dateA; // 내림차순
     });
     
-    // 정렬된 목표 배열 병합
+    // 정렬된 목표 배열 병합 - 완료된 목표는 맨 아래로
     const sortedGoals = [...activeGoals, ...completedGoals];
     
     console.log("정렬 후 활성 목표:", activeGoals.length, "완료된 목표:", completedGoals.length);
@@ -1923,6 +1941,8 @@ async function loadGoals() {
 // 목표 위로 이동 함수 수정
 async function moveGoalUp(goalId) {
   try {
+    console.log("moveGoalUp 실행:", goalId); // 디버깅용 로그 추가
+    
     // 진행 중인 목표만 가져오기
     const goalsRef = db.collection("goals");
     const snapshot = await goalsRef
@@ -1938,11 +1958,15 @@ async function moveGoalUp(goalId) {
       });
     });
     
+    console.log("정렬된 목표 목록:", goals); // 디버깅용 로그 추가
+    
     // 현재 목표의 인덱스 찾기
     const currentIndex = goals.findIndex(g => g.id === goalId);
+    console.log("현재 목표 인덱스:", currentIndex); // 디버깅용 로그 추가
     
     // 첫 번째이면 이동 불가
     if (currentIndex <= 0) {
+      console.log("첫 번째 항목이므로 이동 불가");
       return;
     }
     
@@ -1950,17 +1974,25 @@ async function moveGoalUp(goalId) {
     const prevGoal = goals[currentIndex - 1];
     const currentGoal = goals[currentIndex];
     
+    console.log("교환할 목표:", 
+               "이전:", prevGoal.id, prevGoal.order, 
+               "현재:", currentGoal.id, currentGoal.order); // 디버깅용 로그 추가
+    
+    // 두 목표의 순서 교환
+    const tempOrder = prevGoal.order;
+    
     const batch = db.batch();
     batch.update(goalsRef.doc(prevGoal.id), { 
       order: currentGoal.order,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     batch.update(goalsRef.doc(currentGoal.id), { 
-      order: prevGoal.order,
+      order: tempOrder,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
     await batch.commit();
+    console.log("배치 업데이트 완료"); // 디버깅용 로그 추가
     
     // 목표 목록 새로고침
     loadGoals();
@@ -1973,6 +2005,8 @@ async function moveGoalUp(goalId) {
 // 목표 아래로 이동 함수 수정
 async function moveGoalDown(goalId) {
   try {
+    console.log("moveGoalDown 실행:", goalId); // 디버깅용 로그 추가
+    
     // 진행 중인 목표만 가져오기
     const goalsRef = db.collection("goals");
     const snapshot = await goalsRef
@@ -1988,11 +2022,15 @@ async function moveGoalDown(goalId) {
       });
     });
     
+    console.log("정렬된 목표 목록:", goals); // 디버깅용 로그 추가
+    
     // 현재 목표의 인덱스 찾기
     const currentIndex = goals.findIndex(g => g.id === goalId);
+    console.log("현재 목표 인덱스:", currentIndex); // 디버깅용 로그 추가
     
     // 마지막이면 이동 불가
     if (currentIndex >= goals.length - 1) {
+      console.log("마지막 항목이므로 이동 불가");
       return;
     }
     
@@ -2000,17 +2038,25 @@ async function moveGoalDown(goalId) {
     const nextGoal = goals[currentIndex + 1];
     const currentGoal = goals[currentIndex];
     
+    console.log("교환할 목표:", 
+               "다음:", nextGoal.id, nextGoal.order, 
+               "현재:", currentGoal.id, currentGoal.order); // 디버깅용 로그 추가
+    
+    // 두 목표의 순서 교환
+    const tempOrder = nextGoal.order;
+    
     const batch = db.batch();
     batch.update(goalsRef.doc(nextGoal.id), { 
       order: currentGoal.order,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     batch.update(goalsRef.doc(currentGoal.id), { 
-      order: nextGoal.order,
+      order: tempOrder,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
     await batch.commit();
+    console.log("배치 업데이트 완료"); // 디버깅용 로그 추가
     
     // 목표 목록 새로고침
     loadGoals();
@@ -2316,15 +2362,47 @@ async function updateTask() {
 }
 
 // 세부 항목 완료 상태 토글
+// 세부 항목 완료 상태 토글
 async function toggleTaskComplete(goalId, taskId, completed) {
   try {
+    console.log(`세부 항목 토글: 목표 ID ${goalId}, 작업 ID ${taskId}, 완료 ${completed}`);
+    
+    // 세부 항목 업데이트
     await db.collection("goals").doc(goalId).collection("tasks").doc(taskId).update({ 
       completed,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp() 
     });
-    loadGoals(); // 목록 새로고침
+    
+    // 해당 목표의 모든 세부 항목 가져오기
+    const tasksSnapshot = await db.collection("goals").doc(goalId).collection("tasks").get();
+    let totalTasks = 0;
+    let completedTasks = 0;
+    
+    tasksSnapshot.forEach(doc => {
+      totalTasks++;
+      if (doc.data().completed) {
+        completedTasks++;
+      }
+    });
+    
+    // 목표 진행률 계산
+    const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    console.log(`목표 ID ${goalId} 진행률: ${progress}% (${completedTasks}/${totalTasks})`);
+    
+    // 목표 완료 상태 업데이트
+    const isCompleted = progress === 100;
+    await db.collection("goals").doc(goalId).update({
+      completed: isCompleted,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log(`목표 ID ${goalId} 완료 상태 업데이트: ${isCompleted}`);
+    
+    // 목표 목록 새로고침
+    loadGoals();
   } catch (error) {
     console.error("세부 항목 상태 변경 중 오류 발생:", error);
+    alert("세부 항목 상태를 변경하는 중 오류가 발생했습니다.");
   }
 }
 
