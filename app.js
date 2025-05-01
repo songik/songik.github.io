@@ -2802,6 +2802,65 @@ function renderDietPage(container) {
       <!-- 섹션 구분선 추가 -->
       <div class="section-divider"></div>
 
+      <div id="calendar-view-container" class="calendar-container" style="display: ${currentView === 'calendar' ? 'block' : 'none'}">
+        <div id="weight-calendar"></div>
+      </div>
+      
+      <div id="list-view-container" style="display: ${currentView === 'list' ? 'block' : 'none'}">
+        <div class="card">
+          <h2 class="card-title">체중 기록</h2>
+          <div id="weights-list">
+            <p>기록을 불러오는 중...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 체중 데이터 불러오기
+  loadWeights();
+  
+  // 기간 설정 UI 초기화 함수 호출 추가
+  setTimeout(() => {
+    initDateRangeUI();
+  }, 100);
+  
+  // 기간 설정 관련 스타일 추가
+  const styleEl = document.createElement('style');
+  styleEl.id = 'weight-period-styles';
+  styleEl.textContent = `
+    .period-control {
+      margin-bottom: 15px;
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .custom-period {
+      margin-top: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    @media (max-width: 768px) {
+      .custom-period {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .custom-period input,
+      .custom-period button {
+        width: 100%;
+        margin-bottom: 5px;
+      }
+    }
+  `;
+  document.head.appendChild(styleEl);
+}
+
 // 체중 데이터 불러오기
 async function loadWeights() {
   try {
@@ -2959,7 +3018,7 @@ function renderWeightChart(weights) {
     return;
   }
   
-  // 차트 데이터 설정 (기존 recentWeights 대신 filteredWeights 사용)
+  // 차트 데이터 설정
   const chartData = {
     labels: filteredWeights.map(w => formatDate(w.date)),
     datasets: [{
@@ -2972,6 +3031,33 @@ function renderWeightChart(weights) {
       tension: 0.2
     }]
   };
+  
+  // 추세선 데이터 계산
+  if (filteredWeights.length > 1) {
+    const xValues = filteredWeights.map((_, i) => i);
+    const yValues = filteredWeights.map(w => w.weight);
+    
+    // 선형 회귀 계산
+    const n = xValues.length;
+    const sum_x = xValues.reduce((a, b) => a + b, 0);
+    const sum_y = yValues.reduce((a, b) => a + b, 0);
+    const sum_xy = xValues.map((x, i) => x * yValues[i]).reduce((a, b) => a + b, 0);
+    const sum_xx = xValues.map(x => x * x).reduce((a, b) => a + b, 0);
+    
+    const slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
+    const intercept = (sum_y - slope * sum_x) / n;
+    
+    // 추세선 데이터셋 추가
+    chartData.datasets.push({
+      label: '추세선',
+      data: xValues.map(x => slope * x + intercept),
+      borderColor: '#ff9800',
+      borderWidth: 2,
+      fill: false,
+      borderDash: [5, 5],
+      pointRadius: 0
+    });
+  }
   
   // 차트 옵션
   const chartOptions = {
@@ -3027,96 +3113,8 @@ function renderWeightChart(weights) {
     }
   }
   
-  // 통계 업데이트 - 이 부분은 스크린샷에 없었지만 필요하다면 수정하세요
+  // 통계 업데이트
   updateWeightStats(filteredWeights);
-}
-  // 추세선 데이터 계산
-  if (recentWeights.length > 1) {
-    const xValues = recentWeights.map((_, i) => i);
-    const yValues = recentWeights.map(w => w.weight);
-    
-    // 선형 회귀 계산
-    const n = xValues.length;
-    const sum_x = xValues.reduce((a, b) => a + b, 0);
-    const sum_y = yValues.reduce((a, b) => a + b, 0);
-    const sum_xy = xValues.map((x, i) => x * yValues[i]).reduce((a, b) => a + b, 0);
-    const sum_xx = xValues.map(x => x * x).reduce((a, b) => a + b, 0);
-    
-    const slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
-    const intercept = (sum_y - slope * sum_x) / n;
-    
-    // 추세선 데이터셋 추가
-    chartData.datasets.push({
-      label: '추세선',
-      data: xValues.map(x => slope * x + intercept),
-      borderColor: '#ff9800',
-      borderWidth: 2,
-      fill: false,
-      borderDash: [5, 5],
-      pointRadius: 0
-    });
-    
-    // 차트 상단에 통계 정보 표시
-    const weightContainer = chartEl.parentElement;
-    const statsEl = document.createElement('div');
-    statsEl.className = 'weight-stats';
-    
-    const startWeight = recentWeights[0].weight;
-    const endWeight = recentWeights[recentWeights.length - 1].weight;
-    const weightChange = endWeight - startWeight;
-    const avgWeight = sum_y / n;
-    
-    statsEl.innerHTML = `
-      <div class="stats-grid">
-        <div class="stat-item">
-          <div class="stat-value">${avgWeight.toFixed(1)} kg</div>
-          <div class="stat-label">평균 체중</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value ${weightChange < 0 ? 'text-success' : weightChange > 0 ? 'text-danger' : ''}">${weightChange.toFixed(1)} kg</div>
-          <div class="stat-label">기간 변화</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">${Math.min(...yValues).toFixed(1)} kg</div>
-          <div class="stat-label">최저 체중</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">${Math.max(...yValues).toFixed(1)} kg</div>
-          <div class="stat-label">최고 체중</div>
-        </div>
-      </div>
-    `;
-    
-    // 기존 통계가 있으면 제거
-    const existingStats = weightContainer.querySelector('.weight-stats');
-    if (existingStats) {
-      weightContainer.removeChild(existingStats);
-    }
-    
-    // 차트 위에 통계 표시
-    weightContainer.insertBefore(statsEl, chartEl);
-  }
-  
-  // 이전 차트 제거
-  if (window.weightChart) {
-    window.weightChart.destroy();
-  }
-  
-  // 새 차트 생성
-  try {
-    if (typeof Chart !== 'undefined' && chartEl) {
-      window.weightChart = new Chart(chartEl, {
-        type: 'line',
-        data: chartData,
-        options: chartOptions
-      });
-    }
-  } catch (error) {
-    console.error("차트 초기화 중 오류 발생:", error);
-    if (chartEl) {
-      chartEl.innerHTML = "<p>차트를 로드하는 중 오류가 발생했습니다.</p>";
-    }
-  }
   
   // 통계 스타일 추가
   const styleEl = document.createElement('style');
@@ -3323,6 +3321,59 @@ async function deleteWeight(weightId) {
       alert('체중 기록을 삭제하는 중 오류가 발생했습니다.');
     }
   }
+}
+// 여기에 updateWeightStats 함수 추가
+// 체중 통계 업데이트 함수
+function updateWeightStats(weights) {
+  if (!weights || weights.length === 0) return;
+  
+  // 통계를 표시할 컨테이너 확인 또는 생성
+  const chartContainer = document.querySelector('.weight-chart');
+  let statsContainer = document.querySelector('.weight-stats');
+  
+  if (!statsContainer && chartContainer) {
+    // 통계 컨테이너가 없으면 생성
+    statsContainer = document.createElement('div');
+    statsContainer.className = 'weight-stats';
+    chartContainer.parentNode.insertBefore(statsContainer, chartContainer);
+  }
+  
+  if (!statsContainer) return;
+  
+  // 데이터 정렬 (날짜 순)
+  const sortedWeights = [...weights].sort((a, b) => a.date - b.date);
+  
+  // 통계 계산
+  const latestWeight = sortedWeights[sortedWeights.length - 1].weight;
+  const startWeight = sortedWeights[0].weight;
+  const weightChange = latestWeight - startWeight;
+  
+  const allWeights = sortedWeights.map(w => w.weight);
+  const avgWeight = allWeights.reduce((sum, w) => sum + w, 0) / allWeights.length;
+  const minWeight = Math.min(...allWeights);
+  const maxWeight = Math.max(...allWeights);
+  
+  // 통계 HTML 생성
+  statsContainer.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-value">${avgWeight.toFixed(1)} kg</div>
+        <div class="stat-label">평균 체중</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value ${weightChange < 0 ? 'text-success' : weightChange > 0 ? 'text-danger' : ''}">${weightChange.toFixed(1)} kg</div>
+        <div class="stat-label">기간 변화</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${minWeight.toFixed(1)} kg</div>
+        <div class="stat-label">최저 체중</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${maxWeight.toFixed(1)} kg</div>
+        <div class="stat-label">최고 체중</div>
+      </div>
+    </div>
+  `;
 }
 // 체중 차트 업데이트 함수
 function updateWeightChart() {
