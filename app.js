@@ -1963,21 +1963,6 @@ styleEl.textContent = `
     transition: all 0.3s ease;
   }
 
- /* 완료된 목표 스타일 강화 */
-.progress-goal.completed {
-  background-color: #f5f5f5 !important;
-  opacity: 0.8 !important;
-  border-left: 5px solid #9e9e9e !important;
-}
-
-.progress-goal.completed .progress-bar {
-  background-color: #9e9e9e !important;
-}
-
-.progress-goal.completed .progress-goal-title h2 {
-  color: #757575 !important;
-}
-
 /* 이동 버튼 스타일 추가 */
 .move-goal-up-btn,
 .move-goal-down-btn {
@@ -2032,17 +2017,16 @@ styleEl.textContent = `
   }
 `;
 document.head.appendChild(styleEl);
-    
-    // 완료된 목표 스타일 강제 적용
-    document.querySelectorAll('.progress-goal.completed').forEach(elem => {
-      elem.style.backgroundColor = '#f5f5f5';
-      elem.style.opacity = '0.8';
-      elem.style.borderLeft = '5px solid #9e9e9e';
-    });
-  }, 100);
-} catch (err) {
-  console.error("이벤트 리스너 설정 중 오류:", err);
-}
+
+// 목표 렌더링 완료
+console.log("목표 렌더링 시작");
+
+// 완료된 목표 스타일 직접 적용
+document.querySelectorAll('.progress-goal.completed').forEach(elem => {
+  elem.style.backgroundColor = '#f5f5f5';
+  elem.style.opacity = '0.8';
+  elem.style.borderLeft = '5px solid #9e9e9e';
+});
 
 // 추가 디버깅 로그
 console.log("이벤트 리스너 설정 완료, 상하 버튼 개수: ", 
@@ -2986,19 +2970,51 @@ html += `
       <h2>${goal.title}</h2>
       <div class="list-item-actions">
         ${!goal.isCompleted ? `
-          <button class="move-goal-up-btn" data-goal-id="${goal.id}" ${isFirstActiveGoal ? 'disabled' : ''}>
+          <button onclick="moveGoalUp('${goal.id}')" class="move-goal-up-btn" ${isFirstActiveGoal ? 'disabled' : ''}>
             <i class="fas fa-arrow-up"></i>
           </button>
-          <button class="move-goal-down-btn" data-goal-id="${goal.id}" ${isLastActiveGoal ? 'disabled' : ''}>
+          <button onclick="moveGoalDown('${goal.id}')" class="move-goal-down-btn" ${isLastActiveGoal ? 'disabled' : ''}>
             <i class="fas fa-arrow-down"></i>
           </button>
         ` : ''}
-        <button class="add-task-btn" data-goal-id="${goal.id}">항목 추가</button>
-        <button class="edit-goal-btn" data-goal-id="${goal.id}">수정</button>
-        <button class="delete-goal-btn" data-goal-id="${goal.id}">삭제</button>
+        <button onclick="showAddTaskForm('${goal.id}')">항목 추가</button>
+        <button onclick="editGoal('${goal.id}')">수정</button>
+        <button onclick="deleteGoal('${goal.id}')">삭제</button>
       </div>
     </div>
-    `;
+    <div class="progress-container">
+      <div class="progress-bar" style="width: ${goal.progress}%;"></div>
+    </div>
+    <div class="progress-percentage">${goal.progress}% 완료</div>
+    
+    <div class="progress-goal-tasks">
+      ${goal.tasks.length > 0 ? 
+        `<ul class="list-container">
+          ${goal.tasks.map(task => `
+            <li class="progress-task" data-id="${task.id}">
+              <div class="progress-task-checkbox">
+                <input 
+                  type="checkbox" 
+                  class="task-checkbox"
+                  ${task.completed ? 'checked' : ''}
+                  onclick="toggleTaskComplete('${goal.id}', '${task.id}', ${!task.completed})"
+                />
+              </div>
+              <div class="list-item-content ${task.completed ? 'completed' : ''}">
+                <div>${task.title}</div>
+              </div>
+              <div class="list-item-actions">
+                <button onclick="editTask('${goal.id}', '${task.id}')">수정</button>
+                <button onclick="deleteTask('${goal.id}', '${task.id}')">삭제</button>
+              </div>
+            </li>
+          `).join('')}
+        </ul>` 
+        : '<p>등록된 세부 항목이 없습니다.</p>'
+      }
+    </div>
+  </div>
+`;
   });
   
   html += '</ul>';
