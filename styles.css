@@ -641,7 +641,41 @@ input:focus, select:focus, textarea:focus {
 .progress-goal.completed .progress-goal-title h2 {
   color: #757575 !important;
 }
+/* 여기에 드래그 앤 드롭 관련 스타일을 추가하세요 */
+/* 드래그 중인 항목 스타일 */
+.progress-goal.dragging {
+  opacity: 0.4;
+  background-color: #f0f0f0;
+  border: 2px dashed #4caf50;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
 
+/* 드래그 가능한 목표 제목 부분에 시각적 힌트 제공 */
+.progress-goal:not(.completed) .progress-goal-title {
+  position: relative;
+}
+
+.progress-goal:not(.completed) .progress-goal-title::before {
+  content: '⋮⋮'; /* 드래그 핸들 모양 */
+  position: absolute;
+  left: -15px;
+  color: #aaa;
+  font-size: 16px;
+  cursor: grab;
+}
+
+.progress-goal:not(.completed) .progress-goal-title:hover::before {
+  color: #4caf50;
+}
+
+/* 드롭 영역 표시 스타일 */
+.drop-above {
+  border-top: 2px solid #4caf50;
+}
+
+.drop-below {
+  border-bottom: 2px solid #4caf50;
+}
 /* 이동 버튼 스타일 추가 */
 .move-goal-up-btn,
 .move-goal-down-btn {
