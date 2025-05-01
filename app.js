@@ -2769,37 +2769,38 @@ function renderDietPage(container) {
         </div>
       </div>
       
-      <div class="card">
-        <h2 class="card-title">체중 추이</h2>
-        <div class="chart-container weight-chart">
-          <canvas id="weight-chart"></canvas>
-        </div>
-      </div>
+<div class="card">
+  <h2 class="card-title">체중 추이</h2>
+  
+  <!-- 기간 설정 컨트롤 추가 -->
+  <div class="period-control">
+    <label for="weight-period">기간:</label>
+    <select id="weight-period" onchange="updateWeightChart()">
+      <option value="1">최근 1개월</option>
+      <option value="3" selected>최근 3개월</option>
+      <option value="6">최근 6개월</option>
+      <option value="12">최근 1년</option>
+      <option value="0">전체 기간</option>
+      <option value="custom">사용자 정의</option>
+    </select>
+    
+    <!-- 사용자 정의 기간 설정 -->
+    <div class="custom-period">
+      <label for="weight-start-date">시작일:</label>
+      <input type="date" id="weight-start-date">
+      <label for="weight-end-date">종료일:</label>
+      <input type="date" id="weight-end-date">
+      <button id="apply-custom-period" onclick="applyCustomPeriod()">적용</button>
+    </div>
+  </div>
+  
+  <div class="chart-container weight-chart">
+    <canvas id="weight-chart"></canvas>
+  </div>
+</div>
       
       <!-- 섹션 구분선 추가 -->
       <div class="section-divider"></div>
-      
-      <div id="calendar-view-container" class="calendar-container weight-calendar" style="display: ${currentView === 'calendar' ? 'block' : 'none'}">
-        <div id="weight-calendar"></div>
-      </div>
-      
-      <div id="list-view-container" style="display: ${currentView === 'list' ? 'block' : 'none'}">
-        <div class="card">
-          <h2 class="card-title">체중 기록</h2>
-          <div id="weights-list">
-            <p>체중 기록을 불러오는 중...</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // 체중 데이터 불러오기
-  loadWeights();
-  
-  // 체중 페이지 스타일 추가
-  addDietPageStyles();
-}
 
 // 체중 데이터 불러오기
 async function loadWeights() {
@@ -2817,6 +2818,8 @@ async function loadWeights() {
         notes: weight.notes || ''
       });
     });
+        // 데이터 캐싱 추가 - 이 줄을 추가
+    window.cachedWeights = weights;
     
     // 뷰에 따라 다르게 표시
     if (currentView === 'list') {
@@ -2914,16 +2917,54 @@ function renderWeightChart(weights) {
   // 차트용 데이터 가공
   weights.sort((a, b) => a.date - b.date);
   
-  // 최근 3개월 데이터만 사용
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  // 기간 설정 가져오기
+  const periodSelect = document.getElementById('weight-period');
+  const periodValue = periodSelect ? periodSelect.value : '3'; // 기본값은 3개월
   
-  const recentWeights = weights.filter(w => w.date >= threeMonthsAgo);
+  // 선택된 기간에 따라 데이터 필터링
+  let filteredWeights = [...weights]; // 원본 배열 복사
+  
+  if (periodValue === 'custom') {
+    // 사용자 정의 기간
+    const startDateInput = document.getElementById('weight-start-date');
+    const endDateInput = document.getElementById('weight-end-date');
+    
+    if (startDateInput && startDateInput.value) {
+      const startDate = new Date(startDateInput.value);
+      startDate.setHours(0, 0, 0, 0);
+      filteredWeights = filteredWeights.filter(w => w.date >= startDate);
+    }
+    
+    if (endDateInput && endDateInput.value) {
+      const endDate = new Date(endDateInput.value);
+      endDate.setHours(23, 59, 59, 999);
+      filteredWeights = filteredWeights.filter(w => w.date <= endDate);
+    }
+  } else {
+    // 미리 정의된 기간
+    const months = parseInt(periodValue);
+    
+    if (months > 0) {
+      const cutoffDate = new Date();
+      cutoffDate.setMonth(cutoffDate.getMonth() - months);
+      filteredWeights = filteredWeights.filter(w => w.date >= cutoffDate);
+    }
+    // periodValue가 0이면 전체 데이터 사용 (필터링하지 않음)
+  }
+  
+  // 빈 데이터 처리
+  if (filteredWeights.length === 0) {
+    // 데이터가 없으면 차트 영역에 메시지 표시
+    chartEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">선택한 기간에 데이터가 없습니다.</div>';
+    return;
+  }
+  
+  // 차트 데이터 설정 (기존 recentWeights 대신 filteredWeights 사용)
   const chartData = {
-    labels: recentWeights.map(w => formatDate(w.date)),
+    labels: filteredWeights.map(w => formatDate(w.date)),
     datasets: [{
       label: '체중 (kg)',
-      data: recentWeights.map(w => w.weight),
+      data: filteredWeights.map(w => w.weight),
       borderColor: '#4caf50',
       backgroundColor: 'rgba(76, 175, 80, 0.1)',
       borderWidth: 2,
@@ -2937,8 +2978,8 @@ function renderWeightChart(weights) {
     scales: {
       y: {
         beginAtZero: false,
-        min: Math.min(...recentWeights.map(w => w.weight)) - 2,
-        max: Math.max(...recentWeights.map(w => w.weight)) + 2
+        min: Math.min(...filteredWeights.map(w => w.weight)) - 2,
+        max: Math.max(...filteredWeights.map(w => w.weight)) + 2
       }
     },
     responsive: true,
@@ -2947,21 +2988,48 @@ function renderWeightChart(weights) {
       tooltip: {
         callbacks: {
           afterLabel: function(context) {
-            const weight = recentWeights[context.dataIndex];
+            const weight = filteredWeights[context.dataIndex];
             return weight.notes ? `메모: ${weight.notes}` : '';
           }
         }
       }
     }
   };
+  
+  // 차트 여백 설정
   chartOptions.layout = {
-  padding: {
-    top: 20,
-    right: 20,
-    bottom: 20,
-    left: 20
+    padding: {
+      top: 20,
+      right: 20,
+      bottom: 20,
+      left: 20
+    }
+  };
+  
+  // 이전 차트 제거
+  if (window.weightChart) {
+    window.weightChart.destroy();
   }
-};
+  
+  // 새 차트 생성
+  try {
+    if (typeof Chart !== 'undefined' && chartEl) {
+      window.weightChart = new Chart(chartEl, {
+        type: 'line',
+        data: chartData,
+        options: chartOptions
+      });
+    }
+  } catch (error) {
+    console.error("차트 초기화 중 오류 발생:", error);
+    if (chartEl) {
+      chartEl.innerHTML = "<p>차트를 로드하는 중 오류가 발생했습니다.</p>";
+    }
+  }
+  
+  // 통계 업데이트 - 이 부분은 스크린샷에 없었지만 필요하다면 수정하세요
+  updateWeightStats(filteredWeights);
+}
   // 추세선 데이터 계산
   if (recentWeights.length > 1) {
     const xValues = recentWeights.map((_, i) => i);
@@ -3256,7 +3324,58 @@ async function deleteWeight(weightId) {
     }
   }
 }
+// 체중 차트 업데이트 함수
+function updateWeightChart() {
+  // 이미 불러온 체중 데이터가 있으면 재사용, 없으면 다시 불러오기
+  if (window.cachedWeights && window.cachedWeights.length > 0) {
+    renderWeightChart(window.cachedWeights);
+  } else {
+    loadWeights();
+  }
+}
 
+// 사용자 정의 기간 적용 함수
+function applyCustomPeriod() {
+  const startDateInput = document.getElementById('weight-start-date');
+  const endDateInput = document.getElementById('weight-end-date');
+  
+  // 날짜 유효성 검사
+  if (startDateInput.value && endDateInput.value) {
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(endDateInput.value);
+    
+    if (startDate > endDate) {
+      alert('시작일은 종료일보다 이전이어야 합니다.');
+      return;
+    }
+  }
+  
+  // 차트 업데이트
+  updateWeightChart();
+}
+
+// 기간 설정 UI 초기화 함수
+function initDateRangeUI() {
+  // 사용자 정의 기간 UI 초기 숨김
+  const customPeriod = document.querySelector('.custom-period');
+  if (customPeriod) {
+    customPeriod.style.display = 'none';
+  }
+  
+  // 기간 선택 이벤트 리스너
+  const periodSelector = document.getElementById('weight-period');
+  if (periodSelector) {
+    periodSelector.addEventListener('change', function() {
+      const customPeriod = document.querySelector('.custom-period');
+      if (this.value === 'custom') {
+        customPeriod.style.display = 'flex';
+      } else {
+        customPeriod.style.display = 'none';
+        updateWeightChart();
+      }
+    });
+  }
+}
 // =========== 지출 관리 기능 ===========
 
 function renderExpensePage(container) {
