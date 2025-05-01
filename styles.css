@@ -1019,3 +1019,41 @@ input:focus, select:focus, textarea:focus {
   z-index: 10000;
   pointer-events: none;
 }
+/* 모바일용 버튼 스타일 개선 */
+@media screen and (max-width: 768px) {
+  button, .auth-button, .home-button, .list-item-actions button {
+    padding: 12px 16px;  /* 더 큰 패딩 */
+    min-width: 44px;     /* 최소 너비 */
+    min-height: 44px;    /* 최소 높이 (터치 친화적인 크기) */
+    margin: 5px;         /* 버튼 간 간격 */
+    font-size: 1rem;     /* 더 큰 폰트 */
+  }
+  
+  /* 목록 항목 터치 영역 개선 */
+  .list-item, .progress-task, .habit-day {
+    padding: 15px 10px;  /* 더 큰 패딩 */
+    min-height: 60px;    /* 최소 높이 */
+  }
+  
+  /* 체크박스 크기 증가 */
+  input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+    margin-right: 12px;
+  }
+  
+  /* 모달 닫기 버튼 크기 증가 */
+  .modal-close {
+    font-size: 2rem;
+    padding: 8px 12px;
+  }
+  
+  /* 네비게이션 메뉴 항목 높이 증가 */
+  .nav-item {
+    padding: 8px 0;
+  }
+  
+  .nav-links {
+    padding: 12px 0;
+  }
+}
