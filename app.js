@@ -3281,6 +3281,9 @@ function renderExpensePage(container) {
   
   // 지출 데이터 불러오기
   loadTransactions();
+  
+  // 스타일 추가 함수 호출
+  addExpensePageStyles();
 }
 
 // 지출 데이터 불러오기
@@ -5572,3 +5575,56 @@ function navigateToResult(page, id) {
 checkAuth();
 // 브라우저 콘솔에 로드 완료 메시지 출력
 console.log("앱 초기화가 완료되었습니다.");
+// 지출 관리 페이지용 스타일 추가
+function addExpensePageStyles() {
+  const styleEl = document.createElement('style');
+  styleEl.id = 'expense-page-styles';
+  styleEl.textContent = `
+    /* 월별 요약 차트 컨테이너 - 높이 증가 */
+    .expense-chart {
+      height: 400px !important;
+      margin-bottom: 40px !important;
+      overflow: visible !important;
+    }
+    
+    /* 섹션 구분선 */
+    .section-divider {
+      height: 1px;
+      background-color: #e0e0e0;
+      margin: 30px 0;
+      clear: both;
+    }
+    
+    /* 달력 컨테이너 */
+    .expense-calendar {
+      margin-top: 40px;
+      clear: both;
+    }
+    
+    /* 지출/수입 금액 색상 */
+    .expense-amount {
+      color: #f44336;
+      font-weight: bold;
+    }
+    
+    .income-amount {
+      color: #4caf50;
+      font-weight: bold;
+    }
+    
+    /* 카테고리 스타일 */
+    .list-item-category {
+      font-size: 0.9rem;
+      color: #666;
+      margin: 2px 0;
+    }
+  `;
+  
+  // 이미 존재하는 스타일이 있으면 제거
+  const existingStyle = document.getElementById('expense-page-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  document.head.appendChild(styleEl);
+}
