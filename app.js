@@ -250,6 +250,13 @@ function toggleView(view) {
       } else {
         listContainer.style.display = "none";
         calendarContainer.style.display = "block";
+        
+        // 달력 뷰에서 적절한 간격 유지를 위한 처리
+        if (currentPage === "diet" || currentPage === "expense") {
+          setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+          }, 100);
+        }
       }
     }
   }
@@ -2744,7 +2751,6 @@ async function updateGoalOrders() {
 }
 // =========== 체중 관리 기능 ===========
 
-// 체중 관리 페이지 렌더링
 function renderDietPage(container) {
   container.innerHTML = `
     <div class="page-container">
@@ -2765,12 +2771,15 @@ function renderDietPage(container) {
       
       <div class="card">
         <h2 class="card-title">체중 추이</h2>
-        <div class="chart-container">
+        <div class="chart-container weight-chart">
           <canvas id="weight-chart"></canvas>
         </div>
       </div>
       
-      <div id="calendar-view-container" class="calendar-container" style="display: ${currentView === 'calendar' ? 'block' : 'none'}">
+      <!-- 섹션 구분선 추가 -->
+      <div class="section-divider"></div>
+      
+      <div id="calendar-view-container" class="calendar-container weight-calendar" style="display: ${currentView === 'calendar' ? 'block' : 'none'}">
         <div id="weight-calendar"></div>
       </div>
       
@@ -2787,6 +2796,9 @@ function renderDietPage(container) {
   
   // 체중 데이터 불러오기
   loadWeights();
+  
+  // 체중 페이지 스타일 추가
+  addDietPageStyles();
 }
 
 // 체중 데이터 불러오기
@@ -2892,8 +2904,12 @@ function renderWeightsCalendar(weights) {
 // 체중 차트 렌더링
 function renderWeightChart(weights) {
   const chartEl = document.getElementById('weight-chart');
+  const chartContainerEl = chartEl ? chartEl.closest('.chart-container') : null;
   
-  if (!chartEl || weights.length === 0) return;
+  if (!chartEl || !chartContainerEl || weights.length === 0) return;
+  
+  // 차트 높이 명시적 설정
+  chartContainerEl.style.height = '400px';
   
   // 차트용 데이터 가공
   weights.sort((a, b) => a.date - b.date);
@@ -2938,7 +2954,14 @@ function renderWeightChart(weights) {
       }
     }
   };
-  
+  chartOptions.layout = {
+  padding: {
+    top: 20,
+    right: 20,
+    bottom: 20,
+    left: 20
+  }
+};
   // 추세선 데이터 계산
   if (recentWeights.length > 1) {
     const xValues = recentWeights.map((_, i) => i);
@@ -5643,6 +5666,102 @@ function addExpensePageStyles() {
   
   document.head.appendChild(styleEl);
 }
+
+// 체중 관리 페이지용 스타일 추가
+function addDietPageStyles() {
+  const styleEl = document.createElement('style');
+  styleEl.id = 'diet-page-styles';
+  styleEl.textContent = `
+    /* 체중 차트 컨테이너 - 높이 증가 */
+    .weight-chart {
+      height: 400px !important;
+      margin-bottom: 40px !important;
+      overflow: visible !important;
+    }
+    
+    /* 섹션 구분선 */
+    .section-divider {
+      height: 1px;
+      background-color: #e0e0e0;
+      margin: 30px 0;
+      clear: both;
+    }
+    
+    /* 달력 컨테이너 */
+    .weight-calendar {
+      margin-top: 40px;
+      clear: both;
+    }
+    
+    /* 체중 통계 카드 스타일 */
+    .weight-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .weight-stat-item {
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+    }
+    
+    .weight-stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .weight-stat-label {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .weight-decrease {
+      color: #4caf50;
+    }
+    
+    .weight-increase {
+      color: #f44336;
+    }
+    
+    /* 달력 날짜 셀 스타일 개선 */
+    .fc-daygrid-day-frame {
+      min-height: 60px;
+    }
+    
+    /* 모바일 대응 */
+    @media screen and (max-width: 768px) {
+      .weight-stats {
+        flex-direction: column;
+      }
+      
+      .weight-stat-item {
+        width: 100%;
+      }
+    }
+  `;
+  
+  // 이미 존재하는 스타일이 있으면 제거
+  const existingStyle = document.getElementById('diet-page-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  document.head.appendChild(styleEl);
+}
+
+// 초기화 함수 호출
+checkAuth();
+// 브라우저 콘솔에 로드 완료 메시지 출력
+console.log("앱 초기화가 완료되었습니다.");
+
 // 지출 관리 페이지용 스타일 추가
 function addExpensePageStyles() {
   const styleEl = document.createElement('style');
