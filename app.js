@@ -321,7 +321,78 @@ function closeModal() {
     isModalOpen = false;
   }
 }
+// 수정 및 삭제 버튼이 있는 모달 표시 함수 추가
+function showModalWithEdit(title, content, onSave = null, itemId = null) {
+  isModalOpen = true;
+  const modalContainer = document.getElementById("modal-container");
+  
+  modalContainer.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target === this) closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">${title}</h2>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-content">
+          ${content}
+        </div>
+        <div class="modal-actions">
+          <button onclick="closeModal()">취소</button>
+          <button onclick="toggleEditMode('${itemId}')" id="edit-mode-button">수정</button>
+          <button id="modal-save-button" style="display: none;">저장</button>
+          <button onclick="deleteEvent('${itemId}')" class="delete-button" style="background-color: #f44336;">삭제</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  if (onSave) {
+    document.getElementById("modal-save-button").addEventListener("click", onSave);
+  }
+  
+  // 처음에는 폼 필드를 읽기 전용으로 설정
+  setFormReadOnly(true);
+  
+  // 입력 필드가 있으면 첫 번째 필드에 포커스
+  const firstInput = modalContainer.querySelector("input, textarea, select");
+  if (firstInput) {
+    setTimeout(() => {
+      firstInput.focus();
+    }, 100);
+  }
+}
 
+// 폼 요소 읽기 전용 설정 함수
+function setFormReadOnly(readOnly) {
+  const formElements = document.querySelectorAll('#event-form input, #event-form select, #event-form textarea');
+  formElements.forEach(el => {
+    el.readOnly = readOnly;
+    el.disabled = readOnly;
+  });
+  
+  // 에디터 편집 가능 여부 설정
+  if (editors['event-description-editor']) {
+    editors['event-description-editor'].enable(!readOnly);
+  }
+}
+
+// 수정 모드 토글 함수
+function toggleEditMode(itemId) {
+  const editButton = document.getElementById('edit-mode-button');
+  const saveButton = document.getElementById('modal-save-button');
+  
+  if (editButton.textContent === '수정') {
+    // 수정 모드로 전환
+    editButton.textContent = '취소';
+    saveButton.style.display = 'inline-block';
+    setFormReadOnly(false);
+  } else {
+    // 읽기 모드로 되돌림
+    editButton.textContent = '수정';
+    saveButton.style.display = 'none';
+    setFormReadOnly(true);
+  }
+}
 // =========== 홈 페이지 렌더링 ===========
 
 // 홈 페이지 렌더링
@@ -1150,7 +1221,8 @@ async function editEvent(eventId) {
       </form>
     `;
     
-    showModal("일정 수정", modalContent, updateEvent);
+    // 여기가 변경된 부분: 수정 버튼을 포함하는 모달 표시
+showModalWithEdit("일정 상세", modalContent, updateEvent, eventId);
     
     // 에디터 초기화
     setTimeout(() => {
