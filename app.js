@@ -3408,14 +3408,41 @@ function renderExpenseChart(transactions) {
   
   if (!chartEl || transactions.length === 0) return;
   
-  // 기존 차트 영역 수정
+  // 기존 차트 영역 수정 - 레이아웃 개선
   chartContainerEl.innerHTML = `
-    <div class="stats-summary">
-      <select id="chart-period-selector" class="chart-selector">
-        <option value="month">월별</option>
-        <option value="category">카테고리별</option>
-      </select>
+    <div class="expense-dashboard">
+      <!-- 요약 정보 섹션 -->
+      <div class="expense-summary-section">
+        <h3 class="summary-title">이번 달 요약</h3>
+        <div class="expense-stats">
+          <div class="stat-item">
+            <div class="stat-label">수입</div>
+            <div class="stat-value income-value">계산 중...</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">지출</div>
+            <div class="stat-value expense-value">계산 중...</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">잔액</div>
+            <div class="stat-value balance-value">계산 중...</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 차트 선택기 섹션 -->
+      <div class="chart-selector-section">
+        <div class="chart-selector-wrapper">
+          <label for="chart-period-selector">차트 유형:</label>
+          <select id="chart-period-selector" class="chart-selector">
+            <option value="month">월별</option>
+            <option value="category">카테고리별</option>
+          </select>
+        </div>
+      </div>
     </div>
+    
+    <!-- 차트 영역 -->
     <div id="bar-chart-container" class="chart-container">
       <canvas id="expense-bar-chart"></canvas>
     </div>
@@ -3587,33 +3614,21 @@ function renderExpenseChart(transactions) {
     options: pieChartOptions
   });
   
-  // 요약 통계 추가
-  const statsSummary = document.querySelector('.stats-summary');
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-  
-  const currentMonthData = monthlyData[currentMonthKey] || { income: 0, expense: 0 };
-  const balance = currentMonthData.income - currentMonthData.expense;
-  
-  const statsHTML = `
-    <div class="expense-stats">
-      <div class="stat-item">
-        <div class="stat-value">${currentMonthData.income.toLocaleString()}원</div>
-        <div class="stat-label">이번 달 수입</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value">${currentMonthData.expense.toLocaleString()}원</div>
-        <div class="stat-label">이번 달 지출</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value ${balance >= 0 ? 'text-success' : 'text-danger'}">${balance.toLocaleString()}원</div>
-        <div class="stat-label">잔액</div>
-      </div>
-    </div>
-  `;
-  
-  statsSummary.insertAdjacentHTML('afterbegin', statsHTML);
+// 현재 달 통계 업데이트
+const currentMonth = new Date().getMonth();
+const currentYear = new Date().getFullYear();
+const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+
+const currentMonthData = monthlyData[currentMonthKey] || { income: 0, expense: 0 };
+const balance = currentMonthData.income - currentMonthData.expense;
+
+// 요약 정보 업데이트
+document.querySelector('.income-value').textContent = `${currentMonthData.income.toLocaleString()}원`;
+document.querySelector('.expense-value').textContent = `${currentMonthData.expense.toLocaleString()}원`;
+
+const balanceValueEl = document.querySelector('.balance-value');
+balanceValueEl.textContent = `${balance.toLocaleString()}원`;
+balanceValueEl.classList.add(balance >= 0 ? 'text-success' : 'text-danger');
   
   // 뷰 전환 이벤트 리스너
   periodSelector.addEventListener('change', function() {
@@ -5617,6 +5632,163 @@ function addExpensePageStyles() {
       font-size: 0.9rem;
       color: #666;
       margin: 2px 0;
+    }
+  `;
+  
+  // 이미 존재하는 스타일이 있으면 제거
+  const existingStyle = document.getElementById('expense-page-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  document.head.appendChild(styleEl);
+}
+// 지출 관리 페이지용 스타일 추가
+function addExpensePageStyles() {
+  const styleEl = document.createElement('style');
+  styleEl.id = 'expense-page-styles';
+  styleEl.textContent = `
+    /* 월별 요약 차트 컨테이너 - 높이 증가 */
+    .expense-chart {
+      height: 400px !important;
+      margin-bottom: 40px !important;
+      overflow: visible !important;
+    }
+    
+    /* 섹션 구분선 */
+    .section-divider {
+      height: 1px;
+      background-color: #e0e0e0;
+      margin: 30px 0;
+      clear: both;
+    }
+    
+    /* 달력 컨테이너 */
+    .expense-calendar {
+      margin-top: 40px;
+      clear: both;
+    }
+    
+    /* 지출/수입 금액 색상 */
+    .expense-amount {
+      color: #f44336;
+      font-weight: bold;
+    }
+    
+    .income-amount {
+      color: #4caf50;
+      font-weight: bold;
+    }
+    
+    /* 카테고리 스타일 */
+    .list-item-category {
+      font-size: 0.9rem;
+      color: #666;
+      margin: 2px 0;
+    }
+    
+    /* 여기서부터 새로운 대시보드 레이아웃 스타일을 추가합니다 */
+    .expense-dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+    
+    .expense-summary-section {
+      flex: 1;
+      min-width: 300px;
+      margin-right: 20px;
+    }
+    
+    .chart-selector-section {
+      min-width: 150px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    
+    .expense-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 10px;
+    }
+    
+    .stat-item {
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+    }
+    
+    .summary-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 10px;
+      color: #555;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .income-value {
+      color: #4caf50;
+    }
+    
+    .expense-value {
+      color: #f44336;
+    }
+    
+    .text-success {
+      color: #4caf50;
+    }
+    
+    .text-danger {
+      color: #f44336;
+    }
+    
+    .chart-selector-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    /* 모바일 대응 */
+    @media screen and (max-width: 768px) {
+      .expense-dashboard {
+        flex-direction: column;
+      }
+      
+      .expense-summary-section,
+      .chart-selector-section {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 15px;
+      }
+      
+      .chart-selector-section {
+        justify-content: flex-start;
+      }
+      
+      .stat-item {
+        min-width: 100px;
+      }
     }
   `;
   
