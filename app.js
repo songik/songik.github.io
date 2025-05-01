@@ -2036,6 +2036,9 @@ console.log("이벤트 리스너 설정 완료, 상하 버튼 개수: ",
 // 완료된 목표 갯수 확인
 console.log("완료된 목표 갯수:", document.querySelectorAll('.progress-goal.completed').length);
 console.log("전체 목표 갯수:", document.querySelectorAll('.progress-goal').length);
+
+        // 여기에 드래그 앤 드롭 초기화 코드를 추가하세요
+    enableDragAndDrop();
     
   } catch (error) {
     console.error("목표를 불러오는 중 오류 발생:", error);
@@ -2044,17 +2047,21 @@ console.log("전체 목표 갯수:", document.querySelectorAll('.progress-goal')
   }
 }
 
-async function moveGoalUp(goalId) {
+// app.js 파일
+async function moveGoalDown(goalId) {
   try {
-    console.log("moveGoalUp 실행:", goalId);
+    console.log("moveGoalDown 실행:", goalId);
     
     // 진행 중인 목표만 가져오기
     const goalsRef = db.collection("goals");
-    const snapshot = await goalsRef
-      .where("completed", "==", false)
-      .orderBy("order", "asc")
-      .get();
     
+    // 두 필드 모두 체크 (쿼리가 어떤 필드를 사용하는지 확인하기 위함)
+    let query = goalsRef.where("completed", "==", false);
+    
+    // 쿼리 실행
+    const snapshot = await query.orderBy("order", "asc").get();
+    
+    // 목표 목록 구성
     const goals = [];
     snapshot.forEach(doc => {
       goals.push({
@@ -2063,24 +2070,37 @@ async function moveGoalUp(goalId) {
       });
     });
     
-    // 현재 목표의 인덱스 찾기
-    const currentIndex = goals.findIndex(g => g.id === goalId);
-    
-    // 첫 번째이면 이동 불가
-    if (currentIndex <= 0) {
-      console.log("첫 번째 항목이므로 이동 불가");
+    // 목록이 비어있으면 처리 중단
+    if (goals.length === 0) {
+      console.log("이동할 목표가 없습니다");
       return;
     }
     
-    // 이전 목표와 현재 목표의 순서를 교환
-    const prevGoal = goals[currentIndex - 1];
+    // 현재 목표의 인덱스 찾기
+    const currentIndex = goals.findIndex(g => g.id === goalId);
+    
+    // 목표를 찾을 수 없으면 처리 중단
+    if (currentIndex === -1) {
+      console.log("지정된 목표를 찾을 수 없습니다", goalId);
+      console.log("사용 가능한 목표 ID들:", goals.map(g => g.id));
+      return;
+    }
+    
+    // 마지막이면 이동 불가
+    if (currentIndex >= goals.length - 1) {
+      console.log("마지막 항목이므로 이동 불가");
+      return;
+    }
+    
+    // 다음 목표와 현재 목표의 순서를 교환
+    const nextGoal = goals[currentIndex + 1];
     const currentGoal = goals[currentIndex];
     
     // 두 목표의 순서 교환
-    const tempOrder = prevGoal.order;
+    const tempOrder = nextGoal.order;
     
     const batch = db.batch();
-    batch.update(goalsRef.doc(prevGoal.id), { 
+    batch.update(goalsRef.doc(nextGoal.id), { 
       order: currentGoal.order,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -2090,6 +2110,7 @@ async function moveGoalUp(goalId) {
     });
     
     await batch.commit();
+    console.log("목표 순서 변경 완료:", goalId);
     
     // 목표 목록 새로고침
     await loadGoals();
@@ -2504,7 +2525,118 @@ async function deleteTask(goalId, taskId) {
     }
   }
 }
+function enableDragAndDrop() {
+  const container = document.getElementById('goals-container');
+  if (!container) return;
 
+  // 드래그 가능한 목표 목록 가져오기 (완료되지 않은 것만)
+  const goals = container.querySelectorAll('.progress-goal:not(.completed)');
+  
+  goals.forEach(goal => {
+    // 드래그 가능하게 설정
+    goal.setAttribute('draggable', 'true');
+    
+    // 드래그 핸들러 역할을 하는 제목 부분만 드래그 가능하게 설정
+    const titleBar = goal.querySelector('.progress-goal-title');
+    if (titleBar) {
+      titleBar.style.cursor = 'grab';
+      titleBar.style.userSelect = 'none'; // 텍스트 선택 방지
+    }
+    
+    // 드래그 시작 이벤트
+    goal.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', goal.dataset.id);
+      goal.classList.add('dragging');
+      // 드래그 이미지 숨기기
+      setTimeout(() => {
+        goal.style.opacity = '0.4';
+      }, 0);
+    });
+    
+    // 드래그 종료 이벤트
+    goal.addEventListener('dragend', () => {
+      goal.classList.remove('dragging');
+      goal.style.opacity = '1';
+    });
+    
+    // 드래그 오버 이벤트 (드래그 중인 요소가 다른 요소 위에 있을 때)
+    goal.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const draggingElement = document.querySelector('.dragging');
+      
+      // 자기 자신이거나 완료된 목표는 처리하지 않음
+      if (!draggingElement || draggingElement === goal || goal.classList.contains('completed')) {
+        return;
+      }
+      
+      // 마우스 위치에 따라 위/아래 결정
+      const rect = goal.getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      
+      if (e.clientY < midpoint) {
+        // 마우스가 요소의 윗부분에 있으면 위에 배치
+        container.insertBefore(draggingElement, goal);
+      } else {
+        // 마우스가 요소의 아랫부분에 있으면 아래에 배치
+        container.insertBefore(draggingElement, goal.nextSibling);
+      }
+    });
+    
+    // 드롭 이벤트 (드래그 요소를 놓았을 때)
+    goal.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const sourceId = e.dataTransfer.getData('text/plain');
+      const targetId = goal.dataset.id;
+      
+      if (sourceId !== targetId && !goal.classList.contains('completed')) {
+        // 새로운 순서를 데이터베이스에 저장
+        await updateGoalOrders();
+      }
+    });
+  });
+  
+  // 컨테이너 자체에도 드롭 이벤트 추가
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
+  
+  container.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    await updateGoalOrders();
+  });
+}
+
+// 목표 순서 업데이트 함수
+async function updateGoalOrders() {
+  try {
+    const container = document.getElementById('goals-container');
+    if (!container) return;
+    
+    const goals = container.querySelectorAll('.progress-goal:not(.completed)');
+    
+    if (goals.length === 0) return;
+    
+    // 현재 화면에 표시된 순서대로 order 값 재할당
+    const batch = db.batch();
+    const goalsRef = db.collection("goals");
+    
+    let order = 10; // 시작 order 값
+    goals.forEach(goal => {
+      const goalId = goal.dataset.id;
+      batch.update(goalsRef.doc(goalId), {
+        order: order,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      order += 10; // 다음 order 값 (간격을 두어 나중에 중간 삽입이 쉽도록)
+    });
+    
+    await batch.commit();
+    console.log("목표 순서 업데이트 완료");
+    
+  } catch (error) {
+    console.error("목표 순서 업데이트 중 오류 발생:", error);
+  }
+}
 // =========== 체중 관리 기능 ===========
 
 // 체중 관리 페이지 렌더링
