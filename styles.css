@@ -1057,3 +1057,42 @@ input:focus, select:focus, textarea:focus {
     padding: 12px 0;
   }
 }
+/* 여기서부터 지출 관리 페이지 스타일 추가 */
+/* 월별 요약 차트 컨테이너 - 높이 증가 */
+.expense-chart {
+  height: 400px !important;
+  margin-bottom: 40px !important;
+  overflow: visible !important;
+}
+
+/* 섹션 구분선 */
+.section-divider {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 30px 0;
+  clear: both;
+}
+
+/* 달력 컨테이너 */
+.expense-calendar {
+  margin-top: 40px;
+  clear: both;
+}
+
+/* 지출/수입 금액 색상 */
+.expense-amount {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.income-amount {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+/* 카테고리 스타일 */
+.list-item-category {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 2px 0;
+}
