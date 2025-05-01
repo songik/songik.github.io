@@ -903,20 +903,46 @@ function renderEventsCalendar(events) {
         }
       }));
       
-      // FullCalendar 초기화
-      window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
-        headerToolbar: {
-          left: 'prev,next today',
-          center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
-        initialView: 'dayGridMonth',
-        locale: 'ko',
-        events: [...events, ...koreanHolidays, ...colorEvents],
-        editable: true,
-        selectable: true,
-        selectMirror: true,
-        dayMaxEvents: true,
+// 모바일 여부 확인
+const isMobile = window.innerWidth < 768;
+
+// FullCalendar 초기화
+window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
+  headerToolbar: {
+    left: 'prev,next today',
+    center: 'title',
+    right: isMobile ? 'dayGridMonth,listMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
+  },
+  initialView: isMobile ? 'listMonth' : 'dayGridMonth', // 모바일에서는 기본 리스트 뷰
+  height: isMobile ? 'auto' : undefined, // 모바일에서 높이 자동 조정
+  dayMaxEventRows: isMobile ? 2 : 6, // 모바일에서 표시하는 이벤트 수 제한
+  eventTimeFormat: { // 시간 표시 형식 간소화
+    hour: '2-digit',
+    minute: '2-digit',
+    meridiem: false
+  },
+  locale: 'ko',
+  events: [...events, ...koreanHolidays, ...colorEvents],
+  editable: true,
+  selectable: true,
+  selectMirror: true,
+  dayMaxEvents: true,
+  
+  // 이벤트 렌더링 커스터마이징 - 모바일 최적화
+  eventDidMount: function(info) {
+    // 모바일에서 이벤트 표시 최적화
+    if (isMobile && info.view.type === 'dayGridMonth') {
+      const eventEl = info.el;
+      eventEl.style.fontSize = '0.8rem';
+      eventEl.style.padding = '2px 4px';
+      
+      // 이벤트 텍스트 길이 제한
+      const titleEl = eventEl.querySelector('.fc-event-title');
+      if (titleEl && titleEl.textContent.length > 10) {
+        titleEl.textContent = titleEl.textContent.substring(0, 10) + '...';
+      }
+    }
+  },
 
           // 디버깅용 이벤트 핸들러 추가
   eventDidMount: function(info) {
@@ -959,6 +985,13 @@ function renderEventsCalendar(events) {
             }
           ];
           
+          // 창 크기 변경 시 달력 반응형 업데이트 (함수 끝 부분에 추가)
+window.addEventListener('resize', function() {
+  const newIsMobile = window.innerWidth < 768;
+  if (newIsMobile !== isMobile) {
+    loadEvents(); // 달력 새로고침
+  }
+});
           // 해당 날짜에 이미 배경색이 있는지 확인
           const hasColorBackground = dateColors.some(dc => 
             formatDate(dc.date) === dateStr);
@@ -2865,11 +2898,16 @@ function renderWeightChart(weights) {
   // 차트용 데이터 가공
   weights.sort((a, b) => a.date - b.date);
   
+  // 최근 3개월 데이터만 사용
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  
+  const recentWeights = weights.filter(w => w.date >= threeMonthsAgo);
   const chartData = {
-    labels: weights.map(w => formatDate(w.date)),
+    labels: recentWeights.map(w => formatDate(w.date)),
     datasets: [{
       label: '체중 (kg)',
-      data: weights.map(w => w.weight),
+      data: recentWeights.map(w => w.weight),
       borderColor: '#4caf50',
       backgroundColor: 'rgba(76, 175, 80, 0.1)',
       borderWidth: 2,
@@ -2883,34 +2921,159 @@ function renderWeightChart(weights) {
     scales: {
       y: {
         beginAtZero: false,
-        min: Math.min(...weights.map(w => w.weight)) - 2,
-        max: Math.max(...weights.map(w => w.weight)) + 2
+        min: Math.min(...recentWeights.map(w => w.weight)) - 2,
+        max: Math.max(...recentWeights.map(w => w.weight)) + 2
       }
     },
     responsive: true,
-    maintainAspectRatio: false
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          afterLabel: function(context) {
+            const weight = recentWeights[context.dataIndex];
+            return weight.notes ? `메모: ${weight.notes}` : '';
+          }
+        }
+      }
+    }
   };
+  
+  // 추세선 데이터 계산
+  if (recentWeights.length > 1) {
+    const xValues = recentWeights.map((_, i) => i);
+    const yValues = recentWeights.map(w => w.weight);
+    
+    // 선형 회귀 계산
+    const n = xValues.length;
+    const sum_x = xValues.reduce((a, b) => a + b, 0);
+    const sum_y = yValues.reduce((a, b) => a + b, 0);
+    const sum_xy = xValues.map((x, i) => x * yValues[i]).reduce((a, b) => a + b, 0);
+    const sum_xx = xValues.map(x => x * x).reduce((a, b) => a + b, 0);
+    
+    const slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
+    const intercept = (sum_y - slope * sum_x) / n;
+    
+    // 추세선 데이터셋 추가
+    chartData.datasets.push({
+      label: '추세선',
+      data: xValues.map(x => slope * x + intercept),
+      borderColor: '#ff9800',
+      borderWidth: 2,
+      fill: false,
+      borderDash: [5, 5],
+      pointRadius: 0
+    });
+    
+    // 차트 상단에 통계 정보 표시
+    const weightContainer = chartEl.parentElement;
+    const statsEl = document.createElement('div');
+    statsEl.className = 'weight-stats';
+    
+    const startWeight = recentWeights[0].weight;
+    const endWeight = recentWeights[recentWeights.length - 1].weight;
+    const weightChange = endWeight - startWeight;
+    const avgWeight = sum_y / n;
+    
+    statsEl.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value">${avgWeight.toFixed(1)} kg</div>
+          <div class="stat-label">평균 체중</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value ${weightChange < 0 ? 'text-success' : weightChange > 0 ? 'text-danger' : ''}">${weightChange.toFixed(1)} kg</div>
+          <div class="stat-label">기간 변화</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${Math.min(...yValues).toFixed(1)} kg</div>
+          <div class="stat-label">최저 체중</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${Math.max(...yValues).toFixed(1)} kg</div>
+          <div class="stat-label">최고 체중</div>
+        </div>
+      </div>
+    `;
+    
+    // 기존 통계가 있으면 제거
+    const existingStats = weightContainer.querySelector('.weight-stats');
+    if (existingStats) {
+      weightContainer.removeChild(existingStats);
+    }
+    
+    // 차트 위에 통계 표시
+    weightContainer.insertBefore(statsEl, chartEl);
+  }
   
   // 이전 차트 제거
   if (window.weightChart) {
     window.weightChart.destroy();
   }
   
-// 새 차트 생성 - 오류 처리 추가
-try {
-  if (typeof Chart !== 'undefined' && chartEl) {
-    window.weightChart = new Chart(chartEl, {
-      type: 'line',
-      data: chartData,
-      options: chartOptions
-    });
+  // 새 차트 생성
+  try {
+    if (typeof Chart !== 'undefined' && chartEl) {
+      window.weightChart = new Chart(chartEl, {
+        type: 'line',
+        data: chartData,
+        options: chartOptions
+      });
+    }
+  } catch (error) {
+    console.error("차트 초기화 중 오류 발생:", error);
+    if (chartEl) {
+      chartEl.innerHTML = "<p>차트를 로드하는 중 오류가 발생했습니다.</p>";
+    }
   }
-} catch (error) {
-  console.error("차트 초기화 중 오류 발생:", error);
-  if (chartEl) {
-    chartEl.innerHTML = "<p>차트를 로드하는 중 오류가 발생했습니다.</p>";
-  }
-}
+  
+  // 통계 스타일 추가
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    .weight-stats {
+      margin-bottom: 15px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      text-align: center;
+    }
+    
+    @media screen and (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    .stat-item {
+      padding: 10px;
+    }
+    
+    .stat-value {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .text-success {
+      color: #4caf50;
+    }
+    
+    .text-danger {
+      color: #f44336;
+    }
+  `;
+  document.head.appendChild(styleEl);
 }
 
 // 체중 추가 폼 표시
@@ -3092,12 +3255,12 @@ function renderExpensePage(container) {
         </div>
       </div>
       
-      <div class="card">
-        <h2 class="card-title">월별 요약</h2>
-        <div class="chart-container">
-          <canvas id="expense-chart"></canvas>
-        </div>
-      </div>
+<div class="card">
+  <h2 class="card-title">월별 요약</h2>
+  <div id="expense-chart-container" class="chart-container">
+    <canvas id="expense-chart"></canvas>
+  </div>
+</div>
       
       <div id="calendar-view-container" class="calendar-container" style="display: ${currentView === 'calendar' ? 'block' : 'none'}">
         <div id="expense-calendar"></div>
@@ -3267,8 +3430,29 @@ function renderTransactionsCalendar(transactions) {
 // 지출 차트 렌더링
 function renderExpenseChart(transactions) {
   const chartEl = document.getElementById('expense-chart');
+  const chartContainerEl = document.getElementById('expense-chart-container');
   
   if (!chartEl || transactions.length === 0) return;
+  
+  // 기존 차트 영역 수정
+  chartContainerEl.innerHTML = `
+    <div class="stats-summary">
+      <select id="chart-period-selector" class="chart-selector">
+        <option value="month">월별</option>
+        <option value="category">카테고리별</option>
+      </select>
+    </div>
+    <div id="bar-chart-container" class="chart-container">
+      <canvas id="expense-bar-chart"></canvas>
+    </div>
+    <div id="pie-chart-container" class="chart-container" style="display: none;">
+      <canvas id="expense-pie-chart"></canvas>
+    </div>
+  `;
+  
+  const barChartEl = document.getElementById('expense-bar-chart');
+  const pieChartEl = document.getElementById('expense-pie-chart');
+  const periodSelector = document.getElementById('chart-period-selector');
   
   // 월별 데이터 가공
   const monthlyData = {};
@@ -3294,7 +3478,7 @@ function renderExpenseChart(transactions) {
   // 최근 6개월 데이터 추출
   const months = Object.keys(monthlyData).sort().slice(-6);
   
-  const chartData = {
+  const barChartData = {
     labels: months.map(month => {
       const [year, m] = month.split('-');
       return `${year}년 ${m}월`;
@@ -3317,8 +3501,63 @@ function renderExpenseChart(transactions) {
     ]
   };
   
+  // 카테고리별 데이터 가공
+  const categoryData = {};
+  let totalExpense = 0;
+  
+  transactions.forEach(transaction => {
+    // 지출만 처리
+    if (transaction.type !== 'expense') return;
+    
+    // 최근 1개월 데이터만 사용
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    if (transaction.date < oneMonthAgo) return;
+    
+    const category = transaction.category || '기타';
+    
+    if (!categoryData[category]) {
+      categoryData[category] = 0;
+    }
+    
+    categoryData[category] += transaction.amount;
+    totalExpense += transaction.amount;
+  });
+  
+  // 카테고리 데이터를 내림차순으로 정렬
+  const sortedCategories = Object.entries(categoryData)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8); // 상위 8개 카테고리만 표시
+  
+  // 나머지는 '기타'로 묶기
+  let otherAmount = 0;
+  Object.entries(categoryData)
+    .sort((a, b) => b[1] - a[1])
+    .slice(8)
+    .forEach(([_, amount]) => {
+      otherAmount += amount;
+    });
+  
+  if (otherAmount > 0) {
+    sortedCategories.push(['기타 항목', otherAmount]);
+  }
+  
+  const pieChartData = {
+    labels: sortedCategories.map(([category, amount]) => 
+      `${category} (${Math.round(amount / totalExpense * 100)}%)`
+    ),
+    datasets: [{
+      data: sortedCategories.map(([_, amount]) => amount),
+      backgroundColor: [
+        '#f44336', '#2196f3', '#4caf50', '#ff9800', 
+        '#9c27b0', '#00bcd4', '#795548', '#607d8b', '#9e9e9e'
+      ],
+      borderWidth: 1
+    }]
+  };
+  
   // 차트 옵션
-  const chartOptions = {
+  const barChartOptions = {
     scales: {
       y: {
         beginAtZero: true
@@ -3328,17 +3567,123 @@ function renderExpenseChart(transactions) {
     maintainAspectRatio: false
   };
   
+  const pieChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          boxWidth: 12,
+          font: {
+            size: 11
+          }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const value = context.raw;
+            return `${context.label.split(' (')[0]}: ${value.toLocaleString()}원`;
+          }
+        }
+      }
+    }
+  };
+  
   // 이전 차트 제거
-  if (window.expenseChart) {
-    window.expenseChart.destroy();
+  if (window.expenseBarChart) {
+    window.expenseBarChart.destroy();
+  }
+  
+  if (window.expensePieChart) {
+    window.expensePieChart.destroy();
   }
   
   // 새 차트 생성
-  window.expenseChart = new Chart(chartEl, {
+  window.expenseBarChart = new Chart(barChartEl, {
     type: 'bar',
-    data: chartData,
-    options: chartOptions
+    data: barChartData,
+    options: barChartOptions
   });
+  
+  window.expensePieChart = new Chart(pieChartEl, {
+    type: 'pie',
+    data: pieChartData,
+    options: pieChartOptions
+  });
+  
+  // 요약 통계 추가
+  const statsSummary = document.querySelector('.stats-summary');
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+  
+  const currentMonthData = monthlyData[currentMonthKey] || { income: 0, expense: 0 };
+  const balance = currentMonthData.income - currentMonthData.expense;
+  
+  const statsHTML = `
+    <div class="expense-stats">
+      <div class="stat-item">
+        <div class="stat-value">${currentMonthData.income.toLocaleString()}원</div>
+        <div class="stat-label">이번 달 수입</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${currentMonthData.expense.toLocaleString()}원</div>
+        <div class="stat-label">이번 달 지출</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value ${balance >= 0 ? 'text-success' : 'text-danger'}">${balance.toLocaleString()}원</div>
+        <div class="stat-label">잔액</div>
+      </div>
+    </div>
+  `;
+  
+  statsSummary.insertAdjacentHTML('afterbegin', statsHTML);
+  
+  // 뷰 전환 이벤트 리스너
+  periodSelector.addEventListener('change', function() {
+    const barChartContainer = document.getElementById('bar-chart-container');
+    const pieChartContainer = document.getElementById('pie-chart-container');
+    
+    if (this.value === 'month') {
+      barChartContainer.style.display = 'block';
+      pieChartContainer.style.display = 'none';
+    } else {
+      barChartContainer.style.display = 'none';
+      pieChartContainer.style.display = 'block';
+    }
+  });
+  
+  // 스타일 추가
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    .chart-selector {
+      margin: 10px 0;
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    
+    .expense-stats {
+      display: flex;
+      justify-content: space-between;
+      margin: 15px 0;
+    }
+    
+    .expense-stats .stat-item {
+      text-align: center;
+      flex: 1;
+    }
+    
+    .stats-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+  `;
+  document.head.appendChild(styleEl);
 }
 
 // 지출 추가 폼 표시
@@ -4898,13 +5243,121 @@ function renderSearchPage(container) {
             onkeyup="if(event.key === 'Enter') performSearch()"
           />
           <button onclick="performSearch()">검색</button>
+          <button onclick="toggleAdvancedSearch()" id="advanced-search-toggle">
+            <i class="fas fa-cog"></i> 고급 검색
+          </button>
         </div>
+        
+        <div id="advanced-search-options" style="display: none;">
+          <div class="search-options">
+            <div class="form-group">
+              <label>데이터 유형</label>
+              <div class="checkbox-group">
+                <label><input type="checkbox" name="search-type" value="events" checked> 일정</label>
+                <label><input type="checkbox" name="search-type" value="todos" checked> 할 일</label>
+                <label><input type="checkbox" name="search-type" value="diaries" checked> 일기</label>
+                <label><input type="checkbox" name="search-type" value="notes" checked> 메모</label>
+                <label><input type="checkbox" name="search-type" value="habits" checked> 습관</label>
+                <label><input type="checkbox" name="search-type" value="transactions" checked> 지출/수입</label>
+                <label><input type="checkbox" name="search-type" value="weights" checked> 체중</label>
+                <label><input type="checkbox" name="search-type" value="goals" checked> 목표</label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>날짜 범위</label>
+              <div class="date-range">
+                <input type="date" id="search-start-date" placeholder="시작일">
+                <span>~</span>
+                <input type="date" id="search-end-date" placeholder="종료일">
+              </div>
+            </div>
+            
+            <div class="form-group search-buttons">
+              <button onclick="resetAdvancedSearch()">초기화</button>
+            </div>
+          </div>
+        </div>
+        
         <div id="search-results">
           <p>검색 결과가 여기에 표시됩니다.</p>
         </div>
       </div>
     </div>
   `;
+  
+  // 스타일 추가
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    .search-form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .search-form input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    #advanced-search-options {
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-right: 10px;
+      min-width: 80px;
+    }
+    
+    .date-range {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    
+    .date-range input {
+      flex: 1;
+    }
+    
+    .search-buttons {
+      margin-top: 15px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    
+    @media screen and (max-width: 768px) {
+      .checkbox-group {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .date-range {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .date-range span {
+        text-align: center;
+      }
+    }
+  `;
+  document.head.appendChild(styleEl);
 }
 
 // 검색 수행
@@ -5085,7 +5538,33 @@ eventsSnapshot.forEach(doc => {
     document.getElementById("search-results").innerHTML = "<p>검색 중 오류가 발생했습니다.</p>";
   }
 }
+// 고급 검색 토글 함수 - 고급 검색 옵션의 표시/숨김을 전환
+function toggleAdvancedSearch() {
+  const advancedOptions = document.getElementById('advanced-search-options');
+  const toggleButton = document.getElementById('advanced-search-toggle');
+  
+  if (advancedOptions.style.display === 'none') {
+    // 고급 검색 옵션이 숨겨져 있으면 표시
+    advancedOptions.style.display = 'block';
+    toggleButton.innerHTML = '<i class="fas fa-times"></i> 기본 검색';
+  } else {
+    // 고급 검색 옵션이 표시되어 있으면 숨김
+    advancedOptions.style.display = 'none';
+    toggleButton.innerHTML = '<i class="fas fa-cog"></i> 고급 검색';
+  }
+}
 
+// 고급 검색 초기화 함수 - 모든 검색 필터를 기본값으로 재설정
+function resetAdvancedSearch() {
+  // 모든 검색 유형 체크박스를 체크 상태로 초기화
+  document.querySelectorAll('input[name="search-type"]').forEach(checkbox => {
+    checkbox.checked = true;
+  });
+  
+  // 날짜 범위 입력 필드를 비움
+  document.getElementById('search-start-date').value = '';
+  document.getElementById('search-end-date').value = '';
+}
 // 검색 결과로 이동
 function navigateToResult(page, id) {
   navigateTo(page);
