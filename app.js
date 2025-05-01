@@ -3317,7 +3317,7 @@ async function loadTransactions() {
   }
 }
 
-// 지출 리스트 렌더링
+// 지출 리스트 렌더링 - 수정된 함수
 function renderTransactionsList(transactions) {
   const transactionsListEl = document.getElementById("transactions-list");
   
@@ -3331,57 +3331,26 @@ function renderTransactionsList(transactions) {
   transactions.forEach(transaction => {
     const isExpense = transaction.type === 'expense';
     
-html += `
-  <div class="progress-goal ${goal.isCompleted ? 'completed' : ''}" data-id="${goal.id}">
-    <div class="progress-goal-title">
-      <h2>${goal.title}</h2>
-      <div class="list-item-actions">
-        ${!goal.isCompleted ? `
-          <button onclick="moveGoalUp('${goal.id}')" class="move-goal-up-btn" ${isFirstActiveGoal ? 'disabled' : ''}>
-            <i class="fas fa-arrow-up"></i>
-          </button>
-          <button onclick="moveGoalDown('${goal.id}')" class="move-goal-down-btn" ${isLastActiveGoal ? 'disabled' : ''}>
-            <i class="fas fa-arrow-down"></i>
-          </button>
-        ` : ''}
-        <button onclick="showAddTaskForm('${goal.id}')">항목 추가</button>
-        <button onclick="editGoal('${goal.id}')">수정</button>
-        <button onclick="deleteGoal('${goal.id}')">삭제</button>
-      </div>
-    </div>
-    <div class="progress-container">
-      <div class="progress-bar" style="width: ${goal.progress}%;"></div>
-    </div>
-    <div class="progress-percentage">${goal.progress}% 완료</div>
-    
-    <div class="progress-goal-tasks">
-      ${goal.tasks.length > 0 ? 
-        `<ul class="list-container">
-          ${goal.tasks.map(task => `
-            <li class="progress-task" data-id="${task.id}">
-              <div class="progress-task-checkbox">
-                <input 
-                  type="checkbox" 
-                  class="task-checkbox"
-                  ${task.completed ? 'checked' : ''}
-                  onclick="toggleTaskComplete('${goal.id}', '${task.id}', ${!task.completed})"
-                />
-              </div>
-              <div class="list-item-content ${task.completed ? 'completed' : ''}">
-                <div>${task.title}</div>
-              </div>
-              <div class="list-item-actions">
-                <button onclick="editTask('${goal.id}', '${task.id}')">수정</button>
-                <button onclick="deleteTask('${goal.id}', '${task.id}')">삭제</button>
-              </div>
-            </li>
-          `).join('')}
-        </ul>` 
-        : '<p>등록된 세부 항목이 없습니다.</p>'
-      }
-    </div>
-  </div>
-`;
+    html += `
+      <li class="list-item" data-id="${transaction.id}">
+        <div class="list-item-content">
+          <div class="list-item-title ${isExpense ? 'expense-amount' : 'income-amount'}">
+            ${isExpense ? '-' : '+'} ${transaction.amount.toLocaleString()}원
+          </div>
+          <div class="list-item-category">
+            ${transaction.category} ${transaction.subCategory ? `> ${transaction.subCategory}` : ''}
+          </div>
+          <div class="list-item-date">
+            ${formatDate(transaction.date)} · ${transaction.paymentMethod}
+          </div>
+          ${transaction.description ? `<div class="list-item-description">${transaction.description}</div>` : ''}
+        </div>
+        <div class="list-item-actions">
+          <button onclick="editTransaction('${transaction.id}')">수정</button>
+          <button onclick="deleteTransaction('${transaction.id}')">삭제</button>
+        </div>
+      </li>
+    `;
   });
   
   html += '</ul>';
