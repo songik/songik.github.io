@@ -2784,8 +2784,8 @@ function renderDietPage(container) {
       <option value="custom">사용자 정의</option>
     </select>
     
-    <!-- 사용자 정의 기간 설정 -->
-    <div class="custom-period">
+    <!-- 사용자 정의 기간 설정 - style="display: none;" 추가 -->
+    <div class="custom-period" style="display: none;">
       <label for="weight-start-date">시작일:</label>
       <input type="date" id="weight-start-date">
       <label for="weight-end-date">종료일:</label>
