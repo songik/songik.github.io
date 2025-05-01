@@ -3236,7 +3236,6 @@ async function deleteWeight(weightId) {
 
 // =========== 지출 관리 기능 ===========
 
-// 지출 관리 페이지 렌더링
 function renderExpensePage(container) {
   container.innerHTML = `
     <div class="page-container">
@@ -3255,14 +3254,17 @@ function renderExpensePage(container) {
         </div>
       </div>
       
-<div class="card">
-  <h2 class="card-title">월별 요약</h2>
-  <div id="expense-chart-container" class="chart-container">
-    <canvas id="expense-chart"></canvas>
-  </div>
-</div>
+      <div class="card">
+        <h2 class="card-title">월별 요약</h2>
+        <div id="expense-chart-container" class="chart-container expense-chart">
+          <canvas id="expense-chart"></canvas>
+        </div>
+      </div>
       
-      <div id="calendar-view-container" class="calendar-container" style="display: ${currentView === 'calendar' ? 'block' : 'none'}">
+      <!-- 섹션 구분선 추가 -->
+      <div class="section-divider"></div>
+      
+      <div id="calendar-view-container" class="calendar-container expense-calendar" style="display: ${currentView === 'calendar' ? 'block' : 'none'}">
         <div id="expense-calendar"></div>
       </div>
       
