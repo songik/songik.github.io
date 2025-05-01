@@ -1882,18 +1882,19 @@ html += `
       <h2>${goal.title}</h2>
       <div class="list-item-actions">
         ${!goal.isCompleted ? `
-          <button onclick="moveGoalUp('${goal.id}')" class="move-goal-up-btn" data-goal-id="${goal.id}" ${isFirstActiveGoal ? 'disabled' : ''}>
+          <button onclick="moveGoalUp('${goal.id}')" class="move-goal-up-btn" ${isFirstActiveGoal ? 'disabled' : ''}>
             <i class="fas fa-arrow-up"></i>
           </button>
-          <button onclick="moveGoalDown('${goal.id}')" class="move-goal-down-btn" data-goal-id="${goal.id}" ${isLastActiveGoal ? 'disabled' : ''}>
+          <button onclick="moveGoalDown('${goal.id}')" class="move-goal-down-btn" ${isLastActiveGoal ? 'disabled' : ''}>
             <i class="fas fa-arrow-down"></i>
           </button>
         ` : ''}
-        <button onclick="showAddTaskForm('${goal.id}')" class="add-task-btn" data-goal-id="${goal.id}">항목 추가</button>
-        <button onclick="editGoal('${goal.id}')" class="edit-goal-btn" data-goal-id="${goal.id}">수정</button>
-        <button onclick="deleteGoal('${goal.id}')" class="delete-goal-btn" data-goal-id="${goal.id}">삭제</button>
+        <button onclick="showAddTaskForm('${goal.id}')">항목 추가</button>
+        <button onclick="editGoal('${goal.id}')">수정</button>
+        <button onclick="deleteGoal('${goal.id}')">삭제</button>
       </div>
     </div>
+    ...
     <div class="progress-container">
       <div class="progress-bar" style="width: ${goal.progress}%;"></div>
     </div>
@@ -1962,20 +1963,46 @@ styleEl.textContent = `
     transition: all 0.3s ease;
   }
 
-  /* 완료된 목표 스타일 */
-  .progress-goal.completed {
-    background-color: #f5f5f5 !important;
-    opacity: 0.8 !important;
-    border-left: 5px solid #9e9e9e !important;
-  }
+ /* 완료된 목표 스타일 강화 */
+.progress-goal.completed {
+  background-color: #f5f5f5 !important;
+  opacity: 0.8 !important;
+  border-left: 5px solid #9e9e9e !important;
+}
 
-  .progress-goal.completed .progress-bar {
-    background-color: #9e9e9e !important;
-  }
+.progress-goal.completed .progress-bar {
+  background-color: #9e9e9e !important;
+}
 
-  .progress-goal.completed .progress-goal-title h2 {
-    color: #757575 !important;
-  }
+.progress-goal.completed .progress-goal-title h2 {
+  color: #757575 !important;
+}
+
+/* 이동 버튼 스타일 추가 */
+.move-goal-up-btn,
+.move-goal-down-btn {
+  padding: 5px 8px !important;
+  margin-right: 5px !important;
+  background-color: #f0f0f0 !important;
+  color: #333 !important;
+}
+
+.move-goal-up-btn:hover,
+.move-goal-down-btn:hover {
+  background-color: #e0e0e0 !important;
+}
+
+.move-goal-up-btn:disabled,
+.move-goal-down-btn:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+}
+
+/* 완료된 항목 스타일 강화 */
+.list-item-content.completed {
+  text-decoration: line-through !important;
+  color: #757575 !important;
+}
 
   .progress-goal-title {
     display: flex;
@@ -2005,142 +2032,6 @@ styleEl.textContent = `
   }
 `;
 document.head.appendChild(styleEl);
-
-function setupEventListeners() {
-  console.log('setupEventListeners 실행 시작!');
-  
-  const upButtons = document.querySelectorAll('.move-goal-up-btn');
-  const downButtons = document.querySelectorAll('.move-goal-down-btn');
-  const addTaskButtons = document.querySelectorAll('.add-task-btn');
-  const editGoalButtons = document.querySelectorAll('.edit-goal-btn');
-  const deleteGoalButtons = document.querySelectorAll('.delete-goal-btn');
-  const checkboxes = document.querySelectorAll('.task-checkbox');
-  const editTaskButtons = document.querySelectorAll('.edit-task-btn');
-  const deleteTaskButtons = document.querySelectorAll('.delete-task-btn');
-  
-  console.log('버튼 개수 확인:', 
-    '위로:', upButtons.length, 
-    '아래로:', downButtons.length,
-    '항목 추가:', addTaskButtons.length,
-    '체크박스:', checkboxes.length
-  );
-  
-  // 위로 이동 버튼
-  upButtons.forEach(button => {
-    if (!button.disabled) {
-      button.onclick = function(e) {
-        e.stopPropagation();
-        e.preventDefault();
-        const goalId = this.getAttribute('data-goal-id');
-        console.log('위로 이동 버튼 클릭 직접 처리:', goalId);
-        moveGoalUp(goalId);
-        return false;
-      };
-    }
-  });
-  
-  // 아래로 이동 버튼
-  downButtons.forEach(button => {
-    if (!button.disabled) {
-      button.onclick = function(e) {
-        e.stopPropagation();
-        e.preventDefault();
-        const goalId = this.getAttribute('data-goal-id');
-        console.log('아래로 이동 버튼 클릭 직접 처리:', goalId);
-        moveGoalDown(goalId);
-        return false;
-      };
-    }
-  });
-  
-  // 항목 추가 버튼
-  addTaskButtons.forEach(button => {
-    button.onclick = function(e) {
-      e.stopPropagation();
-      const goalId = this.getAttribute('data-goal-id');
-      console.log('항목 추가 버튼 클릭:', goalId);
-      showAddTaskForm(goalId);
-      return false;
-    };
-  });
-  
-  // 목표 수정 버튼
-  editGoalButtons.forEach(button => {
-    button.onclick = function(e) {
-      e.stopPropagation();
-      const goalId = this.getAttribute('data-goal-id');
-      console.log('목표 수정 버튼 클릭:', goalId);
-      editGoal(goalId);
-      return false;
-    };
-  });
-  
-  // 목표 삭제 버튼
-  deleteGoalButtons.forEach(button => {
-    button.onclick = function(e) {
-      e.stopPropagation();
-      const goalId = this.getAttribute('data-goal-id');
-      console.log('목표 삭제 버튼 클릭:', goalId);
-      deleteGoal(goalId);
-      return false;
-    };
-  });
-  
-  // 작업 체크박스
-  checkboxes.forEach(checkbox => {
-    checkbox.onchange = function(e) {
-      e.stopPropagation();
-      const goalId = this.getAttribute('data-goal-id');
-      const taskId = this.getAttribute('data-task-id');
-      const completed = this.checked;
-      console.log('체크박스 변경:', goalId, taskId, completed);
-      toggleTaskComplete(goalId, taskId, completed);
-    };
-  });
-  
-  // 작업 수정 버튼
-  editTaskButtons.forEach(button => {
-    button.onclick = function(e) {
-      e.stopPropagation();
-      const goalId = this.getAttribute('data-goal-id');
-      const taskId = this.getAttribute('data-task-id');
-      console.log('작업 수정 버튼 클릭:', goalId, taskId);
-      editTask(goalId, taskId);
-      return false;
-    };
-  });
-  
-  // 작업 삭제 버튼
-  deleteTaskButtons.forEach(button => {
-    button.onclick = function(e) {
-      e.stopPropagation();
-      const goalId = this.getAttribute('data-goal-id');
-      const taskId = this.getAttribute('data-task-id');
-      console.log('작업 삭제 버튼 클릭:', goalId, taskId);
-      deleteTask(goalId, taskId);
-      return false;
-    };
-  });
-  
-  // 부모 요소로의 이벤트 전파 방지를 위한 추가 처리
-  document.querySelectorAll('.progress-goal').forEach(goal => {
-    goal.addEventListener('click', function(e) {
-      if (e.target === this) {
-        console.log('목표 컨테이너 클릭');
-      }
-    });
-  });
-  
-  console.log('setupEventListeners 실행 완료!');
-}
-
-// 목표 렌더링 완료
-console.log("목표 렌더링 시작, 이벤트 리스너 설정 전");
-try {
-  // 렌더링이 DOM에 반영될 시간을 주기 위해 약간의 지연 추가
-  setTimeout(() => {
-    setupEventListeners();
-    console.log("목표 렌더링 및 이벤트 리스너 설정 완료");
     
     // 완료된 목표 스타일 강제 적용
     document.querySelectorAll('.progress-goal.completed').forEach(elem => {
@@ -2188,11 +2079,8 @@ async function moveGoalUp(goalId) {
       });
     });
     
-    console.log("정렬된 목표 목록:", goals);
-    
     // 현재 목표의 인덱스 찾기
     const currentIndex = goals.findIndex(g => g.id === goalId);
-    console.log("현재 목표 인덱스:", currentIndex);
     
     // 첫 번째이면 이동 불가
     if (currentIndex <= 0) {
@@ -2203,10 +2091,6 @@ async function moveGoalUp(goalId) {
     // 이전 목표와 현재 목표의 순서를 교환
     const prevGoal = goals[currentIndex - 1];
     const currentGoal = goals[currentIndex];
-    
-    console.log("교환할 목표:", 
-               "이전:", prevGoal.id, prevGoal.order, 
-               "현재:", currentGoal.id, currentGoal.order);
     
     // 두 목표의 순서 교환
     const tempOrder = prevGoal.order;
@@ -2222,11 +2106,9 @@ async function moveGoalUp(goalId) {
     });
     
     await batch.commit();
-    console.log("배치 업데이트 완료");
     
-    // 목표 목록 새로고침 (await 추가)
+    // 목표 목록 새로고침
     await loadGoals();
-    console.log("목표 목록 새로고침 완료");
   } catch (error) {
     console.error("목표 순서 변경 중 오류 발생:", error);
     alert("목표 순서를 변경하는 중 오류가 발생했습니다.");
@@ -2252,11 +2134,8 @@ async function moveGoalDown(goalId) {
       });
     });
     
-    console.log("정렬된 목표 목록:", goals);
-    
     // 현재 목표의 인덱스 찾기
     const currentIndex = goals.findIndex(g => g.id === goalId);
-    console.log("현재 목표 인덱스:", currentIndex);
     
     // 마지막이면 이동 불가
     if (currentIndex >= goals.length - 1) {
@@ -2267,10 +2146,6 @@ async function moveGoalDown(goalId) {
     // 다음 목표와 현재 목표의 순서를 교환
     const nextGoal = goals[currentIndex + 1];
     const currentGoal = goals[currentIndex];
-    
-    console.log("교환할 목표:", 
-               "다음:", nextGoal.id, nextGoal.order, 
-               "현재:", currentGoal.id, currentGoal.order);
     
     // 두 목표의 순서 교환
     const tempOrder = nextGoal.order;
@@ -2286,11 +2161,9 @@ async function moveGoalDown(goalId) {
     });
     
     await batch.commit();
-    console.log("배치 업데이트 완료");
     
-    // 목표 목록 새로고침 (await 추가)
+    // 목표 목록 새로고침
     await loadGoals();
-    console.log("목표 목록 새로고침 완료");
   } catch (error) {
     console.error("목표 순서 변경 중 오류 발생:", error);
     alert("목표 순서를 변경하는 중 오류가 발생했습니다.");
@@ -2627,16 +2500,8 @@ async function toggleTaskComplete(goalId, taskId, completed) {
     
     console.log(`목표 ID ${goalId} 완료 상태 업데이트: ${isCompleted}`);
     
-    try {
-      // 목표 목록 새로고침 - 안전하게 처리
-      console.log("loadGoals 호출 시작");
-      await loadGoals();
-      console.log("loadGoals 호출 완료");
-    } catch (refreshError) {
-      console.error("목표 목록 새로고침 중 오류:", refreshError);
-      // 오류가 발생해도 페이지를 다시 로드하여 복구 시도
-      location.reload();
-    }
+    // 목표 목록 새로고침
+    await loadGoals();
   } catch (error) {
     console.error("세부 항목 상태 변경 중 오류 발생:", error);
     alert("세부 항목 상태를 변경하는 중 오류가 발생했습니다.");
