@@ -763,6 +763,65 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
+/* 모달 내 습관 캘린더 최적화 추가 스타일 */
+@media screen and (max-width: 768px) {
+  /* 모달 내용물 여백 조정 */
+  .modal-content {
+    padding: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 60vh;
+  }
+  
+  /* 모달 최대 높이 및 너비 제한 */
+  .modal {
+    max-height: 80vh;
+    width: 90%;
+    margin: 0 auto;
+  }
+  
+  /* 모달 닫기 버튼 크기 증가 (터치 영역 확대) */
+  .modal-close {
+    width: 44px;
+    height: 44px;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* 모달 내 콘텐츠 간격 조정 */
+  .modal .habit-calendar-container {
+    max-width: 100%;
+    margin-bottom: 15px;
+  }
+  
+  /* 모달 내 버튼 간격 및 크기 조정 */
+  .modal-actions button {
+    padding: 12px 15px;
+    min-height: 44px;
+  }
+}
+
+/* 웹킷 스크롤바 스타일링 (모바일 브라우저 호환성 개선) */
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
+}
+
 /* 달력 스타일 */
 .calendar-container {
   background-color: var(--card-color);
@@ -1224,6 +1283,123 @@ input:focus, select:focus, textarea:focus {
 
 .habit-day:hover {
   background-color: var(--primary-light);
+}
+
+/* 습관 관련 모바일 최적화 스타일 */
+.habit-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 15px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.habit-day {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  height: 40px;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  user-select: none; /* 텍스트 선택 방지 */
+  -webkit-tap-highlight-color: transparent; /* 탭 하이라이트 제거 */
+}
+
+.habit-day-header {
+  font-weight: bold;
+  background-color: transparent;
+  cursor: default;
+}
+
+.habit-day-other-month {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.habit-day:hover {
+  background-color: var(--primary-light);
+}
+
+.habit-day.today {
+  border: 2px solid var(--primary-color);
+  font-weight: bold;
+}
+
+.habit-day.completed {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.habit-checkmark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: bold;
+  font-size: 1.2em;
+  pointer-events: none; /* 터치 이벤트가 아래 요소로 전달되도록 */
+}
+
+.habit-calendar-container {
+  width: 100%;
+  overflow-x: auto; /* 필요시 가로 스크롤 제공 */
+  margin-top: 10px;
+  padding-bottom: 5px;
+}
+
+.habit-detail {
+  max-width: 100%;
+}
+
+.habit-info {
+  margin-bottom: 15px;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+  .habit-day {
+    height: 36px; /* 모바일에서 약간 작게 */
+    min-width: 36px; /* 최소 너비 보장 */
+    font-size: 0.9rem; /* 글자 크기 줄임 */
+  }
+  
+  .habit-calendar {
+    gap: 3px; /* 간격 줄임 */
+  }
+  
+  .habit-checkmark {
+    font-size: 1em; /* 체크마크 크기 조정 */
+  }
+  
+  /* 모달 내부 스크롤 방지 */
+  .modal-content {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  
+  /* 작은 화면에서 달력 스크롤 가능하게 */
+  .habit-calendar-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* 터치 영역 확대 */
+.habit-day {
+  min-height: 44px;
+  min-width: 44px; /* 터치 영역 권장 최소 크기 */
+}
+
+/* 모달 내 습관 세부정보 레이아웃 개선 */
+.habit-detail {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 /* 할 일 체크박스 스타일 - 달력 내 */
