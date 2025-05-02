@@ -5295,6 +5295,8 @@ async function toggleHabitComplete(habitId, completed) {
 // 습관 기록 업데이트
 async function updateHabitRecord(habitId, dateStr, completed) {
   try {
+    console.log(`습관 기록 업데이트: habitId=${habitId}, date=${dateStr}, completed=${completed}`);
+    
     const date = new Date(dateStr);
     date.setHours(0, 0, 0, 0);
     
@@ -5312,6 +5314,7 @@ async function updateHabitRecord(habitId, dateStr, completed) {
         completed: completed,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      console.log(`새 습관 기록 추가됨: ${dateStr}`);
     } else {
       // 기존 기록 업데이트
       const recordId = snapshot.docs[0].id;
@@ -5319,22 +5322,43 @@ async function updateHabitRecord(habitId, dateStr, completed) {
         completed: completed,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      console.log(`기존 습관 기록 업데이트됨: ${dateStr}, ID: ${recordId}`);
     }
     
-    // 현재 뷰가 리스트면 리스트 새로고침, 달력이면 달력 새로고침
-    loadHabits();
-    
-    // 모달이 열려있으면 닫기
-    if (isModalOpen) {
-      closeModal();
+    // 모달 내에서 체크박스 시각적 상태 업데이트
+    const dateElem = document.querySelector(`.habit-day[data-date="${dateStr}"]`);
+    if (dateElem) {
+      if (completed) {
+        dateElem.classList.add('completed');
+        if (!dateElem.querySelector('.habit-checkmark')) {
+          const checkmark = document.createElement('div');
+          checkmark.className = 'habit-checkmark';
+          checkmark.innerHTML = '✓';
+          dateElem.appendChild(checkmark);
+        }
+      } else {
+        dateElem.classList.remove('completed');
+        const checkmark = dateElem.querySelector('.habit-checkmark');
+        if (checkmark) {
+          checkmark.remove();
+        }
+      }
+      console.log(`UI 업데이트됨: ${dateStr}, completed=${completed}`);
     }
+    
+    // 백그라운드에서 습관 목록 리로드 (모달 닫지 않음)
+    setTimeout(() => {
+      if (currentView === 'list') {
+        loadHabits();
+      }
+    }, 500);
+    
   } catch (error) {
     console.error("습관 기록 업데이트 중 오류 발생:", error);
     alert('습관 기록을 업데이트하는 중 오류가 발생했습니다.');
   }
 }
 
-// 습관 개별 달력 표시
 // 습관 개별 달력 표시
 async function showHabitCalendar(habitId) {
   try {
@@ -5407,10 +5431,12 @@ async function showHabitCalendar(habitId) {
       if (isCompleted) dayClass += " completed";
       if (isToday) dayClass += " today";
       
+      const formattedDate = formatDate(date);
+      
       calendarHTML += `
         <div class="${dayClass}" 
-             data-date="${formatDate(date)}" 
-             onclick="updateHabitRecord('${habitId}', '${formatDate(date)}', ${!isCompleted})">
+             data-date="${formattedDate}" 
+             onclick="toggleHabitDate('${habitId}', '${formattedDate}', ${!isCompleted})">
           ${day}
           ${isCompleted ? '<div class="habit-checkmark">✓</div>' : ''}
         </div>
@@ -5425,28 +5451,6 @@ async function showHabitCalendar(habitId) {
     }
     
     calendarHTML += '</div>';
-    
-    // 체크 표시용 CSS 추가
-    calendarHTML += `
-      <style>
-        .habit-checkmark {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          color: white;
-          font-weight: bold;
-        }
-        .habit-day {
-          position: relative;
-        }
-        .habit-day.completed {
-          background-color: var(--primary-color);
-          color: white;
-          cursor: pointer;
-        }
-      </style>
-    `;
     
     const modalContent = `
       <div class="habit-detail">
@@ -5465,6 +5469,16 @@ async function showHabitCalendar(habitId) {
     console.error("습관 달력 로드 중 오류 발생:", error);
     alert('습관 달력을 불러오는 중 오류가 발생했습니다.');
   }
+}
+
+// 습관 날짜 토글 함수 추가 (모바일 호환성 개선)
+function toggleHabitDate(habitId, dateStr, completed) {
+  // 이벤트 버블링 방지 (모바일에서 중요)
+  event.preventDefault();
+  event.stopPropagation();
+  
+  // 업데이트 함수 호출
+  updateHabitRecord(habitId, dateStr, completed);
 }
     
 
