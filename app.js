@@ -539,6 +539,27 @@ function parseDate(dateString) {
   return new Date(dateString);
 }
 
+// 여기에 formatFullCalendarDate 함수를 추가하세요
+// FullCalendar 날짜 포맷 변환 유틸리티
+function formatFullCalendarDate(date, isEnd = false, isAllDay = false) {
+  if (!date) return null;
+  
+  // Firestore Timestamp를 Date로 변환
+  if (date && typeof date.toDate === 'function') {
+    date = date.toDate();
+  }
+  
+  // 종일 이벤트의 종료일은 FullCalendar에서 exclusive로 처리
+  // 즉, 표시하려는 날짜 다음날로 설정해야 함
+  if (isAllDay && isEnd) {
+    const nextDay = new Date(date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    return nextDay;
+  }
+  
+  return date;
+}
+
 // 페이지 렌더링 분기
 function renderPage(page) {
   const contentEl = document.getElementById("content");
@@ -636,27 +657,21 @@ async function loadEvents() {
         allDay: event.allDay || false
       };
       
-      // 종료일 처리 - 중요한 부분!
+      // 종료일 처리 - 수정된 부분!
       if (event.end) {
         const startDate = eventObj.start;
         const endDate = event.end.toDate();
         
         // 종일 이벤트일 경우
         if (event.allDay) {
-          // 날짜 차이 계산 (밀리초 단위를 일 단위로 변환)
-          const diffTime = Math.abs(endDate - startDate);
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
-          console.log("일정 ID:", doc.id, "시작일:", startDate, "종료일:", endDate, "일 수 차이:", diffDays);
-          
-          // 시작일과 종료일이 같거나, 차이가 1일인 경우 (종료일 = 내일)
-          if (diffDays <= 1) {
-            // 종료일을 강제로 시작일 + 2일로 설정 (FullCalendar에서 정확히 2일로 표시되게)
+          // 시작일과 종료일이 같은 경우 (하루짜리 이벤트)
+          if (formatDate(startDate) === formatDate(endDate)) {
+            // FullCalendar의 exclusive 종료일 때문에 +1일을 해줌 (동일 날짜로 표시하기 위함)
             const adjustedEnd = new Date(startDate);
-            adjustedEnd.setDate(adjustedEnd.getDate() + 2);
+            adjustedEnd.setDate(adjustedEnd.getDate() + 1);
             eventObj.end = adjustedEnd;
           } else {
-            // 차이가 2일 이상인 경우, 종료일에 1일을 더해서 FullCalendar의 exclusive 종료일 로직에 맞춤
+            // 여러 날에 걸친 이벤트의 경우 종료일에 1일을 더해야 FullCalendar에서 제대로 표시됨
             const adjustedEnd = new Date(endDate);
             adjustedEnd.setDate(adjustedEnd.getDate() + 1);
             eventObj.end = adjustedEnd;
@@ -951,15 +966,23 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
     }
   },
 
-          // 디버깅용 이벤트 핸들러 추가
-  eventDidMount: function(info) {
-    console.log("이벤트 표시:", info.event.id, 
-                "제목:", info.event.title,
-                "시작일:", info.event.start, 
-                "종료일:", info.event.end,
-                "allDay:", info.event.allDay);
-  },
-        
+// 향상된 디버깅용 이벤트 핸들러
+eventDidMount: function(info) {
+  console.log("이벤트 표시:", info.event.id, 
+            "제목:", info.event.title,
+            "시작일:", formatDate(info.event.start, true), 
+            "종료일:", info.event.end ? formatDate(info.event.end, true) : "없음",
+            "allDay:", info.event.allDay,
+            "시작 타임스탬프:", info.event.start.getTime(),
+            "종료 타임스탬프:", info.event.end ? info.event.end.getTime() : "없음");
+            
+  // 종일 이벤트의 경우 스타일 강화
+  if (info.event.allDay) {
+    const eventEl = info.el;
+    eventEl.style.fontWeight = 'bold';
+  }
+},
+    
         // 날짜 선택 시 이벤트 추가 폼 표시
         select: function(info) {
           showAddEventForm(info.startStr, info.endStr, info.allDay);
@@ -1082,8 +1105,14 @@ function showAddEventForm(startDate = null, endDate = null, allDay = false) {
   }
   
   if (!endDate) {
-    endDate = new Date(startDate);
-    endDate.setHours(startDate.getHours() + 1);
+    // 종일 이벤트라면 endDate를 startDate와 동일하게 설정
+    if (allDay) {
+      endDate = new Date(startDate);
+    } else {
+      // 종일 이벤트가 아니라면 1시간 후로 설정
+      endDate = new Date(startDate);
+      endDate.setHours(startDate.getHours() + 1);
+    }
   } else if (typeof endDate === 'string') {
     endDate = new Date(endDate);
   }
@@ -1108,7 +1137,7 @@ function showAddEventForm(startDate = null, endDate = null, allDay = false) {
       </div>
       <div class="form-group">
         <label for="event-all-day">
-          <input type="checkbox" id="event-all-day" ${allDay ? 'checked' : ''}>
+          <input type="checkbox" id="event-all-day" ${allDay ? 'checked' : ''} onchange="adjustEndDateForAllDay()">
           종일
         </label>
       </div>
@@ -1125,6 +1154,26 @@ function showAddEventForm(startDate = null, endDate = null, allDay = false) {
   setTimeout(() => {
     initTextEditor('event-description-editor', '일정에 대한 설명을 입력하세요...');
   }, 100);
+}
+
+// 종일 체크박스 변경 시 종료일시 조정 함수
+function adjustEndDateForAllDay() {
+  const allDayCheckbox = document.getElementById('event-all-day');
+  const startDateInput = document.getElementById('event-start');
+  const endDateInput = document.getElementById('event-end');
+  
+  if (allDayCheckbox && allDayCheckbox.checked) {
+    // 종일 이벤트로 변경 시 시작일과 종료일을 같은 날짜의 00:00으로 설정
+    const startDate = new Date(startDateInput.value);
+    
+    // 시작일의 날짜만 추출해서 시간은 00:00으로 설정
+    const formattedDate = formatDate(startDate);
+    const adjustedStartDate = `${formattedDate}T00:00`;
+    const adjustedEndDate = `${formattedDate}T00:00`;
+    
+    startDateInput.value = adjustedStartDate;
+    endDateInput.value = adjustedEndDate;
+  }
 }
 
 // 날짜를 입력 필드용 포맷으로 변환
@@ -1176,7 +1225,7 @@ async function saveEvent() {
     endDate = new Date(endEl.value);
     
     // 종료일이 시작일보다 이전이면 경고
-    if (endDate < startDate) {
+    if (endDate < startDate && !allDayEl.checked) {
       alert('종료일은 시작일 이후여야 합니다.');
       return;
     }
@@ -1192,8 +1241,15 @@ async function saveEvent() {
       allDay: allDayEl.checked
     };
     
-    // 종료일 추가
+    // 종료일 추가 (종일 이벤트 처리)
     if (endDate) {
+      // 종일 이벤트인 경우 시작일과 종료일이 같으면 그대로 저장
+      if (allDayEl.checked) {
+        // 종일 이벤트는 시간 정보를 00:00:00으로 정규화
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+      }
+      
       eventData.end = firebase.firestore.Timestamp.fromDate(endDate);
     }
     
@@ -1250,7 +1306,7 @@ async function editEvent(eventId) {
         </div>
         <div class="form-group">
           <label for="event-all-day">
-            <input type="checkbox" id="event-all-day" ${event.allDay ? 'checked' : ''}>
+            <input type="checkbox" id="event-all-day" ${event.allDay ? 'checked' : ''} onchange="adjustEndDateForAllDay()">
             종일
           </label>
         </div>
@@ -1262,7 +1318,7 @@ async function editEvent(eventId) {
     `;
     
     // 여기가 변경된 부분: 수정 버튼을 포함하는 모달 표시
-showModalWithEdit("일정 상세", modalContent, updateEvent, eventId);
+    showModalWithEdit("일정 상세", modalContent, updateEvent, eventId);
     
     // 에디터 초기화
     setTimeout(() => {
@@ -1294,8 +1350,8 @@ async function updateEvent() {
   if (endEl.value) {
     endDate = new Date(endEl.value);
     
-    // 종료일이 시작일보다 이전이면 경고
-    if (endDate < startDate) {
+    // 종료일이 시작일보다 이전이면 경고 (종일 이벤트가 아닌 경우만)
+    if (endDate < startDate && !allDayEl.checked) {
       alert('종료일은 시작일 이후여야 합니다.');
       return;
     }
@@ -1314,6 +1370,13 @@ async function updateEvent() {
     
     // 종료일 추가 또는 삭제
     if (endDate) {
+      // 종일 이벤트인 경우 시작일과 종료일이 같으면 그대로 저장
+      if (allDayEl.checked) {
+        // 종일 이벤트는 시간 정보를 00:00:00으로 정규화
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+      }
+      
       eventData.end = firebase.firestore.Timestamp.fromDate(endDate);
     } else {
       eventData.end = firebase.firestore.FieldValue.delete();
@@ -1356,17 +1419,26 @@ async function updateEventDates(eventId, start, end, allDay) {
     if (end) {
       // allDay 이벤트일 경우, FullCalendar의 종료일에서 1일을 빼서 실제 종료일로 저장
       if (allDay) {
+        // FullCalendar는 종료일을 exclusive로 처리하므로 1일 빼줌
         const adjustedEnd = new Date(end);
         adjustedEnd.setDate(adjustedEnd.getDate() - 1);
         
-        // 그런데 만약 조정된 종료일이 시작일보다 작거나 같게 되면, 시작일 + 1일로 설정
-        if (adjustedEnd <= start) {
-          adjustedEnd.setTime(start.getTime());
-          adjustedEnd.setDate(adjustedEnd.getDate() + 1);
-        }
+        // 시작일과 종료일이 같은지 확인
+        const startDateStr = formatDate(start);
+        const endDateStr = formatDate(adjustedEnd);
         
-        eventData.end = firebase.firestore.Timestamp.fromDate(adjustedEnd);
+        if (startDateStr === endDateStr) {
+          // 시작일과 종료일이 같으면 그대로 저장
+          eventData.end = firebase.firestore.Timestamp.fromDate(adjustedEnd);
+        } else if (adjustedEnd < start) {
+          // 종료일이 시작일보다 이전이면 시작일로 설정
+          eventData.end = firebase.firestore.Timestamp.fromDate(start);
+        } else {
+          // 정상적인 경우 조정된 종료일 사용
+          eventData.end = firebase.firestore.Timestamp.fromDate(adjustedEnd);
+        }
       } else {
+        // 종일 이벤트가 아니면 그대로 사용
         eventData.end = firebase.firestore.Timestamp.fromDate(end);
       }
     } else {
