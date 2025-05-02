@@ -25,6 +25,44 @@ body {
   color: var(--text-color);
   background-color: var(--background-color);
   line-height: 1.6;
+  overflow-x: hidden; /* 추가된 부분 - 수평 스크롤 방지 */
+}
+
+/* 새로 추가된 부분 - 달력 관련 스타일 개선 */
+.fc-scrollgrid {
+  width: 100% !important;
+}
+
+.fc-daygrid-day-frame {
+  min-height: auto;
+}
+
+@media screen and (max-width: 768px) {
+  /* 달력 반응형 개선 */
+  .fc-header-toolbar {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  /* 달력 날짜 셀 크기 조정 */
+  .fc-daygrid-day-frame {
+    min-height: 40px;
+    padding: 2px;
+  }
+  
+  /* 이벤트 텍스트 조정 */
+  .fc-event-title {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* 모달 전체 너비 제한 */
+  .modal {
+    max-width: 90%;
+    width: 90%;
+  }
 }
 
 .container {
@@ -923,6 +961,23 @@ input:focus, select:focus, textarea:focus {
   .view-toggle {
     margin-right: 0;
   }
+  
+  /* 새로 추가된 부분 - 차트와 달력 컨테이너 반응형 개선 */
+  .chart-container, .calendar-container {
+    width: 100%;
+    overflow-x: hidden; /* 수평 스크롤 방지 */
+    margin-bottom: 20px;
+  }
+  
+  /* 모바일에서 전체 컨테이너 패딩 조정 */
+  .container, .page-container {
+    padding: 10px;
+  }
+  
+  /* 그래프 크기 조정 */
+  #weight-chart, #expense-chart, #expense-bar-chart, #expense-pie-chart {
+    height: 300px !important;
+  }
 }
 
 @media screen and (max-width: 480px) {
@@ -951,6 +1006,33 @@ input:focus, select:focus, textarea:focus {
   
   .modal {
     padding: 15px;
+  }
+  
+  /* 추가된 부분 - 작은 모바일 화면에서의 달력 최적화 */
+  .fc-toolbar-title {
+    font-size: 1.2rem !important; /* 달력 타이틀 크기 축소 */
+  }
+  
+  .fc-button {
+    padding: 6px 8px !important; /* 버튼 패딩 축소 */
+    font-size: 0.8rem !important; /* 버튼 글씨 크기 축소 */
+  }
+  
+  /* 달력 날짜 셀 더 축소 */
+  .fc-daygrid-day-number {
+    font-size: 0.8rem;
+    padding: 2px !important;
+  }
+  
+  /* 일정/할일 아이템 텍스트 간소화 */
+  .fc-event-title {
+    font-size: 0.7rem;
+    max-width: 100%;
+  }
+  
+  /* 차트 컨테이너 높이 조정 */
+  .chart-container, .weight-chart, .expense-chart {
+    height: 250px !important;
   }
 }
 /* 습관 체크마크 스타일 */
