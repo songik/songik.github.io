@@ -1629,18 +1629,82 @@ function renderTodosCalendar(todos) {
         titleElement.parentNode.insertBefore(checkbox, titleElement);
       }
     },
-    eventClick: function(info) {
-      // 체크박스가 아닌 부분을 클릭했을 때만 편집 화면 표시
-      if (!info.jsEvent.target.matches('input[type="checkbox"]')) {
-        editTodo(info.event.id);
-      }
-    },
+eventClick: function(info) {
+  // 체크박스가 아닌 부분을 클릭했을 때만 상세 모달 표시
+  if (!info.jsEvent.target.matches('input[type="checkbox"]')) {
+    showTodoDetailModal(info.event.id);
+  }
+},
     dateClick: function(info) {
       showAddTodoForm(info.dateStr);
     }
   });
   
   calendar.render();
+}
+
+// 할 일 상세 모달 표시
+async function showTodoDetailModal(todoId) {
+  try {
+    const todoDoc = await db.collection("todos").doc(todoId).get();
+    
+    if (!todoDoc.exists) {
+      alert('할 일 정보를 찾을 수 없습니다.');
+      return;
+    }
+    
+    const todo = todoDoc.data();
+    
+    const modalContent = `
+      <div class="todo-detail">
+        <h3>${todo.title}</h3>
+        ${todo.dueDate ? `<p><strong>마감일:</strong> ${formatDate(todo.dueDate)}</p>` : ''}
+        <p><strong>우선순위:</strong> ${getPriorityText(todo.priority)}</p>
+        <p><strong>상태:</strong> ${todo.completed ? '완료됨' : '진행 중'}</p>
+        ${todo.description ? `<div class="todo-description"><strong>설명:</strong><br>${todo.description}</div>` : ''}
+      </div>
+    `;
+    
+    const modalContainer = document.getElementById("modal-container");
+    
+    modalContainer.innerHTML = `
+      <div class="modal-overlay" onclick="if(event.target === this) closeModal()">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 class="modal-title">할 일 상세</h2>
+            <button class="modal-close" onclick="closeModal()">×</button>
+          </div>
+          <div class="modal-content">
+            ${modalContent}
+          </div>
+          <div class="modal-actions">
+            <button onclick="closeModal()">취소</button>
+            <button onclick="editTodo('${todoId}')">수정</button>
+            <button onclick="deleteTodo('${todoId}')" style="background-color: #f44336;">삭제</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    isModalOpen = true;
+  } catch (error) {
+    console.error("할 일 정보 로드 중 오류 발생:", error);
+    alert('할 일 정보를 불러오는 중 오류가 발생했습니다.');
+  }
+}
+
+// 우선순위 텍스트 변환 함수
+function getPriorityText(priority) {
+  switch(priority) {
+    case 'high':
+      return '높음';
+    case 'medium':
+      return '중간';
+    case 'low':
+      return '낮음';
+    default:
+      return '중간';
+  }
 }
 
 // 할 일 완료 상태 토글
