@@ -296,7 +296,7 @@ function showModal(title, content, onSave = null) {
       <div class="modal ${isMobile ? 'mobile-modal' : ''}">
         <div class="modal-header">
           <h2 class="modal-title">${title}</h2>
-          <button class="modal-close" onclick="closeModal()">×</button>
+          <button class="modal-close" onclick="closeModal()" aria-label="닫기">×</button>
         </div>
         <div class="modal-content">
           ${content}
@@ -313,12 +313,17 @@ function showModal(title, content, onSave = null) {
     document.getElementById("modal-save-button").addEventListener("click", onSave);
   }
   
-  // 모바일에서 스크롤 방지 (배경 고정)
+  // 모바일에서 스크롤 방지 (배경 고정) - 방식 개선
   if (isMobile) {
-    document.body.style.overflow = 'hidden';
+    // 현재 스크롤 위치 저장
+    const scrollY = window.scrollY;
     document.body.style.position = 'fixed';
     document.body.style.width = '100%';
-    document.body.style.height = '100%';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.overscrollBehavior = 'none'; // 오버스크롤 방지
+    
+    // iOS Safari 호환성 개선
+    document.documentElement.style.scrollBehavior = 'auto';
   }
   
   // 키보드 이벤트 - ESC로 모달 닫기
@@ -337,14 +342,70 @@ function showModal(title, content, onSave = null) {
     }, isMobile ? 400 : 100); // 모바일에서 지연시간 증가
   }
   
+  // 모달 내 터치 이벤트에서 습관 달력과 관련된 상호작용 개선
+  setTimeout(() => {
+    const habitDays = modalContainer.querySelectorAll('.habit-day');
+    if (habitDays.length > 0) {
+      habitDays.forEach(day => {
+        // 터치 이벤트를 사용하는지 확인하는 플래그
+        let isTouchDevice = false;
+        
+        // 터치 시작 시 플래그 설정
+        day.addEventListener('touchstart', function() {
+          isTouchDevice = true;
+        }, { passive: true });
+        
+        // 터치 이벤트 별도 처리 (모바일 최적화)
+        day.addEventListener('touchend', function(e) {
+          if (!day.classList.contains('habit-day-other-month') && 
+              !day.classList.contains('habit-day-header')) {
+            // data 속성에서 필요한 정보 가져오기
+            const date = this.getAttribute('data-date');
+            const habitId = this.closest('.habit-detail')?.getAttribute('data-habit-id');
+            const completed = !this.classList.contains('completed');
+            
+            if (habitId && date) {
+              // 완료 상태 토글
+              updateHabitRecord(habitId, date, completed);
+              
+              // 시각적 피드백 즉시 제공
+              if (completed) {
+                this.classList.add('completed');
+                if (!this.querySelector('.habit-checkmark')) {
+                  const checkmark = document.createElement('div');
+                  checkmark.className = 'habit-checkmark';
+                  checkmark.innerHTML = '✓';
+                  this.appendChild(checkmark);
+                }
+              } else {
+                this.classList.remove('completed');
+                const checkmark = this.querySelector('.habit-checkmark');
+                if (checkmark) {
+                  checkmark.remove();
+                }
+              }
+            }
+            
+            e.preventDefault(); // 추가 이벤트 방지
+          }
+        }, { passive: false });
+      });
+    }
+  }, 300);
+  
   // 모달이 닫힐 때 설정한 이벤트 및 스타일 정리를 위한 원본 closeModal 함수를 오버라이드
   const originalCloseModal = window.closeModal;
   window.closeModal = function() {
-    // 스크롤 방지 해제
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.width = '';
-    document.body.style.height = '';
+    // 스크롤 방지 해제 - 개선된 방식
+    if (isMobile) {
+      const scrollY = parseInt(document.body.style.top || '0') * -1;
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      document.body.style.overscrollBehavior = '';
+      document.documentElement.style.scrollBehavior = '';
+      window.scrollTo(0, scrollY); // 원래 스크롤 위치로 복원
+    }
     
     // 키보드 이벤트 제거
     document.removeEventListener('keydown', handleKeyDown);
@@ -5056,8 +5117,55 @@ function renderHabitsPage(container) {
     </div>
   `;
   
+  // 모바일 최적화 스타일 동적 추가
+  addMobileHabitStyles();
+  
   // 습관 데이터 불러오기
   loadHabits();
+}
+
+// 모바일 최적화 스타일 동적 추가 함수
+function addMobileHabitStyles() {
+  // 이미 추가된 스타일이 있는지 확인
+  if (document.getElementById('mobile-habit-styles')) {
+    return;
+  }
+  
+  // 모바일 최적화 스타일 추가
+  const styleEl = document.createElement('style');
+  styleEl.id = 'mobile-habit-styles';
+  styleEl.textContent = `
+    /* 습관 관리 모바일 최적화 스타일 */
+    @media (max-width: 768px) {
+      /* 습관 체크박스 터치 영역 확대 */
+      .list-item-checkbox input[type="checkbox"] {
+        width: 24px;
+        height: 24px;
+        margin-right: 12px;
+      }
+      
+      /* 습관 항목 간격 개선 */
+      .list-item {
+        padding: 16px 12px;
+        margin-bottom: 8px;
+      }
+      
+      /* 습관 달력 터치 최적화 */
+      .habit-day {
+        min-height: 44px;
+        min-width: 44px;
+      }
+      
+      /* 버튼 터치 영역 확대 */
+      .list-item-actions button {
+        padding: 8px 12px;
+        min-height: 44px;
+        min-width: 80px;
+      }
+    }
+  `;
+  
+  document.head.appendChild(styleEl);
 }
 
 // 습관 데이터 불러오기
