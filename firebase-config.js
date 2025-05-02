@@ -32,3 +32,41 @@ try {
 } catch (error) {
   console.error("Firebase 초기화 오류:", error);
 }
+// 모바일 감지 함수 추가
+function isMobileDevice() {
+  return (
+    window.innerWidth <= 768 || 
+    navigator.userAgent.match(/Android/i) ||
+    navigator.userAgent.match(/webOS/i) ||
+    navigator.userAgent.match(/iPhone/i) ||
+    navigator.userAgent.match(/iPad/i) ||
+    navigator.userAgent.match(/iPod/i) ||
+    navigator.userAgent.match(/BlackBerry/i) ||
+    navigator.userAgent.match(/Windows Phone/i)
+  );
+}
+
+// 모바일 환경 초기 감지
+window.IS_MOBILE = isMobileDevice();
+
+// 모바일 환경에서 성능 최적화 설정
+if (window.IS_MOBILE) {
+  console.log("모바일 환경 감지: 성능 최적화 설정 적용");
+  
+  // Firestore 캐싱 개선
+  try {
+    window.db.settings({
+      cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+    });
+    
+    // 오프라인 지속성 활성화 (선택적)
+    window.db.enablePersistence({synchronizeTabs: true})
+      .catch(err => {
+        console.warn("오프라인 지속성 활성화 실패:", err);
+      });
+      
+    console.log("모바일 최적화 설정이 완료되었습니다.");
+  } catch (error) {
+    console.error("모바일 최적화 설정 중 오류 발생:", error);
+  }
+}
