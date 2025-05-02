@@ -289,10 +289,11 @@ function updatePageContent() {
 function showModal(title, content, onSave = null) {
   isModalOpen = true;
   const modalContainer = document.getElementById("modal-container");
+  const isMobile = window.innerWidth < 768; // 모바일 여부 확인
   
   modalContainer.innerHTML = `
     <div class="modal-overlay" onclick="if(event.target === this) closeModal()">
-      <div class="modal">
+      <div class="modal ${isMobile ? 'mobile-modal' : ''}">
         <div class="modal-header">
           <h2 class="modal-title">${title}</h2>
           <button class="modal-close" onclick="closeModal()">×</button>
@@ -301,8 +302,8 @@ function showModal(title, content, onSave = null) {
           ${content}
         </div>
         <div class="modal-actions">
-          <button onclick="closeModal()">취소</button>
-          ${onSave ? `<button id="modal-save-button">저장</button>` : ''}
+          <button onclick="closeModal()" class="cancel-button">취소</button>
+          ${onSave ? `<button id="modal-save-button" class="primary-button">저장</button>` : ''}
         </div>
       </div>
     </div>
@@ -312,13 +313,48 @@ function showModal(title, content, onSave = null) {
     document.getElementById("modal-save-button").addEventListener("click", onSave);
   }
   
-  // 입력 필드가 있으면 첫 번째 필드에 포커스
+  // 모바일에서 스크롤 방지 (배경 고정)
+  if (isMobile) {
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+  }
+  
+  // 키보드 이벤트 - ESC로 모달 닫기
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  };
+  document.addEventListener('keydown', handleKeyDown);
+  
+  // 입력 필드가 있으면 첫 번째 필드에 포커스 (모바일에서는 지연시간 증가)
   const firstInput = modalContainer.querySelector("input, textarea, select");
   if (firstInput) {
     setTimeout(() => {
       firstInput.focus();
-    }, 100);
+    }, isMobile ? 400 : 100); // 모바일에서 지연시간 증가
   }
+  
+  // 모달이 닫힐 때 설정한 이벤트 및 스타일 정리를 위한 원본 closeModal 함수를 오버라이드
+  const originalCloseModal = window.closeModal;
+  window.closeModal = function() {
+    // 스크롤 방지 해제
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.body.style.height = '';
+    
+    // 키보드 이벤트 제거
+    document.removeEventListener('keydown', handleKeyDown);
+    
+    // 원본 closeModal 호출
+    originalCloseModal();
+    
+    // 원본 함수로 복원
+    window.closeModal = originalCloseModal;
+  };
 }
 
 // 모달 닫기
@@ -942,6 +978,21 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
     hour: '2-digit',
     minute: '2-digit',
     meridiem: false
+  },
+  // 모바일 최적화된 뷰 설정 추가
+  views: {
+    listMonth: {
+      listDayFormat: { month: 'long', day: 'numeric', weekday: 'short' },
+      listDaySideFormat: false, // 모바일에서는 날짜 포맷 단순화
+      eventTimeFormat: {
+        hour: '2-digit',
+        minute: '2-digit',
+        meridiem: false
+      }
+    },
+    dayGridMonth: {
+      dayHeaderFormat: isMobile ? { weekday: 'narrow' } : { weekday: 'short' } // 모바일에서 요일 표시 간소화
+    }
   },
   locale: 'ko',
   events: [...events, ...koreanHolidays, ...colorEvents],
@@ -3228,13 +3279,55 @@ const chartOptions = {
     y: {
       beginAtZero: false,
       min: Math.min(...filteredWeights.map(w => w.weight)) - 2,
-      max: Math.max(...filteredWeights.map(w => w.weight)) + 2
+      max: Math.max(...filteredWeights.map(w => w.weight)) + 2,
+      ticks: {
+        // 모바일에서 Y축 눈금 개수 제한
+        maxTicksLimit: isMobile ? 5 : 8,
+        font: {
+          size: isMobile ? 10 : 12
+        },
+        padding: isMobile ? 4 : 8
+      },
+      grid: {
+        // 모바일에서 그리드 라인 간소화
+        display: !isMobile
+      }
+    },
+    x: {
+      ticks: {
+        // 모바일에서 X축 레이블 개수 제한 및 크기 조정
+        maxTicksLimit: isMobile ? 6 : 12,
+        maxRotation: isMobile ? 45 : 0,
+        font: {
+          size: isMobile ? 9 : 12
+        }
+      },
+      grid: {
+        // 모바일에서 그리드 라인 간소화
+        display: !isMobile
+      }
     }
   },
   responsive: true,
   maintainAspectRatio: false,
+  // 모바일에서 패딩 축소
+  layout: {
+    padding: {
+      top: isMobile ? 5 : 20,
+      right: isMobile ? 5 : 20,
+      bottom: isMobile ? 5 : 20,
+      left: isMobile ? 5 : 20
+    }
+  },
   plugins: {
     tooltip: {
+      // 모바일에서 툴팁 크기 조정
+      titleFont: {
+        size: isMobile ? 12 : 14
+      },
+      bodyFont: {
+        size: isMobile ? 11 : 13
+      },
       callbacks: {
         afterLabel: function(context) {
           const weight = filteredWeights[context.dataIndex];
