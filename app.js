@@ -2232,14 +2232,14 @@ console.log("전체 목표 갯수:", document.querySelectorAll('.progress-goal')
 }
 
 // app.js 파일
-async function moveGoalDown(goalId) {
+async function moveGoalUp(goalId) {
   try {
-    console.log("moveGoalDown 실행:", goalId);
+    console.log("moveGoalUp 실행:", goalId);
     
     // 진행 중인 목표만 가져오기
     const goalsRef = db.collection("goals");
     
-    // 두 필드 모두 체크 (쿼리가 어떤 필드를 사용하는지 확인하기 위함)
+    // 완료되지 않은 목표만 가져오기
     let query = goalsRef.where("completed", "==", false);
     
     // 쿼리 실행
@@ -2270,21 +2270,21 @@ async function moveGoalDown(goalId) {
       return;
     }
     
-    // 마지막이면 이동 불가
-    if (currentIndex >= goals.length - 1) {
-      console.log("마지막 항목이므로 이동 불가");
+    // 첫 번째면 이동 불가
+    if (currentIndex <= 0) {
+      console.log("첫 번째 항목이므로 이동 불가");
       return;
     }
     
-    // 다음 목표와 현재 목표의 순서를 교환
-    const nextGoal = goals[currentIndex + 1];
+    // 이전 목표와 현재 목표의 순서를 교환
+    const prevGoal = goals[currentIndex - 1];
     const currentGoal = goals[currentIndex];
     
     // 두 목표의 순서 교환
-    const tempOrder = nextGoal.order;
+    const tempOrder = prevGoal.order;
     
     const batch = db.batch();
-    batch.update(goalsRef.doc(nextGoal.id), { 
+    batch.update(goalsRef.doc(prevGoal.id), { 
       order: currentGoal.order,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
