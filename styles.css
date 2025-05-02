@@ -1096,3 +1096,32 @@ input:focus, select:focus, textarea:focus {
   color: #666;
   margin: 2px 0;
 }
+/* 할 일 상세 모달 스타일 */
+.todo-detail {
+  padding: 10px 0;
+}
+
+.todo-detail h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.todo-detail p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.todo-description {
+  margin-top: 12px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+
+.modal-actions button:last-child {
+  margin-left: 10px;
+}
