@@ -965,6 +965,22 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
       }
     }
   },
+  
+  // 이벤트 렌더링 커스터마이징 - 모바일 최적화
+  eventDidMount: function(info) {
+    // 모바일에서 이벤트 표시 최적화
+    if (isMobile && info.view.type === 'dayGridMonth') {
+      const eventEl = info.el;
+      eventEl.style.fontSize = '0.8rem';
+      eventEl.style.padding = '2px 4px';
+      
+      // 이벤트 텍스트 길이 제한
+      const titleEl = eventEl.querySelector('.fc-event-title');
+      if (titleEl && titleEl.textContent.length > 10) {
+        titleEl.textContent = titleEl.textContent.substring(0, 10) + '...';
+      }
+    }
+  },
 
 // 향상된 디버깅용 이벤트 핸들러
 eventDidMount: function(info) {
@@ -1077,7 +1093,15 @@ window.addEventListener('resize', function() {
           });
         }
       });
-      
+
+      // 창 크기 변경 시 달력 반응형 업데이트
+window.addEventListener('resize', function() {
+  const newIsMobile = window.innerWidth < 768;
+  if (newIsMobile !== isMobile) {
+    loadEvents(); // 달력 새로고침
+  }
+});
+
       // 명시적으로 렌더링 호출
       window.eventCalendar.render();
       console.log("캘린더가 성공적으로 렌더링되었습니다.");
@@ -3195,38 +3219,51 @@ function renderWeightChart(weights) {
     });
   }
   
-  // 차트 옵션
-  const chartOptions = {
-    scales: {
-      y: {
-        beginAtZero: false,
-        min: Math.min(...filteredWeights.map(w => w.weight)) - 2,
-        max: Math.max(...filteredWeights.map(w => w.weight)) + 2
+// 모바일 여부 확인 및 차트 옵션 조정
+const isMobile = window.innerWidth < 768;
+
+// 차트 옵션 
+const chartOptions = {
+  scales: {
+    y: {
+      beginAtZero: false,
+      min: Math.min(...filteredWeights.map(w => w.weight)) - 2,
+      max: Math.max(...filteredWeights.map(w => w.weight)) + 2
+    }
+  },
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    tooltip: {
+      callbacks: {
+        afterLabel: function(context) {
+          const weight = filteredWeights[context.dataIndex];
+          return weight.notes ? `메모: ${weight.notes}` : '';
+        }
       }
     },
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      tooltip: {
-        callbacks: {
-          afterLabel: function(context) {
-            const weight = filteredWeights[context.dataIndex];
-            return weight.notes ? `메모: ${weight.notes}` : '';
-          }
+    legend: {
+      display: !isMobile, // 모바일에서는 범례 숨김
+      position: isMobile ? 'bottom' : 'top',
+      labels: {
+        boxWidth: isMobile ? 8 : 12,
+        font: {
+          size: isMobile ? 10 : 12
         }
       }
     }
-  };
-  
-  // 차트 여백 설정
-  chartOptions.layout = {
-    padding: {
-      top: 20,
-      right: 20,
-      bottom: 20,
-      left: 20
-    }
-  };
+  }
+};
+
+// 차트 여백 설정 - 모바일에서 여백 축소
+chartOptions.layout = {
+  padding: {
+    top: isMobile ? 10 : 20,
+    right: isMobile ? 10 : 20,
+    bottom: isMobile ? 10 : 20,
+    left: isMobile ? 10 : 20
+  }
+};
   
   // 이전 차트 제거
   if (window.weightChart) {
