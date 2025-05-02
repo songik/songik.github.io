@@ -1207,3 +1207,48 @@ input:focus, select:focus, textarea:focus {
 .modal-actions button:last-child {
   margin-left: 10px;
 }
+/* 모바일에서 더 나은 레이아웃을 위한 추가 스타일 */
+@media screen and (max-width: 768px) {
+  /* 카드 패딩 축소 */
+  .card {
+    padding: 12px;
+  }
+  
+  /* 페이지 헤더 간격 축소 */
+  .page-header {
+    margin-bottom: 15px;
+  }
+  
+  /* 페이지 타이틀 크기 축소 */
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  /* 시간 선택 필드 제약 */
+  input[type="datetime-local"], 
+  input[type="date"], 
+  input[type="time"] {
+    min-height: 44px; /* 터치 영역 확대 */
+    font-size: 0.9rem; /* 가독성 확보 */
+  }
+  
+  /* 폼 레이블 과 요소 간 간격 조정 */
+  .form-group label {
+    margin-bottom: 8px;
+  }
+  
+  /* 달력 관련 추가 개선 */
+  .fc-toolbar.fc-header-toolbar {
+    margin-bottom: 0.5em;
+  }
+  
+  /* 모달 내부 요소 간격 확대 */
+  .modal-content {
+    margin-bottom: 15px;
+  }
+  
+  /* 테이블 레이아웃 축소 */
+  .fc-scrollgrid-sync-table {
+    width: 100% !important;
+  }
+}
