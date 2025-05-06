@@ -3735,7 +3735,15 @@ function renderExpenseChart(transactions) {
   const chartEl = document.getElementById('expense-chart');
   const chartContainerEl = document.getElementById('expense-chart-container');
   
-  if (!chartEl || transactions.length === 0) return;
+  if (!chartEl || !chartContainerEl) {
+    console.error("차트 요소를 찾을 수 없습니다.");
+    return;
+  }
+  
+  if (transactions.length === 0) {
+    chartContainerEl.innerHTML = '<p class="no-data-message">지출/수입 데이터가 없습니다.</p>';
+    return;
+  }
   
   // 기존 차트 영역 수정 - 레이아웃 개선
   chartContainerEl.innerHTML = `
@@ -3772,10 +3780,10 @@ function renderExpenseChart(transactions) {
     </div>
     
     <!-- 차트 영역 -->
-    <div id="bar-chart-container" class="chart-container">
+    <div id="bar-chart-container" class="chart-container" style="height: 300px; width: 100%;">
       <canvas id="expense-bar-chart"></canvas>
     </div>
-    <div id="pie-chart-container" class="chart-container" style="display: none;">
+    <div id="pie-chart-container" class="chart-container" style="display: none; height: 300px; width: 100%;">
       <canvas id="expense-pie-chart"></canvas>
     </div>
   `;
@@ -3784,26 +3792,39 @@ function renderExpenseChart(transactions) {
   const pieChartEl = document.getElementById('expense-pie-chart');
   const periodSelector = document.getElementById('chart-period-selector');
   
-  // 월별 데이터 가공
-  const monthlyData = {};
+// 월별 데이터 가공
+const monthlyData = {};
+
+transactions.forEach(transaction => {
+  if (!transaction.date) {
+    console.warn("날짜 정보가 없는 거래가 있습니다:", transaction);
+    return;
+  }
   
-  transactions.forEach(transaction => {
-    const date = transaction.date;
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    
-    if (!monthlyData[monthKey]) {
-      monthlyData[monthKey] = {
-        income: 0,
-        expense: 0
-      };
-    }
-    
-    if (transaction.type === 'income') {
-      monthlyData[monthKey].income += transaction.amount;
-    } else {
-      monthlyData[monthKey].expense += transaction.amount;
-    }
-  });
+  // Firestore Timestamp 객체 처리
+  let date = transaction.date;
+  if (date && typeof date.toDate === 'function') {
+    date = date.toDate();
+  }
+  
+  const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  
+  if (!monthlyData[monthKey]) {
+    monthlyData[monthKey] = {
+      income: 0,
+      expense: 0
+    };
+  }
+  
+  // 금액이 숫자인지 확인
+  const amount = parseFloat(transaction.amount) || 0;
+  
+  if (transaction.type === 'income') {
+    monthlyData[monthKey].income += amount;
+  } else {
+    monthlyData[monthKey].expense += amount;
+  }
+});
   
   // 최근 6개월 데이터 추출
   const months = Object.keys(monthlyData).sort().slice(-6);
@@ -3948,16 +3969,28 @@ const currentMonth = new Date().getMonth();
 const currentYear = new Date().getFullYear();
 const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
 
+// 현재 달 데이터가 없을 경우 기본값 설정
 const currentMonthData = monthlyData[currentMonthKey] || { income: 0, expense: 0 };
 const balance = currentMonthData.income - currentMonthData.expense;
 
-// 요약 정보 업데이트
-document.querySelector('.income-value').textContent = `${currentMonthData.income.toLocaleString()}원`;
-document.querySelector('.expense-value').textContent = `${currentMonthData.expense.toLocaleString()}원`;
+// 요약 정보 업데이트 (null 체크 추가)
+const incomeValueEl = document.querySelector('.income-value');
+if (incomeValueEl) {
+  incomeValueEl.textContent = `${currentMonthData.income.toLocaleString()}원`;
+}
+
+const expenseValueEl = document.querySelector('.expense-value');
+if (expenseValueEl) {
+  expenseValueEl.textContent = `${currentMonthData.expense.toLocaleString()}원`;
+}
 
 const balanceValueEl = document.querySelector('.balance-value');
-balanceValueEl.textContent = `${balance.toLocaleString()}원`;
-balanceValueEl.classList.add(balance >= 0 ? 'text-success' : 'text-danger');
+if (balanceValueEl) {
+  balanceValueEl.textContent = `${balance.toLocaleString()}원`;
+  // 기존 클래스 제거 후 새로 추가
+  balanceValueEl.classList.remove('text-success', 'text-danger');
+  balanceValueEl.classList.add(balance >= 0 ? 'text-success' : 'text-danger');
+}
   
   // 뷰 전환 이벤트 리스너
   periodSelector.addEventListener('change', function() {
