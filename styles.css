@@ -1225,3 +1225,35 @@ input:focus, select:focus, textarea:focus {
     min-width: 100px;
   }
 }
+/* 차트 컨테이너 명확한 경계 설정 */
+.chart-container {
+  position: relative !important;
+  height: 300px !important;
+  max-width: 95% !important;
+  margin: 0 auto !important;
+  padding: 10px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  background-color: white !important;
+  border-radius: 8px !important;
+}
+
+/* 파이 차트와 바 차트 컨테이너 명시적 크기 제한 */
+#pie-chart-container, #bar-chart-container {
+  max-width: 95% !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+}
+
+/* 차트 캔버스 크기 제한 */
+.chart-container canvas {
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+/* Chart.js 캔버스 강제 크기 조정 */
+canvas.chartjs-render-monitor {
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
