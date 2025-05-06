@@ -3907,40 +3907,55 @@ transactions.forEach(transaction => {
     }]
   };
   
-  // 차트 옵션
-  const barChartOptions = {
-    scales: {
-      y: {
-        beginAtZero: true
-      }
-    },
-    responsive: true,
-    maintainAspectRatio: false
-  };
-  
-  const pieChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'right',
-        labels: {
-          boxWidth: 12,
-          font: {
-            size: 11
-          }
-        }
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            const value = context.raw;
-            return `${context.label.split(' (')[0]}: ${value.toLocaleString()}원`;
-          }
+// 차트 옵션
+const barChartOptions = {
+  scales: {
+    y: {
+      beginAtZero: true,
+      ticks: {
+        callback: function(value) {
+          return value.toLocaleString() + '원';
         }
       }
     }
-  };
+  },
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    tooltip: {
+      callbacks: {
+        label: function(context) {
+          const value = context.raw;
+          return `${context.dataset.label}: ${value.toLocaleString()}원`;
+        }
+      }
+    }
+  }
+};
+
+const pieChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'right',
+      labels: {
+        boxWidth: 12,
+        font: {
+          size: 11
+        }
+      }
+    },
+    tooltip: {
+      callbacks: {
+        label: function(context) {
+          const value = context.raw;
+          return `${context.label.split(' (')[0]}: ${value.toLocaleString()}원`;
+        }
+      }
+    }
+  }
+};
   
   // 이전 차트 제거
   if (window.expenseBarChart) {
@@ -5964,6 +5979,23 @@ function addExpensePageStyles() {
       overflow: visible !important;
     }
     
+    /* 차트 컨테이너 명시적 설정 */
+    .chart-container {
+      position: relative;
+      height: 300px !important;
+      width: 100% !important;
+      margin: 20px 0 !important;
+    }
+    
+    /* 차트 캔버스 위치 수정 */
+    .chart-container canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    
     /* 섹션 구분선 */
     .section-divider {
       height: 1px;
@@ -5994,6 +6026,110 @@ function addExpensePageStyles() {
       font-size: 0.9rem;
       color: #666;
       margin: 2px 0;
+    }
+    
+    /* 여기서부터 새로운 대시보드 레이아웃 스타일을 추가합니다 */
+    .expense-dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+    
+    .expense-summary-section {
+      flex: 1;
+      min-width: 300px;
+      margin-right: 20px;
+    }
+    
+    .chart-selector-section {
+      min-width: 150px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    
+    .expense-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 10px;
+    }
+    
+    .stat-item {
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+    }
+    
+    .summary-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 10px;
+      color: #555;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .income-value {
+      color: #4caf50;
+    }
+    
+    .expense-value {
+      color: #f44336;
+    }
+    
+    .text-success {
+      color: #4caf50;
+    }
+    
+    .text-danger {
+      color: #f44336;
+    }
+    
+    .chart-selector-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    /* 모바일 대응 */
+    @media screen and (max-width: 768px) {
+      .expense-dashboard {
+        flex-direction: column;
+      }
+      
+      .expense-summary-section,
+      .chart-selector-section {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 15px;
+      }
+      
+      .chart-selector-section {
+        justify-content: flex-start;
+      }
+      
+      .stat-item {
+        min-width: 100px;
+      }
     }
   `;
   
