@@ -3611,7 +3611,7 @@ function renderExpensePage(container) {
   // 지출 데이터 불러오기
   loadTransactions();
   
-  // 스타일 추가 함수 호출
+  // 스타일 추가 함수 호출 - 이 줄 추가
   addExpensePageStyles();
 }
 
@@ -3932,6 +3932,15 @@ const barChartOptions = {
         }
       }
     }
+  },
+  // 차트 내부 여백 설정 - 여유 공간 확보
+  layout: {
+    padding: {
+      left: 15,
+      right: 15, 
+      top: 20,
+      bottom: 10
+    }
   }
 };
 
@@ -3949,7 +3958,7 @@ const barChartOptions = {
 const pieChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
-    // 차트 크기 조정
+  // 차트 크기 조정
   aspectRatio: 1.5,
   plugins: {
     legend: {
@@ -3969,6 +3978,16 @@ const pieChartOptions = {
           return `${context.label.split(' (')[0]}: ${value.toLocaleString()}원`;
         }
       }
+    }
+  },
+  
+  // 차트 내부 여백 설정
+  layout: {
+    padding: {
+      left: 10,
+      right: 20, 
+      top: 10,
+      bottom: 10
     }
   }
 };
@@ -4005,6 +4024,16 @@ window.expensePieChart = new Chart(pieChartEl, {
   data: pieChartData,
   options: pieChartOptions
 });
+
+// 차트 크기 조정 강제 적용 - 추가
+setTimeout(() => {
+  if (window.expenseBarChart) {
+    window.expenseBarChart.resize();
+  }
+  if (window.expensePieChart) {
+    window.expensePieChart.resize();
+  }
+}, 50);
   
 // 현재 달 통계 업데이트
 const currentMonth = new Date().getMonth();
@@ -6265,7 +6294,6 @@ checkAuth();
 // 브라우저 콘솔에 로드 완료 메시지 출력
 console.log("앱 초기화가 완료되었습니다.");
 
-// 지출 관리 페이지용 스타일 추가
 function addExpensePageStyles() {
   const styleEl = document.createElement('style');
   styleEl.id = 'expense-page-styles';
@@ -6274,7 +6302,38 @@ function addExpensePageStyles() {
     .expense-chart {
       height: 400px !important;
       margin-bottom: 40px !important;
-      overflow: visible !important;
+      overflow: hidden !important; /* visible에서 hidden으로 변경 */
+    }
+    
+    /* 차트 컨테이너 명시적 설정 */
+    .chart-container {
+      position: relative;
+      height: 300px !important;
+      max-width: 95% !important; /* width 100%에서 max-width 95%로 변경 */
+      margin: 20px auto !important; /* 좌우 auto로 중앙 정렬 */
+      overflow: hidden !important; /* 추가: 넘치는 내용 숨김 */
+      box-sizing: border-box !important; /* 추가: 패딩을 크기에 포함 */
+      padding: 10px !important; /* 추가: 내부 여백 */
+    }
+    
+    /* 차트 캔버스 위치 수정 */
+    .chart-container canvas {
+      position: relative !important; /* absolute에서 relative로 변경 */
+      max-width: 100% !important; /* 추가: 최대 너비 제한 */
+      max-height: 100% !important; /* 추가: 최대 높이 제한 */
+      margin: 0 auto !important; /* 추가: 중앙 정렬 */
+    }
+    
+    /* 파이 차트 특별 설정 */
+    #pie-chart-container {
+      max-width: 90% !important;
+      height: 300px !important;
+    }
+    
+    /* 바 차트 특별 설정 */
+    #bar-chart-container {
+      max-width: 95% !important;
+      height: 300px !important;
     }
     
     /* 섹션 구분선 */
@@ -6301,13 +6360,16 @@ function addExpensePageStyles() {
       color: #4caf50;
       font-weight: bold;
     }
-    
-    /* 카테고리 스타일 */
-    .list-item-category {
-      font-size: 0.9rem;
-      color: #666;
-      margin: 2px 0;
-    }
+  `;
+  
+  // 이미 존재하는 스타일이 있으면 제거
+  const existingStyle = document.getElementById('expense-page-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  document.head.appendChild(styleEl);
+}
     
     /* 여기서부터 새로운 대시보드 레이아웃 스타일을 추가합니다 */
     .expense-dashboard {
