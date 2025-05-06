@@ -143,6 +143,9 @@ function renderApp() {
             <a href="#" class="nav-links" onclick="navigateTo('habits')">습관</a>
           </li>
           <li class="nav-item">
+            <a href="#" class="nav-links" onclick="navigateTo('bp')">혈압</a>
+          </li>
+          <li class="nav-item">
             <a href="#" class="nav-links" onclick="navigateTo('search')">검색</a>
           </li>
         </ul>
@@ -279,6 +282,9 @@ function updatePageContent() {
       break;
     case "habits":
       loadHabits();
+      break;
+    case "bp":
+      loadBloodPressures();
       break;
   }
 }
@@ -591,6 +597,9 @@ function renderPage(page) {
       break;
     case "habits":
       renderHabitsPage(contentEl);
+      break;
+    case "bp":
+      renderBloodPressurePage(contentEl);
       break;
     case "search":
       renderSearchPage(contentEl);
@@ -5543,6 +5552,873 @@ async function deleteHabit(habitId) {
   }
 }
 
+// =========== 혈압 관리 기능 ===========
+
+// 혈압 페이지 렌더링
+function renderBloodPressurePage(container) {
+  container.innerHTML = `
+    <div class="page-container">
+      <div class="page-header">
+        <h1>혈압 관리</h1>
+        <div class="page-actions">
+          <div class="view-toggle">
+            <button id="list-view-button" class="${currentView === 'list' ? 'active' : ''}" onclick="toggleView('list')">
+              <i class="fas fa-list"></i> 리스트
+            </button>
+            <button id="calendar-view-button" class="${currentView === 'calendar' ? 'active' : ''}" onclick="toggleView('calendar')">
+              <i class="fas fa-calendar-alt"></i> 달력
+            </button>
+          </div>
+          <button onclick="showAddBloodPressureForm()">혈압 기록</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2 class="card-title">혈압 추이</h2>
+        
+        <!-- 기간 설정 컨트롤 추가 -->
+        <div class="period-control">
+          <label for="bp-period">기간:</label>
+          <select id="bp-period" onchange="updateBloodPressureChart()">
+            <option value="1">최근 1개월</option>
+            <option value="3" selected>최근 3개월</option>
+            <option value="6">최근 6개월</option>
+            <option value="12">최근 1년</option>
+            <option value="0">전체 기간</option>
+            <option value="custom">사용자 정의</option>
+          </select>
+          
+          <!-- 사용자 정의 기간 설정 - style="display: none;" 추가 -->
+          <div class="custom-period" style="display: none;">
+            <label for="bp-start-date">시작일:</label>
+            <input type="date" id="bp-start-date">
+            <label for="bp-end-date">종료일:</label>
+            <input type="date" id="bp-end-date">
+            <button id="apply-custom-period" onclick="applyCustomBpPeriod()">적용</button>
+          </div>
+        </div>
+        
+        <div class="chart-container bp-chart">
+          <canvas id="bp-chart"></canvas>
+        </div>
+      </div>
+      
+      <!-- 섹션 구분선 추가 -->
+      <div class="section-divider"></div>
+
+      <div id="calendar-view-container" class="calendar-container" style="display: ${currentView === 'calendar' ? 'block' : 'none'}">
+        <div id="bp-calendar"></div>
+      </div>
+      
+      <div id="list-view-container" style="display: ${currentView === 'list' ? 'block' : 'none'}">
+        <div class="card">
+          <h2 class="card-title">혈압 기록</h2>
+          <div id="bp-list">
+            <p>기록을 불러오는 중...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 혈압 데이터 불러오기
+  loadBloodPressures();
+  
+  // 기간 설정 UI 초기화 함수 호출 추가
+  setTimeout(() => {
+    initBpDateRangeUI();
+  }, 100);
+  
+  // 혈압 관련 스타일 추가
+  addBloodPressurePageStyles();
+}
+
+// 혈압 관련 스타일 추가 함수
+function addBloodPressurePageStyles() {
+  const styleEl = document.createElement('style');
+  styleEl.id = 'bp-page-styles';
+  styleEl.textContent = `
+    /* 혈압 차트 컨테이너 - 높이 증가 */
+    .bp-chart {
+      height: 400px !important;
+      margin-bottom: 40px !important;
+      overflow: visible !important;
+    }
+    
+    /* 혈압 기록 스타일 */
+    .bp-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+    }
+    
+    .bp-value-high {
+      color: #f44336;
+      font-weight: bold;
+    }
+    
+    .bp-value-normal {
+      color: #4caf50;
+      font-weight: bold;
+    }
+    
+    .bp-value-low {
+      color: #2196f3;
+      font-weight: bold;
+    }
+    
+    /* 혈압 상태 표시 라벨 */
+    .bp-status {
+      display: inline-block;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      color: white;
+      margin-left: 10px;
+    }
+    
+    .bp-status-high {
+      background-color: #f44336;
+    }
+    
+    .bp-status-elevated {
+      background-color: #ff9800;
+    }
+    
+    .bp-status-normal {
+      background-color: #4caf50;
+    }
+    
+    .bp-status-low {
+      background-color: #2196f3;
+    }
+    
+    /* 통계 카드 스타일 */
+    .bp-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .bp-stat-item {
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+    }
+    
+    .bp-stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .bp-stat-label {
+      font-size: 0.9rem;
+      color: #666;
+    }
+  `;
+  
+  // 이미 존재하는 스타일이 있으면 제거
+  const existingStyle = document.getElementById('bp-page-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  document.head.appendChild(styleEl);
+}
+
+// 혈압 데이터 불러오기
+async function loadBloodPressures() {
+  try {
+    const bpRef = db.collection("bloodpressures");
+    const snapshot = await bpRef.orderBy("date", "desc").get();
+    
+    const bloodPressures = [];
+    snapshot.forEach(doc => {
+      const bp = doc.data();
+      bloodPressures.push({
+        id: doc.id,
+        systolic: bp.systolic,
+        diastolic: bp.diastolic,
+        pulse: bp.pulse || null,
+        date: bp.date.toDate(),
+        notes: bp.notes || ''
+      });
+    });
+    
+    // 데이터 캐싱
+    window.cachedBloodPressures = bloodPressures;
+    
+    // 뷰에 따라 다르게 표시
+    if (currentView === 'list') {
+      renderBloodPressureList(bloodPressures);
+    } else {
+      renderBloodPressureCalendar(bloodPressures);
+    }
+    
+    // 차트 그리기 (항상 표시)
+    renderBloodPressureChart(bloodPressures);
+  } catch (error) {
+    console.error("혈압 기록을 불러오는 중 오류 발생:", error);
+    document.getElementById("bp-list").innerHTML = '<p>혈압 기록을 불러오는 중 오류가 발생했습니다.</p>';
+  }
+}
+
+// 혈압 리스트 렌더링
+function renderBloodPressureList(bloodPressures) {
+  const bpListEl = document.getElementById("bp-list");
+  
+  if (bloodPressures.length === 0) {
+    bpListEl.innerHTML = '<p>등록된 혈압 기록이 없습니다.</p>';
+    return;
+  }
+  
+  let html = '<ul class="list-container">';
+  
+  bloodPressures.forEach(bp => {
+    // 혈압 상태 판단
+    const bpStatus = getBpStatus(bp.systolic, bp.diastolic);
+    const statusClass = `bp-status-${bpStatus.toLowerCase()}`;
+    const statusText = getBpStatusText(bpStatus);
+    
+    html += `
+      <li class="list-item" data-id="${bp.id}">
+        <div class="list-item-content">
+          <div class="list-item-title">
+            <span class="${getSystolicClass(bp.systolic)}">${bp.systolic}</span> / 
+            <span class="${getDiastolicClass(bp.diastolic)}">${bp.diastolic}</span> mmHg
+            <span class="bp-status ${statusClass}">${statusText}</span>
+          </div>
+          <div class="list-item-date">${formatDate(bp.date, true)}</div>
+          ${bp.pulse ? `<div class="list-item-pulse">맥박: ${bp.pulse} bpm</div>` : ''}
+          ${bp.notes ? `<div class="list-item-description">${bp.notes}</div>` : ''}
+        </div>
+        <div class="list-item-actions">
+          <button onclick="editBloodPressure('${bp.id}')">수정</button>
+          <button onclick="deleteBloodPressure('${bp.id}')">삭제</button>
+        </div>
+      </li>
+    `;
+  });
+  
+  html += '</ul>';
+  bpListEl.innerHTML = html;
+}
+
+// 혈압 상태 판단 함수
+function getBpStatus(systolic, diastolic) {
+  if (systolic >= 180 || diastolic >= 120) {
+    return "HIGH"; // 고혈압 위기
+  } else if (systolic >= 140 || diastolic >= 90) {
+    return "HIGH"; // 고혈압 단계 2
+  } else if (systolic >= 130 || diastolic >= 80) {
+    return "ELEVATED"; // 고혈압 단계 1
+  } else if (systolic >= 120 && diastolic < 80) {
+    return "ELEVATED"; // 주의 혈압
+  } else if (systolic < 90 || diastolic < 60) {
+    return "LOW"; // 저혈압
+  } else {
+    return "NORMAL"; // 정상
+  }
+}
+
+// 혈압 상태 텍스트 반환 함수
+function getBpStatusText(status) {
+  switch(status) {
+    case "HIGH":
+      return "고혈압";
+    case "ELEVATED":
+      return "주의";
+    case "NORMAL":
+      return "정상";
+    case "LOW":
+      return "저혈압";
+    default:
+      return "정상";
+  }
+}
+
+// 수축기 혈압 클래스 반환 함수
+function getSystolicClass(systolic) {
+  if (systolic >= 140) {
+    return "bp-value-high";
+  } else if (systolic >= 120) {
+    return "bp-value-elevated";
+  } else if (systolic < 90) {
+    return "bp-value-low";
+  } else {
+    return "bp-value-normal";
+  }
+}
+
+// 이완기 혈압 클래스 반환 함수
+function getDiastolicClass(diastolic) {
+  if (diastolic >= 90) {
+    return "bp-value-high";
+  } else if (diastolic >= 80) {
+    return "bp-value-elevated";
+  } else if (diastolic < 60) {
+    return "bp-value-low";
+  } else {
+    return "bp-value-normal";
+  }
+}
+
+// 혈압 달력 렌더링
+function renderBloodPressureCalendar(bloodPressures) {
+  const calendarEl = document.getElementById('bp-calendar');
+  
+  if (!calendarEl) return;
+  
+  // 달력에 표시할 이벤트 형식으로 변환
+  const events = bloodPressures.map(bp => {
+    // 혈압 상태에 따른 색상 지정
+    const status = getBpStatus(bp.systolic, bp.diastolic);
+    let color = '#4caf50'; // 기본 정상 색상
+    
+    if (status === 'HIGH') {
+      color = '#f44336'; // 고혈압
+    } else if (status === 'ELEVATED') {
+      color = '#ff9800'; // 주의
+    } else if (status === 'LOW') {
+      color = '#2196f3'; // 저혈압
+    }
+    
+    return {
+      id: bp.id,
+      title: `${bp.systolic}/${bp.diastolic} mmHg`,
+      start: bp.date,
+      allDay: true,
+      backgroundColor: color,
+      borderColor: color
+    };
+  });
+  
+  // FullCalendar 초기화
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,listMonth'
+    },
+    initialView: 'dayGridMonth',
+    locale: 'ko',
+    events: events,
+    eventClick: function(info) {
+      editBloodPressure(info.event.id);
+    },
+    dateClick: function(info) {
+      showAddBloodPressureForm(info.dateStr);
+    }
+  });
+  
+  calendar.render();
+}
+
+// 혈압 차트 렌더링
+function renderBloodPressureChart(bloodPressures) {
+  const chartEl = document.getElementById('bp-chart');
+  const chartContainerEl = chartEl ? chartEl.closest('.chart-container') : null;
+  
+  if (!chartEl || !chartContainerEl || bloodPressures.length === 0) return;
+  
+  // 차트 높이 명시적 설정
+  chartContainerEl.style.height = '400px';
+  
+  // 차트용 데이터 가공
+  bloodPressures.sort((a, b) => a.date - b.date);
+  
+  // 기간 설정 가져오기
+  const periodSelect = document.getElementById('bp-period');
+  const periodValue = periodSelect ? periodSelect.value : '3'; // 기본값은 3개월
+  
+  // 선택된 기간에 따라 데이터 필터링
+  let filteredBps = [...bloodPressures]; // 원본 배열 복사
+  
+  if (periodValue === 'custom') {
+    // 사용자 정의 기간
+    const startDateInput = document.getElementById('bp-start-date');
+    const endDateInput = document.getElementById('bp-end-date');
+    
+    if (startDateInput && startDateInput.value) {
+      const startDate = new Date(startDateInput.value);
+      startDate.setHours(0, 0, 0, 0);
+      filteredBps = filteredBps.filter(w => w.date >= startDate);
+    }
+    
+    if (endDateInput && endDateInput.value) {
+      const endDate = new Date(endDateInput.value);
+      endDate.setHours(23, 59, 59, 999);
+      filteredBps = filteredBps.filter(w => w.date <= endDate);
+    }
+  } else {
+    // 미리 정의된 기간
+    const months = parseInt(periodValue);
+    
+    if (months > 0) {
+      const cutoffDate = new Date();
+      cutoffDate.setMonth(cutoffDate.getMonth() - months);
+      filteredBps = filteredBps.filter(w => w.date >= cutoffDate);
+    }
+    // periodValue가 0이면 전체 데이터 사용 (필터링하지 않음)
+  }
+  
+  // 빈 데이터 처리
+  if (filteredBps.length === 0) {
+    // 데이터가 없으면 차트 영역에 메시지 표시
+    chartEl.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">선택한 기간에 데이터가 없습니다.</div>';
+    return;
+  }
+  
+  // 차트 데이터 설정
+  const labels = filteredBps.map(bp => formatDate(bp.date));
+  const systolicData = filteredBps.map(bp => bp.systolic);
+  const diastolicData = filteredBps.map(bp => bp.diastolic);
+  const pulseData = filteredBps.map(bp => bp.pulse);
+  
+  // 차트 데이터셋
+  const datasets = [
+    {
+      label: '수축기(SYS)',
+      data: systolicData,
+      borderColor: '#f44336',
+      backgroundColor: 'rgba(244, 67, 54, 0.1)',
+      borderWidth: 2,
+      fill: false,
+      tension: 0.2
+    },
+    {
+      label: '이완기(DIA)',
+      data: diastolicData,
+      borderColor: '#2196f3',
+      backgroundColor: 'rgba(33, 150, 243, 0.1)',
+      borderWidth: 2,
+      fill: false,
+      tension: 0.2
+    }
+  ];
+  
+  // 맥박 데이터가 있는 경우 추가
+  if (pulseData.some(pulse => pulse !== null)) {
+    datasets.push({
+      label: '맥박(PULSE)',
+      data: pulseData,
+      borderColor: '#4caf50',
+      backgroundColor: 'rgba(76, 175, 80, 0.1)',
+      borderWidth: 2,
+      fill: false,
+      tension: 0.2,
+      yAxisID: 'y1'
+    });
+  }
+  
+  // 이전 차트 제거
+  if (window.bpChart) {
+    window.bpChart.destroy();
+  }
+  
+  // 차트 옵션
+  const chartOptions = {
+    scales: {
+      y: {
+        display: true,
+        position: 'left',
+        beginAtZero: false,
+        title: {
+          display: true,
+          text: '혈압 (mmHg)'
+        },
+        min: Math.min(...diastolicData) - 10,
+        max: Math.max(...systolicData) + 10,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)'
+        }
+      },
+      y1: {
+        display: pulseData.some(pulse => pulse !== null),
+        position: 'right',
+        beginAtZero: false,
+        title: {
+          display: true,
+          text: '맥박 (bpm)'
+        },
+        min: 40,
+        max: 120,
+        grid: {
+          display: false
+        }
+      }
+    },
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        mode: 'index',
+        intersect: false
+      },
+      legend: {
+        position: 'top',
+      }
+    }
+  };
+  
+  // 새 차트 생성
+  window.bpChart = new Chart(chartEl, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
+    options: chartOptions
+  });
+  
+  // 혈압 통계 업데이트
+  updateBloodPressureStats(filteredBps);
+}
+
+// 혈압 통계 업데이트
+function updateBloodPressureStats(bloodPressures) {
+  if (!bloodPressures || bloodPressures.length === 0) return;
+  
+  // 통계를 표시할 컨테이너 확인 또는 생성
+  const chartContainer = document.querySelector('.bp-chart');
+  let statsContainer = document.querySelector('.bp-stats');
+  
+  if (!statsContainer && chartContainer) {
+    // 통계 컨테이너가 없으면 생성
+    statsContainer = document.createElement('div');
+    statsContainer.className = 'bp-stats';
+    chartContainer.parentNode.insertBefore(statsContainer, chartContainer);
+  }
+  
+  if (!statsContainer) return;
+  
+  // 데이터 가공
+  const systolicValues = bloodPressures.map(bp => bp.systolic);
+  const diastolicValues = bloodPressures.map(bp => bp.diastolic);
+  const pulseValues = bloodPressures.filter(bp => bp.pulse !== null).map(bp => bp.pulse);
+  
+  // 최근 혈압
+  const latestBp = bloodPressures[bloodPressures.length - 1];
+  const latestStatus = getBpStatusText(getBpStatus(latestBp.systolic, latestBp.diastolic));
+  
+  // 평균 계산
+  const avgSystolic = Math.round(systolicValues.reduce((a, b) => a + b, 0) / systolicValues.length);
+  const avgDiastolic = Math.round(diastolicValues.reduce((a, b) => a + b, 0) / diastolicValues.length);
+  const avgPulse = pulseValues.length > 0 
+    ? Math.round(pulseValues.reduce((a, b) => a + b, 0) / pulseValues.length)
+    : 'N/A';
+  
+  // 최대/최소
+  const maxSystolic = Math.max(...systolicValues);
+  const minSystolic = Math.min(...systolicValues);
+  const maxDiastolic = Math.max(...diastolicValues);
+  const minDiastolic = Math.min(...diastolicValues);
+  
+  // 고혈압 비율
+  const highBpCount = bloodPressures.filter(bp => 
+    getBpStatus(bp.systolic, bp.diastolic) === 'HIGH').length;
+  const highBpPercent = Math.round((highBpCount / bloodPressures.length) * 100);
+  
+  // 통계 HTML 생성
+  statsContainer.innerHTML = `
+    <div class="bp-stat-item">
+      <div class="bp-stat-value">${avgSystolic}/${avgDiastolic}</div>
+      <div class="bp-stat-label">평균 혈압</div>
+    </div>
+    <div class="bp-stat-item">
+      <div class="bp-stat-value">${maxSystolic}/${maxDiastolic}</div>
+      <div class="bp-stat-label">최고 혈압</div>
+    </div>
+    <div class="bp-stat-item">
+      <div class="bp-stat-value">${minSystolic}/${minDiastolic}</div>
+      <div class="bp-stat-label">최저 혈압</div>
+    </div>
+    <div class="bp-stat-item">
+      <div class="bp-stat-value">${avgPulse}</div>
+      <div class="bp-stat-label">평균 맥박</div>
+    </div>
+    <div class="bp-stat-item">
+      <div class="bp-stat-value">${highBpPercent}%</div>
+      <div class="bp-stat-label">고혈압 비율</div>
+    </div>
+  `;
+}
+
+// 혈압 차트 업데이트 함수
+function updateBloodPressureChart() {
+  // 이미 불러온 혈압 데이터가 있으면 재사용, 없으면 다시 불러오기
+  if (window.cachedBloodPressures && window.cachedBloodPressures.length > 0) {
+    renderBloodPressureChart(window.cachedBloodPressures);
+  } else {
+    loadBloodPressures();
+  }
+}
+
+// 사용자 정의 기간 적용 함수
+function applyCustomBpPeriod() {
+  const startDateInput = document.getElementById('bp-start-date');
+  const endDateInput = document.getElementById('bp-end-date');
+  
+  // 날짜 유효성 검사
+  if (startDateInput.value && endDateInput.value) {
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(endDateInput.value);
+    
+    if (startDate > endDate) {
+      alert('시작일은 종료일보다 이전이어야 합니다.');
+      return;
+    }
+  }
+  
+  // 차트 업데이트
+  updateBloodPressureChart();
+}
+
+// 기간 설정 UI 초기화 함수
+function initBpDateRangeUI() {
+  // 사용자 정의 기간 UI 초기 숨김
+  const customPeriod = document.querySelector('.custom-period');
+  if (customPeriod) {
+    customPeriod.style.display = 'none';
+  }
+  
+  // 기간 선택 이벤트 리스너
+  const periodSelector = document.getElementById('bp-period');
+  if (periodSelector) {
+    periodSelector.addEventListener('change', function() {
+      const customPeriod = document.querySelector('.custom-period');
+      if (this.value === 'custom') {
+        customPeriod.style.display = 'flex';
+      } else {
+        customPeriod.style.display = 'none';
+        updateBloodPressureChart();
+      }
+    });
+  }
+}
+
+// 혈압 추가 폼 표시
+function showAddBloodPressureForm(dateStr = null) {
+  // 날짜 기본값 설정
+  let formattedDate = '';
+  if (dateStr) {
+    formattedDate = dateStr;
+  } else {
+    formattedDate = formatDate(new Date());
+  }
+  
+  const modalContent = `
+    <form id="bp-form">
+      <div class="form-group">
+        <label for="systolic">수축기 혈압 (SYS, mmHg)</label>
+        <input type="number" id="systolic" min="60" max="250" required>
+      </div>
+      <div class="form-group">
+        <label for="diastolic">이완기 혈압 (DIA, mmHg)</label>
+        <input type="number" id="diastolic" min="40" max="150" required>
+      </div>
+      <div class="form-group">
+        <label for="pulse">맥박 (PULSE, bpm) (선택사항)</label>
+        <input type="number" id="pulse" min="40" max="200">
+      </div>
+      <div class="form-group">
+        <label for="bp-date">날짜</label>
+        <input type="date" id="bp-date" value="${formattedDate}" required>
+      </div>
+      <div class="form-group">
+        <label for="bp-time">시간</label>
+        <input type="time" id="bp-time" value="${new Date().toTimeString().slice(0, 5)}" required>
+      </div>
+      <div class="form-group">
+        <label for="bp-notes">메모 (선택사항)</label>
+        <textarea id="bp-notes" rows="3" placeholder="추가 메모를 입력하세요..."></textarea>
+      </div>
+    </form>
+  `;
+  
+  showModal("혈압 기록", modalContent, saveBloodPressure);
+}
+
+// 혈압 저장
+async function saveBloodPressure() {
+  const systolicEl = document.getElementById('systolic');
+  const diastolicEl = document.getElementById('diastolic');
+  const pulseEl = document.getElementById('pulse');
+  const dateEl = document.getElementById('bp-date');
+  const timeEl = document.getElementById('bp-time');
+  const notesEl = document.getElementById('bp-notes');
+  
+  if (!systolicEl.value || !diastolicEl.value || !dateEl.value || !timeEl.value) {
+    alert('수축기 혈압, 이완기 혈압, 날짜, 시간은 필수 입력 항목입니다.');
+    return;
+  }
+  
+  try {
+    // 날짜와 시간 결합
+    const dateTime = new Date(dateEl.value + 'T' + timeEl.value);
+    
+    // 혈압 데이터 구성
+    const bpData = {
+      systolic: parseInt(systolicEl.value),
+      diastolic: parseInt(diastolicEl.value),
+      date: firebase.firestore.Timestamp.fromDate(dateTime),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // 선택적 필드 추가
+    if (pulseEl.value) {
+      bpData.pulse = parseInt(pulseEl.value);
+    }
+    
+    if (notesEl.value.trim()) {
+      bpData.notes = notesEl.value.trim();
+    }
+    
+    // Firestore에 저장
+    await db.collection("bloodpressures").add(bpData);
+    
+    // 모달 닫기
+    closeModal();
+    
+    // 혈압 목록 새로고침
+    loadBloodPressures();
+  } catch (error) {
+    console.error("혈압 저장 중 오류 발생:", error);
+    alert('혈압을 저장하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 혈압 편집 폼 표시
+async function editBloodPressure(bpId) {
+  try {
+    const bpDoc = await db.collection("bloodpressures").doc(bpId).get();
+    
+    if (!bpDoc.exists) {
+      alert('혈압 기록을 찾을 수 없습니다.');
+      return;
+    }
+    
+    const bp = bpDoc.data();
+    const bpDate = bp.date.toDate();
+    
+    // 날짜와 시간 분리
+    const formattedDate = formatDate(bpDate);
+    const formattedTime = bpDate.toTimeString().slice(0, 5);
+    
+    const modalContent = `
+      <form id="bp-form">
+        <input type="hidden" id="bp-id" value="${bpId}">
+        <div class="form-group">
+          <label for="systolic">수축기 혈압 (SYS, mmHg)</label>
+          <input type="number" id="systolic" min="60" max="250" value="${bp.systolic}" required>
+        </div>
+        <div class="form-group">
+          <label for="diastolic">이완기 혈압 (DIA, mmHg)</label>
+          <input type="number" id="diastolic" min="40" max="150" value="${bp.diastolic}" required>
+        </div>
+        <div class="form-group">
+          <label for="pulse">맥박 (PULSE, bpm) (선택사항)</label>
+          <input type="number" id="pulse" min="40" max="200" value="${bp.pulse !== undefined ? bp.pulse : ''}">
+        </div>
+        <div class="form-group">
+          <label for="bp-date">날짜</label>
+          <input type="date" id="bp-date" value="${formattedDate}" required>
+        </div>
+        <div class="form-group">
+          <label for="bp-time">시간</label>
+          <input type="time" id="bp-time" value="${formattedTime}" required>
+        </div>
+        <div class="form-group">
+          <label for="bp-notes">메모 (선택사항)</label>
+          <textarea id="bp-notes" rows="3" placeholder="추가 메모를 입력하세요...">${bp.notes || ''}</textarea>
+        </div>
+      </form>
+    `;
+    
+    showModal("혈압 기록 수정", modalContent, updateBloodPressure);
+  } catch (error) {
+    console.error("혈압 기록 로드 중 오류 발생:", error);
+    alert('혈압 기록을 불러오는 중 오류가 발생했습니다.');
+  }
+}
+
+// 혈압 업데이트
+async function updateBloodPressure() {
+  const bpId = document.getElementById('bp-id').value;
+  const systolicEl = document.getElementById('systolic');
+  const diastolicEl = document.getElementById('diastolic');
+  const pulseEl = document.getElementById('pulse');
+  const dateEl = document.getElementById('bp-date');
+  const timeEl = document.getElementById('bp-time');
+  const notesEl = document.getElementById('bp-notes');
+  
+  if (!systolicEl.value || !diastolicEl.value || !dateEl.value || !timeEl.value) {
+    alert('수축기 혈압, 이완기 혈압, 날짜, 시간은 필수 입력 항목입니다.');
+    return;
+  }
+  
+  try {
+    // 날짜와 시간 결합
+    const dateTime = new Date(dateEl.value + 'T' + timeEl.value);
+    
+    // 혈압 데이터 구성
+    const bpData = {
+      systolic: parseInt(systolicEl.value),
+      diastolic: parseInt(diastolicEl.value),
+      date: firebase.firestore.Timestamp.fromDate(dateTime),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // 선택적 필드 추가 또는 삭제
+    if (pulseEl.value) {
+      bpData.pulse = parseInt(pulseEl.value);
+    } else {
+      bpData.pulse = firebase.firestore.FieldValue.delete();
+    }
+    
+    if (notesEl.value.trim()) {
+      bpData.notes = notesEl.value.trim();
+    } else {
+      bpData.notes = firebase.firestore.FieldValue.delete();
+    }
+    
+    // Firestore에 업데이트
+    await db.collection("bloodpressures").doc(bpId).update(bpData);
+    
+    // 모달 닫기
+    closeModal();
+    
+    // 혈압 목록 새로고침
+    loadBloodPressures();
+  } catch (error) {
+    console.error("혈압 업데이트 중 오류 발생:", error);
+    alert('혈압을 업데이트하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 혈압 삭제
+async function deleteBloodPressure(bpId) {
+  if (confirm('정말로 이 혈압 기록을 삭제하시겠습니까?')) {
+    try {
+      await db.collection("bloodpressures").doc(bpId).delete();
+      loadBloodPressures(); // 목록 새로고침
+    } catch (error) {
+      console.error("혈압 삭제 중 오류 발생:", error);
+      alert('혈압 기록을 삭제하는 중 오류가 발생했습니다.');
+    }
+  }
+}
+
 // =========== 검색 기능 ===========
 
 // 검색 페이지 렌더링
@@ -5816,6 +6692,27 @@ eventsSnapshot.forEach(doc => {
         });
       }
     });
+
+// 혈압 기록 검색
+const bloodPressuresSnapshot = await db.collection("bloodpressures").get();
+bloodPressuresSnapshot.forEach(doc => {
+  const bp = doc.data();
+  const systolic = bp.systolic.toString();
+  const diastolic = bp.diastolic.toString();
+  const notes = bp.notes || '';
+  
+  if (systolic.includes(searchInput) || 
+      diastolic.includes(searchInput) || 
+      notes.toLowerCase().includes(searchInput)) {
+    results.push({
+      type: "혈압",
+      id: doc.id,
+      title: `${bp.systolic}/${bp.diastolic} mmHg`,
+      date: formatDate(bp.date),
+      page: "bp"
+    });
+  }
+});
     
     // 목표 검색
     const goalsSnapshot = await db.collection("goals").get();
