@@ -3779,13 +3779,13 @@ function renderExpenseChart(transactions) {
       </div>
     </div>
     
-    <!-- 차트 영역 -->
-    <div id="bar-chart-container" class="chart-container" style="height: 300px; width: 100%;">
-      <canvas id="expense-bar-chart"></canvas>
-    </div>
-    <div id="pie-chart-container" class="chart-container" style="display: none; height: 300px; width: 100%;">
-      <canvas id="expense-pie-chart"></canvas>
-    </div>
+<!-- 차트 영역 - 컨테이너 크기 명시적 설정 -->
+<div id="bar-chart-container" class="chart-container" style="height: 300px; max-width: 95%; margin: 0 auto; position: relative;">
+  <canvas id="expense-bar-chart"></canvas>
+</div>
+<div id="pie-chart-container" class="chart-container" style="display: none; height: 300px; max-width: 95%; margin: 0 auto; position: relative;">
+  <canvas id="expense-pie-chart"></canvas>
+</div>
   `;
   
   const barChartEl = document.getElementById('expense-bar-chart');
@@ -3912,6 +3912,8 @@ const barChartOptions = {
   scales: {
     y: {
       beginAtZero: true,
+      // 여유 공간 추가
+      suggestedMax: Math.max(...months.map(month => Math.max(monthlyData[month].income || 0, monthlyData[month].expense || 0))) * 1.2,
       ticks: {
         callback: function(value) {
           return value.toLocaleString() + '원';
@@ -3933,9 +3935,22 @@ const barChartOptions = {
   }
 };
 
+    // 차트 내부 여백 설정 - 여유 공간 확보
+  layout: {
+    padding: {
+      left: 15,
+      right: 15, 
+      top: 20,
+      bottom: 10
+    }
+  }
+};
+
 const pieChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
+    // 차트 크기 조정
+  aspectRatio: 1.5,
   plugins: {
     legend: {
       position: 'right',
@@ -3943,7 +3958,8 @@ const pieChartOptions = {
         boxWidth: 12,
         font: {
           size: 11
-        }
+        },
+        padding: 15 // 범례 간격 추가
       }
     },
     tooltip: {
@@ -3956,28 +3972,39 @@ const pieChartOptions = {
     }
   }
 };
-  
-  // 이전 차트 제거
-  if (window.expenseBarChart) {
-    window.expenseBarChart.destroy();
+
+  // 차트 내부 여백 설정
+  layout: {
+    padding: {
+      left: 10,
+      right: 20, 
+      top: 10,
+      bottom: 10
+    }
   }
-  
-  if (window.expensePieChart) {
-    window.expensePieChart.destroy();
-  }
-  
-  // 새 차트 생성
-  window.expenseBarChart = new Chart(barChartEl, {
-    type: 'bar',
-    data: barChartData,
-    options: barChartOptions
-  });
-  
-  window.expensePieChart = new Chart(pieChartEl, {
-    type: 'pie',
-    data: pieChartData,
-    options: pieChartOptions
-  });
+};
+
+// 이전 차트 제거
+if (window.expenseBarChart) {
+  window.expenseBarChart.destroy();
+}
+
+if (window.expensePieChart) {
+  window.expensePieChart.destroy();
+}
+
+// 새 차트 생성
+window.expenseBarChart = new Chart(barChartEl, {
+  type: 'bar',
+  data: barChartData,
+  options: barChartOptions
+});
+
+window.expensePieChart = new Chart(pieChartEl, {
+  type: 'pie',
+  data: pieChartData,
+  options: pieChartOptions
+});
   
 // 현재 달 통계 업데이트
 const currentMonth = new Date().getMonth();
@@ -5967,6 +5994,7 @@ function navigateToResult(page, id) {
 checkAuth();
 // 브라우저 콘솔에 로드 완료 메시지 출력
 console.log("앱 초기화가 완료되었습니다.");
+
 // 지출 관리 페이지용 스타일 추가
 function addExpensePageStyles() {
   const styleEl = document.createElement('style');
