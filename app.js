@@ -6297,6 +6297,8 @@ console.log("앱 초기화가 완료되었습니다.");
 function addExpensePageStyles() {
   const styleEl = document.createElement('style');
   styleEl.id = 'expense-page-styles';
+  
+  // 백틱(`)으로 시작하고 끝나는지 확인
   styleEl.textContent = `
     /* 월별 요약 차트 컨테이너 - 높이 증가 */
     .expense-chart {
@@ -6307,21 +6309,21 @@ function addExpensePageStyles() {
     
     /* 차트 컨테이너 명시적 설정 */
     .chart-container {
-      position: relative;
+      position: relative !important;
       height: 300px !important;
-      max-width: 95% !important; /* width 100%에서 max-width 95%로 변경 */
-      margin: 20px auto !important; /* 좌우 auto로 중앙 정렬 */
-      overflow: hidden !important; /* 추가: 넘치는 내용 숨김 */
-      box-sizing: border-box !important; /* 추가: 패딩을 크기에 포함 */
-      padding: 10px !important; /* 추가: 내부 여백 */
+      max-width: 95% !important; 
+      margin: 20px auto !important;
+      overflow: hidden !important;
+      box-sizing: border-box !important;
+      padding: 10px !important;
     }
     
     /* 차트 캔버스 위치 수정 */
     .chart-container canvas {
-      position: relative !important; /* absolute에서 relative로 변경 */
-      max-width: 100% !important; /* 추가: 최대 너비 제한 */
-      max-height: 100% !important; /* 추가: 최대 높이 제한 */
-      margin: 0 auto !important; /* 추가: 중앙 정렬 */
+      position: relative !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      margin: 0 auto !important;
     }
     
     /* 파이 차트 특별 설정 */
