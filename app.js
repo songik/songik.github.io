@@ -5050,7 +5050,6 @@ function renderHabitsList(habits) {
 }
 
 // 습관 달력 렌더링
-// 습관 달력 렌더링
 function renderHabitsCalendar(habits) {
   const calendarEl = document.getElementById('habit-calendar');
   
@@ -5784,14 +5783,14 @@ function renderBloodPressureList(bloodPressures) {
   
   let html = '<ul class="list-container">';
   
-  bloodPressures.forEach(bp => {
+bloodPressures.forEach(bp => {
     // 혈압 상태 판단
     const bpStatus = getBpStatus(bp.systolic, bp.diastolic);
     const statusClass = `bp-status-${bpStatus.toLowerCase()}`;
     const statusText = getBpStatusText(bpStatus);
     
     html += `
-      <li class="list-item" data-id="${bp.id}">
+      <li class="list-item" data-id="${bp.id}" onclick="showBloodPressureDetail('${bp.id}')">
         <div class="list-item-content">
           <div class="list-item-title">
             <span class="${getSystolicClass(bp.systolic)}">${bp.systolic}</span> / 
@@ -5802,7 +5801,7 @@ function renderBloodPressureList(bloodPressures) {
           ${bp.pulse ? `<div class="list-item-pulse">맥박: ${bp.pulse} bpm</div>` : ''}
           ${bp.notes ? `<div class="list-item-description">${bp.notes}</div>` : ''}
         </div>
-        <div class="list-item-actions">
+        <div class="list-item-actions" onclick="event.stopPropagation()">
           <button onclick="editBloodPressure('${bp.id}')">수정</button>
           <button onclick="deleteBloodPressure('${bp.id}')">삭제</button>
         </div>
@@ -5903,7 +5902,7 @@ function renderBloodPressureCalendar(bloodPressures) {
     };
   });
   
-  // FullCalendar 초기화
+// FullCalendar 초기화
   const calendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
       left: 'prev,next today',
@@ -5914,7 +5913,7 @@ function renderBloodPressureCalendar(bloodPressures) {
     locale: 'ko',
     events: events,
     eventClick: function(info) {
-      editBloodPressure(info.event.id);
+      showBloodPressureDetail(info.event.id);
     },
     dateClick: function(info) {
       showAddBloodPressureForm(info.dateStr);
@@ -6295,6 +6294,132 @@ async function saveBloodPressure() {
   } catch (error) {
     console.error("혈압 저장 중 오류 발생:", error);
     alert('혈압을 저장하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 혈압 상세 정보 표시
+async function showBloodPressureDetail(bpId) {
+  try {
+    const bpDoc = await db.collection("bloodpressures").doc(bpId).get();
+    
+    if (!bpDoc.exists) {
+      alert('혈압 기록을 찾을 수 없습니다.');
+      return;
+    }
+    
+    const bp = bpDoc.data();
+    const bpDate = bp.date.toDate();
+    
+    // 혈압 상태 판단
+    const bpStatus = getBpStatus(bp.systolic, bp.diastolic);
+    const statusClass = `bp-status-${bpStatus.toLowerCase()}`;
+    const statusText = getBpStatusText(bpStatus);
+    
+    // 모달 내용 구성
+    const modalContent = `
+      <div class="bp-detail">
+        <div class="bp-detail-header">
+          <h3>
+            <span class="${getSystolicClass(bp.systolic)}">${bp.systolic}</span> / 
+            <span class="${getDiastolicClass(bp.diastolic)}">${bp.diastolic}</span> mmHg
+            <span class="bp-status ${statusClass}">${statusText}</span>
+          </h3>
+          <div class="bp-detail-date">${formatDate(bpDate, true)}</div>
+        </div>
+        
+        ${bp.pulse ? `
+        <div class="bp-detail-item">
+          <span class="bp-detail-label">맥박:</span>
+          <span class="bp-detail-value">${bp.pulse} bpm</span>
+        </div>
+        ` : ''}
+        
+        ${bp.notes ? `
+        <div class="bp-detail-item">
+          <span class="bp-detail-label">메모:</span>
+          <div class="bp-detail-notes">${bp.notes}</div>
+        </div>
+        ` : ''}
+      </div>
+    `;
+    
+    // 모달 표시 - 수정/삭제 버튼 포함
+    const modalContainer = document.getElementById("modal-container");
+    
+    modalContainer.innerHTML = `
+      <div class="modal-overlay" onclick="if(event.target === this) closeModal()">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 class="modal-title">혈압 상세 정보</h2>
+            <button class="modal-close" onclick="closeModal()">×</button>
+          </div>
+          <div class="modal-content">
+            ${modalContent}
+          </div>
+          <div class="modal-actions">
+            <button onclick="closeModal()">닫기</button>
+            <button onclick="editBloodPressure('${bpId}')">수정</button>
+            <button onclick="deleteBloodPressure('${bpId}')" style="background-color: #f44336;">삭제</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    isModalOpen = true;
+    
+    // 모달 스타일 추가
+    const styleEl = document.createElement('style');
+    styleEl.id = 'bp-detail-styles';
+    styleEl.textContent = `
+      .bp-detail {
+        padding: 10px;
+      }
+      
+      .bp-detail-header {
+        margin-bottom: 15px;
+      }
+      
+      .bp-detail-date {
+        color: #666;
+        font-size: 0.9rem;
+        margin-top: 5px;
+      }
+      
+      .bp-detail-item {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: flex-start;
+      }
+      
+      .bp-detail-label {
+        font-weight: bold;
+        min-width: 80px;
+        margin-right: 10px;
+      }
+      
+      .bp-detail-value {
+        flex: 1;
+      }
+      
+      .bp-detail-notes {
+        flex: 1;
+        background-color: #f9f9f9;
+        padding: 10px;
+        border-radius: 5px;
+        white-space: pre-line;
+      }
+    `;
+    
+    // 이미 존재하는 스타일이 있으면 제거
+    const existingStyle = document.getElementById('bp-detail-styles');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+    
+    document.head.appendChild(styleEl);
+  } catch (error) {
+    console.error("혈압 상세 정보 로드 중 오류 발생:", error);
+    alert('혈압 상세 정보를 불러오는 중 오류가 발생했습니다.');
   }
 }
 
