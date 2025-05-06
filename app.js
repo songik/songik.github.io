@@ -3944,17 +3944,6 @@ const barChartOptions = {
   }
 };
 
-    // 차트 내부 여백 설정 - 여유 공간 확보
-  layout: {
-    padding: {
-      left: 15,
-      right: 15, 
-      top: 20,
-      bottom: 10
-    }
-  }
-};
-
 const pieChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -3980,18 +3969,6 @@ const pieChartOptions = {
       }
     }
   },
-  
-  // 차트 내부 여백 설정
-  layout: {
-    padding: {
-      left: 10,
-      right: 20, 
-      top: 10,
-      bottom: 10
-    }
-  }
-};
-
   // 차트 내부 여백 설정
   layout: {
     padding: {
@@ -4063,51 +4040,49 @@ if (balanceValueEl) {
   balanceValueEl.classList.add(balance >= 0 ? 'text-success' : 'text-danger');
 }
   
-  // 뷰 전환 이벤트 리스너
-  periodSelector.addEventListener('change', function() {
-    const barChartContainer = document.getElementById('bar-chart-container');
-    const pieChartContainer = document.getElementById('pie-chart-container');
-    
-    if (this.value === 'month') {
-      barChartContainer.style.display = 'block';
-      pieChartContainer.style.display = 'none';
-    } else {
-      barChartContainer.style.display = 'none';
-      pieChartContainer.style.display = 'block';
-    }
-  });
+// 뷰 전환 이벤트 리스너
+periodSelector.addEventListener('change', function() {
+  const barChartContainer = document.getElementById('bar-chart-container');
+  const pieChartContainer = document.getElementById('pie-chart-container');
   
-  // 스타일 추가
-  const styleEl = document.createElement('style');
-  styleEl.textContent = `
-    .chart-selector {
-      margin: 10px 0;
-      padding: 5px 10px;
-      border-radius: 4px;
-      border: 1px solid #ddd;
-    }
-    
-    .expense-stats {
-      display: flex;
-      justify-content: space-between;
-      margin: 15px 0;
-    }
-    
-    .expense-stats .stat-item {
-      text-align: center;
-      flex: 1;
-    }
-    
-    .stats-summary {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-  `;
-  document.head.appendChild(styleEl);
-}
+  if (this.value === 'month') {
+    barChartContainer.style.display = 'block';
+    pieChartContainer.style.display = 'none';
+  } else {
+    barChartContainer.style.display = 'none';
+    pieChartContainer.style.display = 'block';
+  }
+});
 
+// 스타일 추가
+const styleEl = document.createElement('style');
+styleEl.textContent = `
+  .chart-selector {
+    margin: 10px 0;
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+  }
+  
+  .expense-stats {
+    display: flex;
+    justify-content: space-between;
+    margin: 15px 0;
+  }
+  
+  .expense-stats .stat-item {
+    text-align: center;
+    flex: 1;
+  }
+  
+  .stats-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+`;
+document.head.appendChild(styleEl);
 // 지출 추가 폼 표시
 function showAddTransactionForm(dateStr = null) {
   // 날짜 기본값 설정
