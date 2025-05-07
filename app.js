@@ -114,41 +114,44 @@ function renderApp() {
         <div class="menu-icon" onclick="toggleMenu()">
           <i class="fas fa-bars"></i>
         </div>
-        <ul class="nav-menu" id="nav-menu">
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('home')">HOME</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('calendar')">일정</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('todo')">뭐해?</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('progress')">진행률</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('diet')">그만먹어</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('expense')">그만써</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('diary')">일기</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('notes')">메모</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('habits')">습관</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('bp')">혈압</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('search')">검색</a>
-          </li>
-        </ul>
+<ul class="nav-menu" id="nav-menu">
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('home')">HOME</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('calendar')">일정</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('coupon')">쿠폰</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('todo')">뭐해?</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('progress')">진행률</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('diet')">그만먹어</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('expense')">그만써</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('diary')">일기</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('notes')">메모</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('habits')">습관</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('bp')">혈압</a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('search')">검색</a>
+  </li>
+</ul>
         <div class="navbar-logout">
           <button onclick="logout()" class="logout-button">
             로그아웃
@@ -576,6 +579,9 @@ function renderPage(page) {
       break;
     case "calendar":
       renderCalendarPage(contentEl);
+      break;
+    case "coupon":
+      renderCouponPage(contentEl);
       break;
     case "todo":
       renderTodoPage(contentEl);
@@ -1472,6 +1478,588 @@ async function deleteEvent(eventId) {
     } catch (error) {
       console.error("일정 삭제 중 오류 발생:", error);
       alert('일정을 삭제하는 중 오류가 발생했습니다.');
+    }
+  }
+}
+
+// =========== 쿠폰 관리 기능 ===========
+
+// 쿠폰 페이지 렌더링
+function renderCouponPage(container) {
+  container.innerHTML = `
+    <div class="page-container">
+      <div class="page-header">
+        <h1>쿠폰 관리</h1>
+        <div class="page-actions">
+          <button onclick="showAddCouponForm()">쿠폰 추가</button>
+        </div>
+      </div>
+      
+      <div class="calendar-container">
+        <div id="coupon-calendar"></div>
+      </div>
+    </div>
+  `;
+  
+  // 쿠폰 데이터 불러오기
+  loadCoupons();
+  
+  // 쿠폰 페이지 스타일 추가
+  addCouponPageStyles();
+}
+
+// 쿠폰 관련 스타일 추가 함수
+function addCouponPageStyles() {
+  const styleEl = document.createElement('style');
+  styleEl.id = 'coupon-page-styles';
+  styleEl.textContent = `
+    /* 쿠폰 달력 컨테이너 */
+    .coupon-calendar {
+      margin-top: 20px;
+      clear: both;
+    }
+    
+    /* 쿠폰 항목 스타일 */
+    .coupon-item {
+      padding: 10px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      border-left: 4px solid #4caf50;
+    }
+    
+    .coupon-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .coupon-date {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .coupon-description {
+      margin-top: 5px;
+      white-space: pre-line;
+    }
+    
+    /* 달력 날짜 셀 스타일 개선 */
+    .fc-daygrid-day-frame {
+      min-height: 60px;
+    }
+    
+    /* 마감임박 스타일 */
+    .coupon-expiring-soon {
+      background-color: #fff9c4;
+    }
+    
+    .coupon-expired {
+      background-color: #ffebee;
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+  `;
+  
+  // 이미 존재하는 스타일이 있으면 제거
+  const existingStyle = document.getElementById('coupon-page-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  document.head.appendChild(styleEl);
+}
+
+// 쿠폰 데이터 불러오기
+async function loadCoupons() {
+  try {
+    const couponsRef = db.collection("coupons");
+    const snapshot = await couponsRef.orderBy("expiryDate", "asc").get();
+    
+    const coupons = [];
+    snapshot.forEach(doc => {
+      const coupon = doc.data();
+      coupons.push({
+        id: doc.id,
+        title: coupon.title,
+        description: coupon.description || '',
+        expiryDate: coupon.expiryDate.toDate(),
+        place: coupon.place || '',
+        createdAt: coupon.createdAt ? coupon.createdAt.toDate() : new Date()
+      });
+    });
+    
+    // 달력 렌더링
+    renderCouponsCalendar(coupons);
+  } catch (error) {
+    console.error("쿠폰을 불러오는 중 오류 발생:", error);
+    document.querySelector(".calendar-container").innerHTML = '<p>쿠폰을 불러오는 중 오류가 발생했습니다.</p>';
+  }
+}
+
+// 쿠폰 달력 렌더링
+function renderCouponsCalendar(coupons) {
+  const calendarEl = document.getElementById('coupon-calendar');
+  
+  if (!calendarEl) return;
+  
+  // 이전 인스턴스 제거 (있을 경우)
+  if (window.couponCalendar) {
+    try {
+      window.couponCalendar.destroy();
+    } catch (err) {
+      console.error("캘린더 제거 중 오류:", err);
+    }
+  }
+  
+  // 한국 공휴일 추가 함수
+  function addKoreanHolidays(year) {
+    const holidays = [
+      // 양력 공휴일
+      { title: '신정', start: `${year}-01-01` },
+      { title: '3·1절', start: `${year}-03-01` },
+      { title: '어린이날', start: `${year}-05-05` },
+      { title: '현충일', start: `${year}-06-06` },
+      { title: '광복절', start: `${year}-08-15` },
+      { title: '개천절', start: `${year}-10-03` },
+      { title: '한글날', start: `${year}-10-09` },
+      { title: '크리스마스', start: `${year}-12-25` }
+    ];
+    
+    // 2025년 기준으로 음력 휴일 추가
+    if (year === 2025) {
+      // 2025년 설날
+      holidays.push({ title: '설날 연휴', start: '2025-01-28' });
+      holidays.push({ title: '설날', start: '2025-01-29' });
+      holidays.push({ title: '설날 연휴', start: '2025-01-30' });
+      
+      // 2025년 부처님 오신 날
+      holidays.push({ title: '부처님 오신 날', start: '2025-05-05' });
+      
+      // 2025년 추석
+      holidays.push({ title: '추석 연휴', start: '2025-09-29' });
+      holidays.push({ title: '추석', start: '2025-09-30' });
+      holidays.push({ title: '추석 연휴', start: '2025-10-01' });
+    }
+    
+    return holidays.map(holiday => ({
+      ...holiday,
+      display: 'background',
+      color: '#ffcdd2',
+      classNames: ['holiday-event'],
+      extendedProps: {
+        isHoliday: true
+      }
+    }));
+  }
+  
+  try {
+    // 날짜 배경색 로드 및 캘린더 초기화
+    loadDateColors().then(dateColors => {
+      // 현재 연도와 전후 1년의 공휴일 추가
+      const currentYear = new Date().getFullYear();
+      const koreanHolidays = [
+        ...addKoreanHolidays(currentYear - 1),
+        ...addKoreanHolidays(currentYear),
+        ...addKoreanHolidays(currentYear + 1)
+      ];
+      
+      // 날짜 배경색을 이벤트로 변환
+      const colorEvents = dateColors.map(dc => ({
+        start: formatDate(dc.date),
+        end: formatDate(dc.date),
+        display: 'background',
+        color: dc.color,
+        classNames: ['date-color-event'],
+        extendedProps: {
+          isDateColor: true,
+          note: dc.note
+        }
+      }));
+      
+      // 달력에 표시할 이벤트 형식으로 변환
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const couponEvents = coupons.map(coupon => {
+        // 마감일까지 남은 날짜 계산
+        const expiryDate = new Date(coupon.expiryDate);
+        expiryDate.setHours(0, 0, 0, 0);
+        
+        const daysLeft = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+        
+        // 마감임박 또는 만료 상태 확인
+        let color = '#4caf50'; // 기본 색상
+        let textColor = 'white';
+        let className = [];
+        
+        if (daysLeft < 0) {
+          // 만료된 쿠폰
+          color = '#f44336';
+          className = ['coupon-expired'];
+        } else if (daysLeft <= 7) {
+          // 마감 임박 쿠폰 (7일 이내)
+          color = '#ff9800';
+          className = ['coupon-expiring-soon'];
+        }
+        
+        return {
+          id: coupon.id,
+          title: coupon.title,
+          start: coupon.expiryDate,
+          allDay: true,
+          backgroundColor: color,
+          borderColor: color,
+          textColor: textColor,
+          classNames: className,
+          extendedProps: {
+            description: coupon.description,
+            place: coupon.place,
+            isCoupon: true
+          }
+        };
+      });
+      
+      // 모바일 여부 확인
+      const isMobile = window.innerWidth < 768;
+      
+      // FullCalendar 초기화
+      window.couponCalendar = new FullCalendar.Calendar(calendarEl, {
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,listMonth'
+        },
+        initialView: isMobile ? 'listMonth' : 'dayGridMonth',
+        height: isMobile ? 'auto' : undefined,
+        dayMaxEventRows: isMobile ? 2 : 6,
+        eventTimeFormat: {
+          hour: '2-digit',
+          minute: '2-digit',
+          meridiem: false
+        },
+        locale: 'ko',
+        events: [...couponEvents, ...koreanHolidays, ...colorEvents],
+        selectable: true,
+        selectMirror: true,
+        dayMaxEvents: true,
+        
+        // 이벤트 렌더링 커스터마이징
+        eventDidMount: function(info) {
+          // 모바일에서 이벤트 표시 최적화
+          if (isMobile && info.view.type === 'dayGridMonth') {
+            const eventEl = info.el;
+            eventEl.style.fontSize = '0.8rem';
+            eventEl.style.padding = '2px 4px';
+            
+            // 이벤트 텍스트 길이 제한
+            const titleEl = eventEl.querySelector('.fc-event-title');
+            if (titleEl && titleEl.textContent.length > 10) {
+              titleEl.textContent = titleEl.textContent.substring(0, 10) + '...';
+            }
+          }
+          
+          // 툴팁 추가
+          if (info.event.extendedProps.isCoupon) {
+            const description = info.event.extendedProps.description;
+            const place = info.event.extendedProps.place;
+            
+            if (description || place) {
+              const titleEl = info.el.querySelector('.fc-event-title');
+              if (titleEl) {
+                titleEl.title = `${place ? '장소: ' + place + '\n' : ''}${description || ''}`;
+              }
+            }
+          }
+        },
+        
+        // 날짜 선택 시 쿠폰 추가 폼 표시
+        dateClick: function(info) {
+          showAddCouponForm(info.dateStr);
+        },
+        
+        // 이벤트 클릭 시 편집 폼 표시
+        eventClick: function(info) {
+          if (!info.event.extendedProps.isHoliday && !info.event.extendedProps.isDateColor) {
+            if (info.event.extendedProps.isCoupon) {
+              editCoupon(info.event.id);
+            }
+          }
+        },
+        
+        // 날짜 클릭 시 컨텍스트 메뉴 표시
+        dateClick: function(info) {
+          // 날짜를 클릭했을 때 컨텍스트 메뉴 표시
+          const dateStr = info.dateStr;
+          const menuItems = [
+            {
+              label: '쿠폰 추가',
+              action: () => showAddCouponForm(dateStr)
+            },
+            {
+              label: '배경색 설정',
+              action: () => showDateColorForm(new Date(dateStr))
+            }
+          ];
+          
+          // 해당 날짜에 이미 배경색이 있는지 확인
+          const hasColorBackground = dateColors.some(dc => 
+            formatDate(dc.date) === dateStr);
+          
+          if (hasColorBackground) {
+            menuItems.push({
+              label: '배경색 삭제',
+              action: () => deleteDateBackground(new Date(dateStr))
+            });
+          }
+          
+          // 컨텍스트 메뉴 생성
+          const menu = document.createElement('div');
+          menu.className = 'date-context-menu';
+          menu.style.position = 'absolute';
+          menu.style.left = info.jsEvent.pageX + 'px';
+          menu.style.top = info.jsEvent.pageY + 'px';
+          menu.style.backgroundColor = 'white';
+          menu.style.padding = '5px';
+          menu.style.border = '1px solid #ccc';
+          menu.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+          menu.style.zIndex = '9999';
+          
+          menuItems.forEach(item => {
+            const menuItem = document.createElement('div');
+            menuItem.textContent = item.label;
+            menuItem.style.padding = '5px 10px';
+            menuItem.style.cursor = 'pointer';
+            menuItem.style.borderBottom = '1px solid #eee';
+            menuItem.addEventListener('click', () => {
+              document.body.removeChild(menu);
+              item.action();
+            });
+            menuItem.addEventListener('mouseover', () => {
+              menuItem.style.backgroundColor = '#f5f5f5';
+            });
+            menuItem.addEventListener('mouseout', () => {
+              menuItem.style.backgroundColor = 'transparent';
+            });
+            menu.appendChild(menuItem);
+          });
+          
+          document.body.appendChild(menu);
+          
+          // 메뉴 외부 클릭 시 메뉴 제거
+          document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target)) {
+              if (document.body.contains(menu)) {
+                document.body.removeChild(menu);
+              }
+              document.removeEventListener('click', closeMenu);
+            }
+          });
+        }
+      });
+      
+      // 명시적으로 렌더링 호출
+      window.couponCalendar.render();
+      console.log("쿠폰 캘린더가 성공적으로 렌더링되었습니다.");
+      
+      // 창 크기 변경 시 달력 반응형 업데이트
+      window.addEventListener('resize', function() {
+        const newIsMobile = window.innerWidth < 768;
+        if (newIsMobile !== isMobile) {
+          loadCoupons(); // 달력 새로고침
+        }
+      });
+    }).catch(error => {
+      console.error("날짜 배경색 로드 중 오류 발생:", error);
+      if (calendarEl) {
+        calendarEl.innerHTML = '<p>날짜 배경색을 로드하는 중 오류가 발생했습니다.</p>';
+      }
+    });
+  } catch (error) {
+    console.error("캘린더 초기화 중 오류 발생:", error);
+    if (calendarEl) {
+      calendarEl.innerHTML = '<p>캘린더를 로드하는 중 오류가 발생했습니다.</p>';
+    }
+  }
+}
+
+// 쿠폰 추가 폼 표시
+function showAddCouponForm(dateStr = null) {
+  // 마감일 기본값 설정
+  let formattedDate = '';
+  if (dateStr) {
+    formattedDate = dateStr;
+  } else {
+    formattedDate = formatDate(new Date());
+  }
+  
+  const modalContent = `
+    <form id="coupon-form">
+      <div class="form-group">
+        <label for="coupon-title">쿠폰명</label>
+        <input type="text" id="coupon-title" placeholder="쿠폰 이름을 입력하세요" required>
+      </div>
+      <div class="form-group">
+        <label for="coupon-place">사용처</label>
+        <input type="text" id="coupon-place" placeholder="사용처를 입력하세요">
+      </div>
+      <div class="form-group">
+        <label for="coupon-expiry-date">마감일</label>
+        <input type="date" id="coupon-expiry-date" value="${formattedDate}" required>
+      </div>
+      <div class="form-group">
+        <label for="coupon-description">설명 (선택사항)</label>
+        <textarea id="coupon-description" rows="3" placeholder="추가 설명을 입력하세요..."></textarea>
+      </div>
+    </form>
+  `;
+  
+  showModal("쿠폰 추가", modalContent, saveCoupon);
+}
+
+// 쿠폰 저장
+async function saveCoupon() {
+  const titleEl = document.getElementById('coupon-title');
+  const placeEl = document.getElementById('coupon-place');
+  const expiryDateEl = document.getElementById('coupon-expiry-date');
+  const descriptionEl = document.getElementById('coupon-description');
+  
+  if (!titleEl.value || !expiryDateEl.value) {
+    alert('쿠폰명과 마감일은 필수 입력 항목입니다.');
+    return;
+  }
+  
+  try {
+    // 쿠폰 데이터 구성
+    const couponData = {
+      title: titleEl.value,
+      expiryDate: firebase.firestore.Timestamp.fromDate(new Date(expiryDateEl.value)),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // 선택적 필드 추가
+    if (placeEl.value.trim()) {
+      couponData.place = placeEl.value.trim();
+    }
+    
+    if (descriptionEl.value.trim()) {
+      couponData.description = descriptionEl.value.trim();
+    }
+    
+    // Firestore에 저장
+    await db.collection("coupons").add(couponData);
+    
+    // 모달 닫기
+    closeModal();
+    
+    // 쿠폰 목록 새로고침
+    loadCoupons();
+  } catch (error) {
+    console.error("쿠폰 저장 중 오류 발생:", error);
+    alert('쿠폰을 저장하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 쿠폰 편집 폼 표시
+async function editCoupon(couponId) {
+  try {
+    const couponDoc = await db.collection("coupons").doc(couponId).get();
+    
+    if (!couponDoc.exists) {
+      alert('쿠폰 정보를 찾을 수 없습니다.');
+      return;
+    }
+    
+    const coupon = couponDoc.data();
+    
+    const modalContent = `
+      <form id="coupon-form">
+        <input type="hidden" id="coupon-id" value="${couponId}">
+        <div class="form-group">
+          <label for="coupon-title">쿠폰명</label>
+          <input type="text" id="coupon-title" value="${coupon.title}" required>
+        </div>
+        <div class="form-group">
+          <label for="coupon-place">사용처</label>
+          <input type="text" id="coupon-place" value="${coupon.place || ''}">
+        </div>
+        <div class="form-group">
+          <label for="coupon-expiry-date">마감일</label>
+          <input type="date" id="coupon-expiry-date" value="${formatDate(coupon.expiryDate)}" required>
+        </div>
+        <div class="form-group">
+          <label for="coupon-description">설명 (선택사항)</label>
+          <textarea id="coupon-description" rows="3" placeholder="추가 설명을 입력하세요...">${coupon.description || ''}</textarea>
+        </div>
+      </form>
+    `;
+    
+    showModalWithEdit("쿠폰 상세", modalContent, updateCoupon, couponId);
+  } catch (error) {
+    console.error("쿠폰 정보 로드 중 오류 발생:", error);
+    alert('쿠폰 정보를 불러오는 중 오류가 발생했습니다.');
+  }
+}
+
+// 쿠폰 업데이트
+async function updateCoupon() {
+  const couponId = document.getElementById('coupon-id').value;
+  const titleEl = document.getElementById('coupon-title');
+  const placeEl = document.getElementById('coupon-place');
+  const expiryDateEl = document.getElementById('coupon-expiry-date');
+  const descriptionEl = document.getElementById('coupon-description');
+  
+  if (!titleEl.value || !expiryDateEl.value) {
+    alert('쿠폰명과 마감일은 필수 입력 항목입니다.');
+    return;
+  }
+  
+  try {
+    // 쿠폰 데이터 구성
+    const couponData = {
+      title: titleEl.value,
+      expiryDate: firebase.firestore.Timestamp.fromDate(new Date(expiryDateEl.value)),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // 선택적 필드 추가 또는 삭제
+    if (placeEl.value.trim()) {
+      couponData.place = placeEl.value.trim();
+    } else {
+      couponData.place = firebase.firestore.FieldValue.delete();
+    }
+    
+    if (descriptionEl.value.trim()) {
+      couponData.description = descriptionEl.value.trim();
+    } else {
+      couponData.description = firebase.firestore.FieldValue.delete();
+    }
+    
+    // Firestore에 업데이트
+    await db.collection("coupons").doc(couponId).update(couponData);
+    
+    // 모달 닫기
+    closeModal();
+    
+    // 쿠폰 목록 새로고침
+    loadCoupons();
+  } catch (error) {
+    console.error("쿠폰 업데이트 중 오류 발생:", error);
+    alert('쿠폰을 업데이트하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 쿠폰 삭제
+async function deleteEvent(couponId) {
+  if (confirm('정말로 이 쿠폰을 삭제하시겠습니까?')) {
+    try {
+      await db.collection("coupons").doc(couponId).delete();
+      // 쿠폰 목록 새로고침
+      loadCoupons();
+      // 모달 닫기
+      closeModal();
+    } catch (error) {
+      console.error("쿠폰 삭제 중 오류 발생:", error);
+      alert('쿠폰을 삭제하는 중 오류가 발생했습니다.');
     }
   }
 }
@@ -6835,6 +7423,27 @@ bloodPressuresSnapshot.forEach(doc => {
       title: `${bp.systolic}/${bp.diastolic} mmHg`,
       date: formatDate(bp.date),
       page: "bp"
+    });
+  }
+});
+
+// 쿠폰 검색
+const couponsSnapshot = await db.collection("coupons").get();
+couponsSnapshot.forEach(doc => {
+  const coupon = doc.data();
+  const title = coupon.title || '';
+  const place = coupon.place || '';
+  const description = coupon.description || '';
+  
+  if (title.toLowerCase().includes(searchInput) || 
+      place.toLowerCase().includes(searchInput) || 
+      description.toLowerCase().includes(searchInput)) {
+    results.push({
+      type: "쿠폰",
+      id: doc.id,
+      title: coupon.title,
+      date: formatDate(coupon.expiryDate),
+      page: "coupon"
     });
   }
 });
