@@ -350,10 +350,10 @@ function showModalWithEdit(title, content, onSave = null, itemId = null) {
           ${content}
         </div>
         <div class="modal-actions">
-          <button onclick="closeModal()">취소</button>
           <button onclick="toggleEditMode('${itemId}')" id="edit-mode-button">수정</button>
           <button id="modal-save-button" style="display: none;">저장</button>
           <button onclick="deleteEvent('${itemId}')" class="delete-button" style="background-color: #f44336;">삭제</button>
+          <button onclick="closeModal()" class="cancel-button">닫기</button>
         </div>
       </div>
     </div>
