@@ -1680,7 +1680,7 @@ function renderCouponsCalendar(coupons) {
     }
   }
   
-try {
+  try {
     // 날짜 배경색 로드 함수 호출 전에 해당 함수가 정의되어 있는지 확인
     if (typeof loadDateColors !== 'function') {
       // loadDateColors 함수가 없으면 빈 배열 반환하는 임시 함수 생성
@@ -1825,17 +1825,53 @@ try {
         
         // 이벤트 렌더링 커스터마이징
         eventDidMount: function(info) {
-          // (이벤트 마운트 로직 유지)
-        },
-        
-        // 날짜 선택 시 쿠폰 추가 폼 표시
-        dateClick: function(info) {
-          // (날짜 클릭 로직 유지)
+          // 모바일에서 이벤트 표시 최적화
+          if (isMobile && info.view.type === 'dayGridMonth') {
+            const eventEl = info.el;
+            eventEl.style.fontSize = '0.8rem';
+            eventEl.style.padding = '2px 4px';
+            
+            // 이벤트 텍스트 길이 제한
+            const titleEl = eventEl.querySelector('.fc-event-title');
+            if (titleEl && titleEl.textContent.length > 10) {
+              titleEl.textContent = titleEl.textContent.substring(0, 10) + '...';
+            }
+          }
+          
+          // 툴팁 추가
+          if (info.event.extendedProps.isCoupon) {
+            const description = info.event.extendedProps.description;
+            const place = info.event.extendedProps.place;
+            
+            if (description || place) {
+              const titleEl = info.el.querySelector('.fc-event-title');
+              if (titleEl) {
+                titleEl.title = `${place ? '장소: ' + place + '\n' : ''}${description || ''}`;
+              }
+            }
+          }
         },
         
         // 이벤트 클릭 시 편집 폼 표시
         eventClick: function(info) {
-          // (이벤트 클릭 로직 유지)
+          if (!info.event.extendedProps.isHoliday && !info.event.extendedProps.isDateColor) {
+            if (info.event.extendedProps.isCoupon) {
+              editCoupon(info.event.id);
+            }
+          }
+        },
+        
+        // 날짜 클릭 시 컨텍스트 메뉴 표시
+        dateClick: function(info) {
+          showAddCouponForm(info.dateStr);
+        }
+      });
+      
+      // 창 크기 변경 시 달력 반응형 업데이트
+      window.addEventListener('resize', function() {
+        const newIsMobile = window.innerWidth < 768;
+        if (newIsMobile !== isMobile) {
+          loadCoupons(); // 달력 새로고침
         }
       });
       
