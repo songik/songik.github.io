@@ -342,9 +342,12 @@ function closeModal() {
   }
 }
 // 수정 및 삭제 버튼이 있는 모달 표시 함수 추가
-function showModalWithEdit(title, content, onSave = null, itemId = null) {
+function showModalWithEdit(title, content, onSave = null, itemId = null, itemType = "event") {
   isModalOpen = true;
   const modalContainer = document.getElementById("modal-container");
+  
+  // 현재 페이지에 따라 적절한 삭제 함수 선택
+  const deleteFunction = itemType === "coupon" ? "deleteCoupon" : "deleteEvent";
   
   modalContainer.innerHTML = `
     <div class="modal-overlay" onclick="if(event.target === this) closeModal()">
@@ -359,7 +362,7 @@ function showModalWithEdit(title, content, onSave = null, itemId = null) {
         <div class="modal-actions">
           <button onclick="toggleEditMode('${itemId}')" id="edit-mode-button">수정</button>
           <button id="modal-save-button" style="display: none;">저장</button>
-          <button onclick="deleteEvent('${itemId}')" class="delete-button" style="background-color: #f44336;">삭제</button>
+          <button onclick="${deleteFunction}('${itemId}')" class="delete-button" style="background-color: #f44336;">삭제</button>
           <button onclick="closeModal()" class="cancel-button">닫기</button>
         </div>
       </div>
@@ -1662,6 +1665,11 @@ async function loadCoupons() {
   }
 }
 
+// 쿠폰 편집 시 삭제 함수를 위한 래퍼 함수
+function editCouponFromCalendar(couponId) {
+  editCoupon(couponId);
+}
+
 // 쿠폰 달력 렌더링 함수
 function renderCouponsCalendar(coupons) {
   const calendarEl = document.getElementById('coupon-calendar');
@@ -2166,7 +2174,8 @@ async function editCoupon(couponId) {
       </form>
     `;
     
-    showModalWithEdit("쿠폰 상세", modalContent, updateCoupon, couponId);
+    // 여기를 수정 - 마지막 매개변수 "coupon" 추가
+    showModalWithEdit("쿠폰 상세", modalContent, updateCoupon, couponId, "coupon");
   } catch (error) {
     console.error("쿠폰 정보 로드 중 오류 발생:", error);
     alert('쿠폰 정보를 불러오는 중 오류가 발생했습니다.');
@@ -2222,7 +2231,7 @@ async function updateCoupon() {
 }
 
 // 쿠폰 삭제
-async function deleteEvent(couponId) {
+async function deleteCoupon(couponId) {
   if (confirm('정말로 이 쿠폰을 삭제하시겠습니까?')) {
     try {
       await db.collection("coupons").doc(couponId).delete();
