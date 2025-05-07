@@ -205,11 +205,15 @@ function updateActiveMenu() {
 function navigateTo(page) {
   currentPage = page;
   updateActiveMenu();
-  renderPage(page);
+  
+  // 페이지 렌더링 전에 약간의 지연을 두어 DOM이 정리될 시간을 줌
+  setTimeout(() => {
+    renderPage(page);
+  }, 50);
   
   // 모바일에서 메뉴가 열려있을 경우 닫기
   const navMenu = document.getElementById("nav-menu");
-  if (navMenu.classList.contains("active")) {
+  if (navMenu && navMenu.classList.contains("active")) {
     toggleMenu();
   }
 }
@@ -1501,11 +1505,13 @@ function renderCouponPage(container) {
     </div>
   `;
   
-  // 쿠폰 데이터 불러오기
-  loadCoupons();
-  
   // 쿠폰 페이지 스타일 추가
   addCouponPageStyles();
+  
+  // 약간의 지연 후 데이터 로드 (DOM이 준비될 시간을 줌)
+  setTimeout(() => {
+    loadCoupons();
+  }, 100);
 }
 
 // 쿠폰 관련 스타일 추가 함수
@@ -1572,6 +1578,11 @@ function addCouponPageStyles() {
 // 쿠폰 데이터 불러오기
 async function loadCoupons() {
   try {
+    const calendarContainer = document.querySelector(".calendar-container");
+    if (calendarContainer) {
+      calendarContainer.innerHTML = '<p>쿠폰을 불러오는 중...</p>';
+    }
+    
     const couponsRef = db.collection("coupons");
     const snapshot = await couponsRef.orderBy("expiryDate", "asc").get();
     
@@ -1588,19 +1599,26 @@ async function loadCoupons() {
       });
     });
     
+    console.log(`${coupons.length}개의 쿠폰을 성공적으로 로드했습니다.`);
+    
     // 달력 렌더링
-    renderCouponsCalendar(coupons);
+    setTimeout(() => {
+      renderCouponsCalendar(coupons);
+    }, 50);
+    
   } catch (error) {
-    console.error("쿠폰을 불러오는 중 오류 발생:", error);
-    document.querySelector(".calendar-container").innerHTML = '<p>쿠폰을 불러오는 중 오류가 발생했습니다.</p>';
+    handleCouponError(error, "쿠폰을 불러오는 중 오류가 발생했습니다.");
   }
 }
 
-// 쿠폰 달력 렌더링
+// 쿠폰 달력 렌더링 함수
 function renderCouponsCalendar(coupons) {
   const calendarEl = document.getElementById('coupon-calendar');
   
-  if (!calendarEl) return;
+  if (!calendarEl) {
+    console.error("쿠폰 캘린더 요소를 찾을 수 없습니다.");
+    return;
+  }
   
   // 이전 인스턴스 제거 (있을 경우)
   if (window.couponCalendar) {
@@ -7546,10 +7564,29 @@ function navigateToResult(page, id) {
   }, 500);
 }
 
+// 쿠폰 관련 오류 처리 함수
+function handleCouponError(error, message) {
+  console.error(message, error);
+  
+  // 오류 발생 시 사용자에게 알림
+  const errorContainer = document.querySelector(".calendar-container");
+  if (errorContainer) {
+    errorContainer.innerHTML = `
+      <div class="error-message" style="padding: 20px; text-align: center; color: #f44336;">
+        <p>${message}</p>
+        <p>오류 상세: ${error.message}</p>
+        <button onclick="loadCoupons()">다시 시도</button>
+      </div>
+    `;
+  }
+}
+
 // 초기화 함수 호출
 checkAuth();
+
 // 브라우저 콘솔에 로드 완료 메시지 출력
 console.log("앱 초기화가 완료되었습니다.");
+
 // 지출 관리 페이지용 스타일 추가
 function addExpensePageStyles() {
   const styleEl = document.createElement('style');
