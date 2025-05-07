@@ -879,7 +879,50 @@ function renderEventsCalendar(events) {
     }
   }
   
-  // 한국 공휴일 추가 함수
+// 한국 공휴일 추가 함수가 없으면 추가
+  if (typeof addKoreanHolidays !== 'function') {
+    function addKoreanHolidays(year) {
+      const holidays = [
+        // 양력 공휴일
+        { title: '신정', start: `${year}-01-01` },
+        { title: '3·1절', start: `${year}-03-01` },
+        { title: '어린이날', start: `${year}-05-05` },
+        { title: '현충일', start: `${year}-06-06` },
+        { title: '광복절', start: `${year}-08-15` },
+        { title: '개천절', start: `${year}-10-03` },
+        { title: '한글날', start: `${year}-10-09` },
+        { title: '크리스마스', start: `${year}-12-25` }
+      ];
+      
+      // 2025년 기준으로 음력 휴일 추가
+      if (year === 2025) {
+        // 2025년 설날
+        holidays.push({ title: '설날 연휴', start: '2025-01-28' });
+        holidays.push({ title: '설날', start: '2025-01-29' });
+        holidays.push({ title: '설날 연휴', start: '2025-01-30' });
+        
+        // 2025년 부처님 오신 날
+        holidays.push({ title: '부처님 오신 날', start: '2025-05-05' });
+        
+        // 2025년 추석
+        holidays.push({ title: '추석 연휴', start: '2025-09-29' });
+        holidays.push({ title: '추석', start: '2025-09-30' });
+        holidays.push({ title: '추석 연휴', start: '2025-10-01' });
+      }
+      
+      return holidays.map(holiday => ({
+        ...holiday,
+        display: 'background',
+        color: '#ffcdd2',
+        classNames: ['holiday-event'],
+        extendedProps: {
+          isHoliday: true
+        }
+      }));
+    }
+  }
+  
+  // 기존 함수
   function addKoreanHolidays(year) {
     const holidays = [
       // 양력 공휴일
@@ -1583,6 +1626,15 @@ async function loadCoupons() {
       calendarContainer.innerHTML = '<p>쿠폰을 불러오는 중...</p>';
     }
     
+    // Firestore 초기화 검사
+    if (!db) {
+      console.error("Firestore가 초기화되지 않았습니다.");
+      if (calendarContainer) {
+        calendarContainer.innerHTML = '<p>데이터베이스 연결에 실패했습니다. 페이지를 새로고침하거나 나중에 다시 시도해주세요.</p>';
+      }
+      return;
+    }
+    
     const couponsRef = db.collection("coupons");
     const snapshot = await couponsRef.orderBy("expiryDate", "asc").get();
     
@@ -1629,6 +1681,16 @@ function renderCouponsCalendar(coupons) {
     }
   }
   
+  try {
+    // 날짜 배경색 로드 함수 호출 전에 해당 함수가 정의되어 있는지 확인
+    if (typeof loadDateColors !== 'function') {
+      // loadDateColors 함수가 없으면 빈 배열 반환하는 임시 함수 생성
+      window.loadDateColors = async function() {
+        console.log("loadDateColors 함수가 정의되어 있지 않아 빈 배열 반환");
+        return [];
+      };
+    }
+  
   // 한국 공휴일 추가 함수
   function addKoreanHolidays(year) {
     const holidays = [
@@ -1670,7 +1732,15 @@ function renderCouponsCalendar(coupons) {
     }));
   }
   
-  try {
+try {
+    // 날짜 배경색 로드 함수 확인
+    if (typeof loadDateColors !== 'function') {
+      console.warn("loadDateColors 함수가 정의되어 있지 않습니다. 빈 배열을 사용합니다.");
+      window.loadDateColors = async function() {
+        return [];
+      };
+    }
+    
     // 날짜 배경색 로드 및 캘린더 초기화
     loadDateColors().then(dateColors => {
       // 현재 연도와 전후 1년의 공휴일 추가
@@ -7584,9 +7654,25 @@ function handleCouponError(error, message) {
 // 초기화 함수 호출
 checkAuth();
 
+// 쿠폰 관련 오류 처리 함수
+function handleCouponError(error, message) {
+  console.error(message, error);
+  
+  // 오류 발생 시 사용자에게 알림
+  const errorContainer = document.querySelector(".calendar-container");
+  if (errorContainer) {
+    errorContainer.innerHTML = `
+      <div class="error-message" style="padding: 20px; text-align: center; color: #f44336;">
+        <p>${message}</p>
+        <p>오류 상세: ${error.message}</p>
+        <button onclick="loadCoupons()">다시 시도</button>
+      </div>
+    `;
+  }
+}
+
 // 브라우저 콘솔에 로드 완료 메시지 출력
 console.log("앱 초기화가 완료되었습니다.");
-
 // 지출 관리 페이지용 스타일 추가
 function addExpensePageStyles() {
   const styleEl = document.createElement('style');
