@@ -613,6 +613,9 @@ function renderPage(page) {
 
 // 일정 페이지 렌더링
 function renderCalendarPage(container) {
+  // 현재 뷰를 달력으로 설정
+  currentView = 'calendar';
+  
   container.innerHTML = `
     <div class="page-container">
       <div class="page-header">
@@ -1113,18 +1116,23 @@ function showAddEventForm(startDate = null, endDate = null, allDay = false) {
     startDate = new Date(startDate);
   }
   
-// 일정 추가 폼 표시 함수의 해당 부분
-if (!endDate) {
-  // 항상 종료일을 시작일과 동일하게 설정
-  endDate = new Date(startDate);
-  
-  // 종일 이벤트가 아닌 경우만 1시간 뒤로 설정 (시간은 수정하되 날짜는 동일하게)
-  if (!allDay) {
-    endDate.setHours(startDate.getHours() + 1);
+  if (!endDate) {
+    // 종료일은 항상 시작일과 같은 날짜로 설정
+    endDate = new Date(startDate);
+    
+    // 종일 이벤트가 아닌 경우, 시간만 1시간 뒤로 조정 (날짜는 동일)
+    if (!allDay) {
+      endDate.setHours(startDate.getHours() + 1);
+    }
+  } else if (typeof endDate === 'string') {
+    endDate = new Date(endDate);
+    
+    // 종료일의 날짜를 시작일과 동일하게 조정
+    const startDay = new Date(startDate);
+    endDate.setFullYear(startDay.getFullYear());
+    endDate.setMonth(startDay.getMonth());
+    endDate.setDate(startDay.getDate());
   }
-} else if (typeof endDate === 'string') {
-  endDate = new Date(endDate);
-}
   
   // 날짜 포맷을 HTML 입력에 맞게 변환
   const formattedStartDate = formatDateForInput(startDate);
@@ -1178,10 +1186,18 @@ function adjustEndDateForAllDay() {
     // 시작일의 날짜만 추출해서 시간은 00:00으로 설정
     const formattedDate = formatDate(startDate);
     const adjustedStartDate = `${formattedDate}T00:00`;
-    const adjustedEndDate = `${formattedDate}T00:00`;
+    const adjustedEndDate = `${formattedDate}T00:00`;  // 종료일은 시작일과 동일하게
     
     startDateInput.value = adjustedStartDate;
     endDateInput.value = adjustedEndDate;
+  } else {
+    // 종일 이벤트 해제 시, 종료 시간은 시작 시간으로부터 1시간 뒤로 설정 (날짜는 동일)
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(startDate);
+    endDate.setHours(startDate.getHours() + 1);
+    
+    startDateInput.value = formatDateForInput(startDate);
+    endDateInput.value = formatDateForInput(endDate);
   }
 }
 
