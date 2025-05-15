@@ -957,7 +957,7 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
   editable: true,
   selectable: true,
   selectMirror: true,
-  dayMaxEvents: true,
+  dayMaxEvents: false,
   
   // 이벤트 렌더링 커스터마이징 - 모바일 최적화
   eventDidMount: function(info) {
@@ -1113,18 +1113,18 @@ function showAddEventForm(startDate = null, endDate = null, allDay = false) {
     startDate = new Date(startDate);
   }
   
-  if (!endDate) {
-    // 종일 이벤트라면 endDate를 startDate와 동일하게 설정
-    if (allDay) {
-      endDate = new Date(startDate);
-    } else {
-      // 종일 이벤트가 아니라면 1시간 후로 설정
-      endDate = new Date(startDate);
-      endDate.setHours(startDate.getHours() + 1);
-    }
-  } else if (typeof endDate === 'string') {
-    endDate = new Date(endDate);
+// 일정 추가 폼 표시 함수의 해당 부분
+if (!endDate) {
+  // 항상 종료일을 시작일과 동일하게 설정
+  endDate = new Date(startDate);
+  
+  // 종일 이벤트가 아닌 경우만 1시간 뒤로 설정 (시간은 수정하되 날짜는 동일하게)
+  if (!allDay) {
+    endDate.setHours(startDate.getHours() + 1);
   }
+} else if (typeof endDate === 'string') {
+  endDate = new Date(endDate);
+}
   
   // 날짜 포맷을 HTML 입력에 맞게 변환
   const formattedStartDate = formatDateForInput(startDate);
