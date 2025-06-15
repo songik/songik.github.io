@@ -694,7 +694,12 @@ async function loadEvents() {
         }
       }
       
-      events.push(eventObj);
+      // 색상 정보 추가
+if (event.color) {
+  eventObj.color = event.color;
+}
+
+events.push(eventObj);
     });
     
     // 뷰에 따라 다르게 표시
@@ -1158,10 +1163,14 @@ function showAddEventForm(startDate = null, endDate = null, allDay = false) {
           종일
         </label>
       </div>
-      <div class="form-group">
-        <label for="event-description">설명</label>
-        <div id="event-description-editor"></div>
-      </div>
+<div class="form-group">
+  <label for="event-description">설명</label>
+  <div id="event-description-editor"></div>
+</div>
+<div class="form-group">
+  <label for="event-color">일정 색상</label>
+  <input type="color" id="event-color" value="#2196f3">
+</div>
     </form>
   `;
   
@@ -1279,11 +1288,17 @@ async function saveEvent() {
     }
     
     if (description) {
-      eventData.description = description;
-    }
-    
-    // 저장 시간 추가
-    eventData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+  eventData.description = description;
+}
+
+// 색상 추가
+const colorEl = document.getElementById('event-color');
+if (colorEl && colorEl.value) {
+  eventData.color = colorEl.value;
+}
+
+// 저장 시간 추가
+eventData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
     
     // 데이터 크기 확인 및 조정
     const safeData = checkDataSize(eventData);
@@ -1408,11 +1423,17 @@ async function updateEvent() {
     }
     
     if (description) {
-      eventData.description = description;
-    }
-    
-    // Firestore에 업데이트
-    await db.collection("events").doc(eventId).update(eventData);
+  eventData.description = description;
+}
+
+// 색상 추가
+const colorEl = document.getElementById('event-color');
+if (colorEl && colorEl.value) {
+  eventData.color = colorEl.value;
+}
+
+// Firestore에 업데이트
+await db.collection("events").doc(eventId).update(eventData);
     
     // 모달 닫기
     closeModal();
@@ -1795,10 +1816,14 @@ function showAddTodoForm(dueDate = null) {
           <option value="high">높음</option>
         </select>
       </div>
-      <div class="form-group">
-        <label for="todo-description">설명</label>
-        <div id="todo-description-editor"></div>
-      </div>
+<div class="form-group">
+  <label for="event-description">설명</label>
+  <div id="event-description-editor"></div>
+</div>
+<div class="form-group">
+  <label for="event-color">일정 색상</label>
+  <input type="color" id="event-color" value="${event.color || '#2196f3'}">
+</div>
     </form>
   `;
   
