@@ -1821,8 +1821,8 @@ function showAddTodoForm(dueDate = null) {
         </select>
       </div>
 <div class="form-group">
-  <label for="event-description">설명</label>
-  <div id="event-description-editor"></div>
+  <label for="todo-description">설명</label>
+  <div id="todo-description-editor"></div>
 </div>
     </form>
   `;
