@@ -1824,10 +1824,6 @@ function showAddTodoForm(dueDate = null) {
   <label for="event-description">설명</label>
   <div id="event-description-editor"></div>
 </div>
-<div class="form-group">
-  <label for="event-color">일정 색상</label>
-  <input type="color" id="event-color" value="${event.color || '#2196f3'}">
-</div>
     </form>
   `;
   
