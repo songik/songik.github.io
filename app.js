@@ -1354,6 +1354,10 @@ async function editEvent(eventId) {
           <label for="event-description">설명</label>
           <div id="event-description-editor"></div>
         </div>
+        <div class="form-group">
+          <label for="event-color">일정 색상</label>
+          <input type="color" id="event-color" value="${event.color || '#2196f3'}">
+        </div>
       </form>
     `;
     
@@ -1423,17 +1427,28 @@ async function updateEvent() {
     }
     
     if (description) {
-  eventData.description = description;
-}
+      eventData.description = description;
+    }
 
-// 색상 추가
-const colorEl = document.getElementById('event-color');
-if (colorEl && colorEl.value) {
-  eventData.color = colorEl.value;
-}
+    // 색상 추가
+    const colorEl = document.getElementById('event-color');
+    if (colorEl && colorEl.value) {
+      eventData.color = colorEl.value;
+    }
 
-// Firestore에 업데이트
-await db.collection("events").doc(eventId).update(eventData);
+    // Firestore에 업데이트
+    await db.collection("events").doc(eventId).update(eventData);
+    
+    // 모달 닫기
+    closeModal();
+    
+    // 일정 목록 새로고침
+    loadEvents();
+  } catch (error) {
+    console.error("일정 업데이트 중 오류 발생:", error);
+    alert('일정을 업데이트하는 중 오류가 발생했습니다.');
+  }
+}
     
     // 모달 닫기
     closeModal();
