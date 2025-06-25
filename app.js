@@ -5765,6 +5765,20 @@ function addBloodPressurePageStyles() {
       font-size: 0.9rem;
       color: #666;
     }
+    
+    /* 혈압 달력 날짜 배경색 스타일 */
+    .bp-date-color-event {
+      opacity: 0.3 !important;
+    }
+
+    /* 혈압 날짜 컨텍스트 메뉴 스타일 */
+    .bp-date-context-menu {
+      min-width: 120px;
+    }
+
+    .bp-date-context-menu div:hover {
+      background-color: #f0f0f0;
+    }
   `;
   
   // 이미 존재하는 스타일이 있으면 제거
