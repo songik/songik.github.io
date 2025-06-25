@@ -1,7 +1,7 @@
 // 앱 상태
 let isAuthenticated = false;
 let currentPage = "home";
-let currentView = "list"; // 'list' 또는 'calendar'
+let currentView = "calendar"; // 'list' 또는 'calendar' - 기본값을 calendar로 변경
 const app = document.getElementById("app");
 let editors = {}; // 텍스트 에디터 객체 보관용
 
