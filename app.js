@@ -5913,55 +5913,271 @@ function getDiastolicClass(diastolic) {
   }
 }
 
+// 혈압 날짜 배경색 설정 함수
+function showBpDateColorForm(date) {
+  const formattedDate = formatDate(date);
+  
+  const modalContent = `
+    <form id="bp-date-color-form">
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="bp-color-toggle" checked>
+          이 날짜에 배경색 표시 (파스텔 핑크)
+        </label>
+      </div>
+      <div class="form-group">
+        <label for="bp-color-note">메모 (선택사항)</label>
+        <input type="text" id="bp-color-note" placeholder="이 날짜 메모">
+      </div>
+    </form>
+  `;
+  
+  showModal(`${formattedDate} 배경색 설정`, modalContent, function() {
+    const isChecked = document.getElementById('bp-color-toggle').checked;
+    const note = document.getElementById('bp-color-note').value;
+    
+    if (isChecked) {
+      saveBpDateBackground(date, '#ffc0cb', note); // 파스텔 핑크색
+    } else {
+      deleteBpDateBackground(date);
+    }
+  });
+}
+
+// 혈압 날짜 배경색 저장
+async function saveBpDateBackground(date, color, note = '') {
+  try {
+    const formattedDate = formatDate(date);
+    
+    const colorData = {
+      date: firebase.firestore.Timestamp.fromDate(new Date(formattedDate)),
+      color: color,
+      note: note,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    const bpDateColorRef = db.collection("bpDateColors");
+    const snapshot = await bpDateColorRef.where("date", "==", colorData.date).get();
+    
+    if (snapshot.empty) {
+      await bpDateColorRef.add(colorData);
+    } else {
+      await bpDateColorRef.doc(snapshot.docs[0].id).update({
+        color: color,
+        note: note,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    
+    closeModal();
+    loadBloodPressures();
+    
+  } catch (error) {
+    console.error("혈압 날짜 배경색 저장 중 오류 발생:", error);
+    alert('날짜 배경색을 저장하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 혈압 날짜 배경색 삭제
+async function deleteBpDateBackground(date) {
+  try {
+    const formattedDate = formatDate(date);
+    const dateTs = firebase.firestore.Timestamp.fromDate(new Date(formattedDate));
+    
+    const bpDateColorRef = db.collection("bpDateColors");
+    const snapshot = await bpDateColorRef.where("date", "==", dateTs).get();
+    
+    if (!snapshot.empty) {
+      await bpDateColorRef.doc(snapshot.docs[0].id).delete();
+    }
+    
+    closeModal();
+    loadBloodPressures();
+    
+  } catch (error) {
+    console.error("혈압 날짜 배경색 삭제 중 오류 발생:", error);
+    alert('날짜 배경색을 삭제하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 혈압 날짜 배경색 로드
+async function loadBpDateColors() {
+  try {
+    const bpDateColorRef = db.collection("bpDateColors");
+    const snapshot = await bpDateColorRef.get();
+    
+    const dateColors = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      dateColors.push({
+        id: doc.id,
+        date: data.date.toDate(),
+        color: data.color,
+        note: data.note || ''
+      });
+    });
+    
+    return dateColors;
+  } catch (error) {
+    console.error("혈압 날짜 배경색 로드 중 오류 발생:", error);
+    return [];
+  }
+}
+
 // 혈압 달력 렌더링
 function renderBloodPressureCalendar(bloodPressures) {
   const calendarEl = document.getElementById('bp-calendar');
   
   if (!calendarEl) return;
   
-  // 달력에 표시할 이벤트 형식으로 변환
-  const events = bloodPressures.map(bp => {
-    // 혈압 상태에 따른 색상 지정
-    const status = getBpStatus(bp.systolic, bp.diastolic);
-    let color = '#4caf50'; // 기본 정상 색상
-    
-    if (status === 'HIGH') {
-      color = '#f44336'; // 고혈압
-    } else if (status === 'ELEVATED') {
-      color = '#ff9800'; // 주의
-    } else if (status === 'LOW') {
-      color = '#2196f3'; // 저혈압
+  // 이전 인스턴스 제거
+  if (window.bpCalendar) {
+    try {
+      window.bpCalendar.destroy();
+    } catch (err) {
+      console.error("혈압 달력 제거 중 오류:", err);
     }
+  }
+  
+  // 날짜 배경색 로드 및 캘린더 초기화
+  loadBpDateColors().then(dateColors => {
+    // 달력에 표시할 이벤트 형식으로 변환
+    const events = bloodPressures.map(bp => {
+      // 혈압 상태에 따른 색상 지정
+      const status = getBpStatus(bp.systolic, bp.diastolic);
+      let color = '#4caf50'; // 기본 정상 색상
+      
+      if (status === 'HIGH') {
+        color = '#f44336'; // 고혈압
+      } else if (status === 'ELEVATED') {
+        color = '#ff9800'; // 주의
+      } else if (status === 'LOW') {
+        color = '#2196f3'; // 저혈압
+      }
+      
+      return {
+        id: bp.id,
+        title: `${bp.systolic}/${bp.diastolic} mmHg`,
+        start: bp.date,
+        allDay: true,
+        backgroundColor: color,
+        borderColor: color
+      };
+    });
     
-    return {
-      id: bp.id,
-      title: `${bp.systolic}/${bp.diastolic} mmHg`,
-      start: bp.date,
-      allDay: true,
-      backgroundColor: color,
-      borderColor: color
-    };
+    // 날짜 배경색을 이벤트로 추가
+    const colorEvents = dateColors.map(dc => ({
+      start: formatDate(dc.date),
+      end: formatDate(dc.date),
+      display: 'background',
+      color: dc.color,
+      classNames: ['bp-date-color-event'],
+      extendedProps: {
+        isDateColor: true,
+        note: dc.note
+      }
+    }));
+    
+    // FullCalendar 초기화
+    window.bpCalendar = new FullCalendar.Calendar(calendarEl, {
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,listMonth'
+      },
+      initialView: 'dayGridMonth',
+      locale: 'ko',
+      events: [...events, ...colorEvents],
+      eventClick: function(info) {
+        if (!info.event.extendedProps.isDateColor) {
+          showBloodPressureDetail(info.event.id);
+        }
+      },
+      dateClick: function(info) {
+        // 날짜를 클릭했을 때 컨텍스트 메뉴 표시
+        const dateStr = info.dateStr;
+        const menuItems = [
+          {
+            label: '혈압 기록',
+            action: () => showAddBloodPressureForm(dateStr)
+          },
+          {
+            label: '배경색 설정',
+            action: () => showBpDateColorForm(new Date(dateStr))
+          }
+        ];
+        
+        // 해당 날짜에 이미 배경색이 있는지 확인
+        const hasColorBackground = dateColors.some(dc => 
+          formatDate(dc.date) === dateStr);
+        
+        if (hasColorBackground) {
+          menuItems.push({
+            label: '배경색 삭제',
+            action: () => {
+              if (confirm('이 날짜의 배경색 설정을 삭제하시겠습니까?')) {
+                deleteBpDateBackground(new Date(dateStr));
+              }
+            }
+          });
+        }
+        
+        // 컨텍스트 메뉴 생성
+        const menu = document.createElement('div');
+        menu.className = 'bp-date-context-menu';
+        menu.style.position = 'absolute';
+        menu.style.left = info.jsEvent.pageX + 'px';
+        menu.style.top = info.jsEvent.pageY + 'px';
+        menu.style.backgroundColor = 'white';
+        menu.style.padding = '5px';
+        menu.style.border = '1px solid #ccc';
+        menu.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        menu.style.zIndex = '9999';
+        menu.style.borderRadius = '5px';
+        
+        menuItems.forEach(item => {
+          const menuItem = document.createElement('div');
+          menuItem.textContent = item.label;
+          menuItem.style.padding = '8px 12px';
+          menuItem.style.cursor = 'pointer';
+          menuItem.style.borderBottom = '1px solid #eee';
+          menuItem.addEventListener('click', () => {
+            document.body.removeChild(menu);
+            item.action();
+          });
+          menuItem.addEventListener('mouseover', () => {
+            menuItem.style.backgroundColor = '#f5f5f5';
+          });
+          menuItem.addEventListener('mouseout', () => {
+            menuItem.style.backgroundColor = 'transparent';
+          });
+          menu.appendChild(menuItem);
+        });
+        
+        // 마지막 항목의 border 제거
+        const lastItem = menu.lastChild;
+        if (lastItem) {
+          lastItem.style.borderBottom = 'none';
+        }
+        
+        document.body.appendChild(menu);
+        
+        // 메뉴 외부 클릭 시 메뉴 제거
+        document.addEventListener('click', function closeMenu(e) {
+          if (!menu.contains(e.target)) {
+            if (document.body.contains(menu)) {
+              document.body.removeChild(menu);
+            }
+            document.removeEventListener('click', closeMenu);
+          }
+        });
+      }
+    });
+    
+    window.bpCalendar.render();
+  }).catch(error => {
+    console.error("혈압 날짜 배경색 로드 중 오류 발생:", error);
   });
-  
-// FullCalendar 초기화
-  const calendar = new FullCalendar.Calendar(calendarEl, {
-    headerToolbar: {
-      left: 'prev,next today',
-      center: 'title',
-      right: 'dayGridMonth,listMonth'
-    },
-    initialView: 'dayGridMonth',
-    locale: 'ko',
-    events: events,
-    eventClick: function(info) {
-      showBloodPressureDetail(info.event.id);
-    },
-    dateClick: function(info) {
-      showAddBloodPressureForm(info.dateStr);
-    }
-  });
-  
-  calendar.render();
 }
 
 // 혈압 차트 렌더링
