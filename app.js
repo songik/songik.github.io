@@ -5809,6 +5809,9 @@ async function loadBloodPressures() {
       });
     });
     
+    // 날짜와 시간 기준으로 최신순 정렬 추가
+    bloodPressures.sort((a, b) => b.date - a.date);
+    
     // 데이터 캐싱
     window.cachedBloodPressures = bloodPressures;
     
@@ -6204,15 +6207,16 @@ function renderBloodPressureChart(bloodPressures) {
   // 차트 높이 명시적 설정
   chartContainerEl.style.height = '400px';
   
-  // 차트용 데이터 가공
-  bloodPressures.sort((a, b) => a.date - b.date);
+  // 차트용 데이터 가공 - 복사본을 만들어서 정렬
+  const chartData = [...bloodPressures];
+  chartData.sort((a, b) => a.date - b.date);
   
   // 기간 설정 가져오기
   const periodSelect = document.getElementById('bp-period');
   const periodValue = periodSelect ? periodSelect.value : '3'; // 기본값은 3개월
   
-  // 선택된 기간에 따라 데이터 필터링
-  let filteredBps = [...bloodPressures]; // 원본 배열 복사
+ // 선택된 기간에 따라 데이터 필터링
+  let filteredBps = [...chartData]; // 정렬된 차트 데이터 복사
   
   if (periodValue === 'custom') {
     // 사용자 정의 기간
