@@ -4240,7 +4240,7 @@ async function saveTransaction() {
   }
 }
 
-// 지출 편집 폼 표시
+// 지출 편집 폼 표시 (수정/삭제 버튼 포함)
 async function editTransaction(transactionId) {
   try {
     const transactionDoc = await db.collection("transactions").doc(transactionId).get();
@@ -4336,7 +4336,8 @@ async function editTransaction(transactionId) {
       </form>
     `;
     
-    showModal("지출/수입 내역 수정", modalContent, updateTransaction);
+    // 수정/삭제 버튼이 포함된 커스텀 모달 표시
+    showTransactionEditModal("지출/수입 내역 수정", modalContent, transactionId);
     
     // 카테고리 필드 토글 이벤트 리스너
     setTimeout(() => {
@@ -7517,4 +7518,37 @@ function addExpensePageStyles() {
   }
   
   document.head.appendChild(styleEl);
+}
+
+// 지출/수입 내역 수정용 커스텀 모달 표시 함수
+function showTransactionEditModal(title, content, transactionId) {
+  isModalOpen = true;
+  const modalContainer = document.getElementById("modal-container");
+  
+  modalContainer.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target === this) closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">${title}</h2>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-content">
+          ${content}
+        </div>
+        <div class="modal-actions">
+          <button onclick="closeModal()" class="cancel-button">취소</button>
+          <button onclick="updateTransaction()" class="save-button">저장</button>
+          <button onclick="deleteTransaction('${transactionId}')" class="delete-button" style="background-color: #f44336; color: white;">삭제</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 입력 필드가 있으면 첫 번째 필드에 포커스
+  const firstInput = modalContainer.querySelector("input, textarea, select");
+  if (firstInput) {
+    setTimeout(() => {
+      firstInput.focus();
+    }, 100);
+  }
 }
