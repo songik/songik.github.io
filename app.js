@@ -3747,6 +3747,15 @@ function renderTransactionsCalendar(transactions) {
   
   if (!calendarEl) return;
   
+  // 이전 인스턴스 제거
+  if (window.transactionCalendar) {
+    try {
+      window.transactionCalendar.destroy();
+    } catch (err) {
+      console.error("지출 달력 제거 중 오류:", err);
+    }
+  }
+  
   // 달력에 표시할 이벤트 형식으로 변환
   const events = transactions.map(transaction => {
     const isExpense = transaction.type === 'expense';
@@ -3760,7 +3769,7 @@ function renderTransactionsCalendar(transactions) {
   });
   
   // FullCalendar 초기화
-  const calendar = new FullCalendar.Calendar(calendarEl, {
+  window.transactionCalendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
@@ -3770,14 +3779,40 @@ function renderTransactionsCalendar(transactions) {
     locale: 'ko',
     events: events,
     eventClick: function(info) {
-      editTransaction(info.event.id);
+      // 왼쪽 클릭 시 수정
+      if (info.jsEvent.button === 0) {
+        editTransaction(info.event.id);
+      }
+    },
+    eventDidMount: function(info) {
+      // 이벤트에 우클릭 이벤트 리스너 추가
+      info.el.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        showTransactionContextMenu(e, info.event.id);
+      });
+      
+      // 모바일용 터치 이벤트 (길게 누르기)
+      let touchTimer;
+      info.el.addEventListener('touchstart', function(e) {
+        touchTimer = setTimeout(() => {
+          showTransactionContextMenu(e, info.event.id);
+        }, 500); // 0.5초 길게 누르기
+      });
+      
+      info.el.addEventListener('touchend', function() {
+        clearTimeout(touchTimer);
+      });
+      
+      info.el.addEventListener('touchmove', function() {
+        clearTimeout(touchTimer);
+      });
     },
     dateClick: function(info) {
       showAddTransactionForm(info.dateStr);
     }
   });
   
-  calendar.render();
+  window.transactionCalendar.render();
 }
 
 // 지출 차트 렌더링
@@ -7512,6 +7547,257 @@ function addExpensePageStyles() {
   
   // 이미 존재하는 스타일이 있으면 제거
   const existingStyle = document.getElementById('expense-page-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  document.head.appendChild(styleEl);
+}
+
+// 지출/수입 컨텍스트 메뉴 표시
+function showTransactionContextMenu(event, transactionId) {
+  // 기존 메뉴 제거
+  const existingMenu = document.querySelector('.transaction-context-menu');
+  if (existingMenu) {
+    document.body.removeChild(existingMenu);
+  }
+  
+  // 컨텍스트 메뉴 생성
+  const menu = document.createElement('div');
+  menu.className = 'transaction-context-menu';
+  menu.style.position = 'fixed';
+  menu.style.left = event.clientX + 'px';
+  menu.style.top = event.clientY + 'px';
+  menu.style.backgroundColor = 'white';
+  menu.style.border = '1px solid #ccc';
+  menu.style.borderRadius = '8px';
+  menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  menu.style.zIndex = '10000';
+  menu.style.minWidth = '120px';
+  menu.style.overflow = 'hidden';
+  
+  // 메뉴 아이템들
+  const menuItems = [
+    {
+      label: '📝 수정',
+      action: () => {
+        editTransaction(transactionId);
+        document.body.removeChild(menu);
+      },
+      color: '#2196f3'
+    },
+    {
+      label: '🗑️ 삭제',
+      action: () => {
+        deleteTransaction(transactionId);
+        document.body.removeChild(menu);
+      },
+      color: '#f44336'
+    }
+  ];
+  
+  menuItems.forEach((item, index) => {
+    const menuItem = document.createElement('div');
+    menuItem.textContent = item.label;
+    menuItem.style.padding = '12px 16px';
+    menuItem.style.cursor = 'pointer';
+    menuItem.style.fontSize = '14px';
+    menuItem.style.color = item.color;
+    menuItem.style.fontWeight = '500';
+    menuItem.style.transition = 'background-color 0.2s';
+    
+    if (index < menuItems.length - 1) {
+      menuItem.style.borderBottom = '1px solid #eee';
+    }
+    
+    menuItem.addEventListener('mouseenter', () => {
+      menuItem.style.backgroundColor = '#f5f5f5';
+    });
+    
+    menuItem.addEventListener('mouseleave', () => {
+      menuItem.style.backgroundColor = 'transparent';
+    });
+    
+    menuItem.addEventListener('click', item.action);
+    
+    menu.appendChild(menuItem);
+  });
+  
+  document.body.appendChild(menu);
+  
+  // 메뉴 외부 클릭 시 메뉴 제거
+  const closeMenu = (e) => {
+    if (!menu.contains(e.target)) {
+      if (document.body.contains(menu)) {
+        document.body.removeChild(menu);
+      }
+      document.removeEventListener('click', closeMenu);
+      document.removeEventListener('contextmenu', closeMenu);
+    }
+  };
+  
+  // 약간의 지연 후 이벤트 리스너 추가 (현재 클릭 이벤트와 겹치지 않도록)
+  setTimeout(() => {
+    document.addEventListener('click', closeMenu);
+    document.addEventListener('contextmenu', closeMenu);
+  }, 100);
+}
+
+// 지출/수입 상세 정보 모달 표시 (선택사항)
+async function showTransactionDetail(transactionId) {
+  try {
+    const transactionDoc = await db.collection("transactions").doc(transactionId).get();
+    
+    if (!transactionDoc.exists) {
+      alert('지출/수입 내역을 찾을 수 없습니다.');
+      return;
+    }
+    
+    const transaction = transactionDoc.data();
+    const isExpense = transaction.type === 'expense';
+    
+    const modalContent = `
+      <div class="transaction-detail">
+        <div class="transaction-detail-header">
+          <h3>
+            <span class="${isExpense ? 'expense-amount' : 'income-amount'}">
+              ${isExpense ? '-' : '+'} ${transaction.amount.toLocaleString()}원
+            </span>
+          </h3>
+          <div class="transaction-detail-date">${formatDate(transaction.date)}</div>
+        </div>
+        
+        <div class="transaction-detail-info">
+          <div class="detail-item">
+            <span class="detail-label">종류:</span>
+            <span class="detail-value">${isExpense ? '지출' : '수입'}</span>
+          </div>
+          
+          <div class="detail-item">
+            <span class="detail-label">카테고리:</span>
+            <span class="detail-value">
+              ${transaction.category}${transaction.subCategory ? ' > ' + transaction.subCategory : ''}
+            </span>
+          </div>
+          
+          <div class="detail-item">
+            <span class="detail-label">결제 방법:</span>
+            <span class="detail-value">${transaction.paymentMethod}</span>
+          </div>
+          
+          ${transaction.description ? `
+          <div class="detail-item">
+            <span class="detail-label">설명:</span>
+            <div class="detail-description">${transaction.description}</div>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+    
+    // 모달 표시 - 수정/삭제 버튼 포함
+    const modalContainer = document.getElementById("modal-container");
+    
+    modalContainer.innerHTML = `
+      <div class="modal-overlay" onclick="if(event.target === this) closeModal()">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 class="modal-title">지출/수입 상세</h2>
+            <button class="modal-close" onclick="closeModal()">×</button>
+          </div>
+          <div class="modal-content">
+            ${modalContent}
+          </div>
+          <div class="modal-actions">
+            <button onclick="closeModal()">닫기</button>
+            <button onclick="editTransaction('${transactionId}')">수정</button>
+            <button onclick="deleteTransaction('${transactionId}')" style="background-color: #f44336; color: white;">삭제</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    isModalOpen = true;
+    
+    // 상세 정보 모달용 스타일 추가
+    addTransactionDetailStyles();
+    
+  } catch (error) {
+    console.error("지출/수입 상세 정보 로드 중 오류 발생:", error);
+    alert('지출/수입 상세 정보를 불러오는 중 오류가 발생했습니다.');
+  }
+}
+
+// 상세 정보 모달용 스타일 추가
+function addTransactionDetailStyles() {
+  const styleEl = document.createElement('style');
+  styleEl.id = 'transaction-detail-styles';
+  styleEl.textContent = `
+    .transaction-detail {
+      padding: 10px;
+    }
+    
+    .transaction-detail-header {
+      margin-bottom: 20px;
+      text-align: center;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .transaction-detail-date {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+    
+    .transaction-detail-info {
+      margin-top: 15px;
+    }
+    
+    .detail-item {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: flex-start;
+    }
+    
+    .detail-label {
+      font-weight: bold;
+      min-width: 100px;
+      margin-right: 10px;
+      color: #555;
+    }
+    
+    .detail-value {
+      flex: 1;
+    }
+    
+    .detail-description {
+      flex: 1;
+      background-color: #f9f9f9;
+      padding: 10px;
+      border-radius: 5px;
+      white-space: pre-line;
+    }
+    
+    /* 컨텍스트 메뉴 애니메이션 */
+    .transaction-context-menu {
+      animation: contextMenuFadeIn 0.2s ease-out;
+    }
+    
+    @keyframes contextMenuFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+  `;
+  
+  // 이미 존재하는 스타일이 있으면 제거
+  const existingStyle = document.getElementById('transaction-detail-styles');
   if (existingStyle) {
     existingStyle.remove();
   }
