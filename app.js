@@ -3066,12 +3066,14 @@ async function loadWeights() {
         // 데이터 캐싱 추가 - 이 줄을 추가
     window.cachedWeights = weights;
     
-    // 뷰에 따라 다르게 표시
-    if (currentView === 'list') {
-      renderWeightsList(weights);
-    } else {
-      renderWeightsCalendar(weights);
-    }
+// 뷰에 따라 다르게 표시
+if (currentView === 'list') {
+  renderTransactionsList(transactions);
+} else {
+  renderTransactionsCalendar(transactions);
+  // 달력 뷰일 때 사용법 안내 표시
+  showCalendarUsageGuide();
+}
     
     // 차트 그리기 (항상 표시)
     renderWeightChart(weights);
@@ -3779,33 +3781,54 @@ function renderTransactionsCalendar(transactions) {
     locale: 'ko',
     events: events,
     eventClick: function(info) {
-      // 왼쪽 클릭 시 수정
-      if (info.jsEvent.button === 0) {
-        editTransaction(info.event.id);
-      }
+      // 기본 클릭 시 수정 (기존 동작 유지)
+      editTransaction(info.event.id);
     },
     eventDidMount: function(info) {
-      // 이벤트에 우클릭 이벤트 리스너 추가
-      info.el.addEventListener('contextmenu', function(e) {
+      // 이벤트 요소에 사용자 정의 속성 추가
+      info.el.style.cursor = 'pointer';
+      info.el.style.position = 'relative';
+      
+      // 더블클릭 이벤트 추가 (PC용)
+      info.el.addEventListener('dblclick', function(e) {
         e.preventDefault();
+        e.stopPropagation();
         showTransactionContextMenu(e, info.event.id);
       });
       
       // 모바일용 터치 이벤트 (길게 누르기)
       let touchTimer;
+      let touchStarted = false;
+      
       info.el.addEventListener('touchstart', function(e) {
+        touchStarted = true;
         touchTimer = setTimeout(() => {
-          showTransactionContextMenu(e, info.event.id);
+          if (touchStarted) {
+            e.preventDefault();
+            showTransactionContextMenu(e, info.event.id);
+          }
         }, 500); // 0.5초 길게 누르기
       });
       
-      info.el.addEventListener('touchend', function() {
+      info.el.addEventListener('touchend', function(e) {
+        touchStarted = false;
         clearTimeout(touchTimer);
       });
       
-      info.el.addEventListener('touchmove', function() {
+      info.el.addEventListener('touchmove', function(e) {
+        touchStarted = false;
         clearTimeout(touchTimer);
       });
+      
+      // 우클릭 기본 동작 완전 차단
+      info.el.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      });
+      
+      // 이벤트 요소에 도움말 추가
+      info.el.title = '더블클릭: 수정/삭제 메뉴, 단일클릭: 수정';
     },
     dateClick: function(info) {
       showAddTransactionForm(info.dateStr);
@@ -3813,6 +3836,12 @@ function renderTransactionsCalendar(transactions) {
   });
   
   window.transactionCalendar.render();
+  
+  // 달력 전체 영역에서 우클릭 차단
+  calendarEl.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    return false;
+  });
 }
 
 // 지출 차트 렌더링
@@ -4471,6 +4500,53 @@ async function deleteTransaction(transactionId) {
       alert('지출/수입 내역을 삭제하는 중 오류가 발생했습니다.');
     }
   }
+}
+
+// 달력 사용법 안내 표시
+function showCalendarUsageGuide() {
+  // 이미 안내를 본 사용자인지 확인
+  const hasSeenGuide = localStorage.getItem('transactionCalendarGuide');
+  if (hasSeenGuide) return;
+  
+  // 안내 메시지 표시
+  setTimeout(() => {
+    const guide = document.createElement('div');
+    guide.style.position = 'fixed';
+    guide.style.top = '50%';
+    guide.style.left = '50%';
+    guide.style.transform = 'translate(-50%, -50%)';
+    guide.style.backgroundColor = 'white';
+    guide.style.padding = '20px';
+    guide.style.borderRadius = '12px';
+    guide.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+    guide.style.zIndex = '10002';
+    guide.style.maxWidth = '90%';
+    guide.style.textAlign = 'center';
+    guide.style.border = '2px solid #2196f3';
+    
+    guide.innerHTML = `
+      <h3 style="margin-top: 0; color: #2196f3;">📱 달력 사용법</h3>
+      <p style="margin: 15px 0; line-height: 1.6;">
+        <strong>PC:</strong> 항목 더블클릭으로 수정/삭제 메뉴<br>
+        <strong>모바일:</strong> 항목을 길게 눌러서 메뉴 표시<br>
+        <strong>기본:</strong> 단일클릭으로 바로 수정
+      </p>
+      <button onclick="this.parentElement.remove(); localStorage.setItem('transactionCalendarGuide', 'true');" 
+              style="background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+        확인했습니다
+      </button>
+    `;
+    
+    document.body.appendChild(guide);
+    
+    // 5초 후 자동 제거
+    setTimeout(() => {
+      if (document.body.contains(guide)) {
+        guide.remove();
+        localStorage.setItem('transactionCalendarGuide', 'true');
+      }
+    }, 8000);
+  }, 1000);
 }
 
 // =========== 일기 관리 기능 ===========
@@ -7562,85 +7638,142 @@ function showTransactionContextMenu(event, transactionId) {
     document.body.removeChild(existingMenu);
   }
   
+  // 화면 크기 확인
+  const isMobile = window.innerWidth < 768;
+  
   // 컨텍스트 메뉴 생성
   const menu = document.createElement('div');
   menu.className = 'transaction-context-menu';
+  
+  // 메뉴 위치 계산 (화면을 벗어나지 않도록)
+  let menuX = event.clientX || event.touches?.[0]?.clientX || 0;
+  let menuY = event.clientY || event.touches?.[0]?.clientY || 0;
+  
+  // 메뉴 크기 고려해서 위치 조정
+  const menuWidth = 150;
+  const menuHeight = 100;
+  
+  if (menuX + menuWidth > window.innerWidth) {
+    menuX = window.innerWidth - menuWidth - 10;
+  }
+  if (menuY + menuHeight > window.innerHeight) {
+    menuY = menuY - menuHeight - 10;
+  }
+  
+  // 메뉴 스타일 설정
   menu.style.position = 'fixed';
-  menu.style.left = event.clientX + 'px';
-  menu.style.top = event.clientY + 'px';
+  menu.style.left = menuX + 'px';
+  menu.style.top = menuY + 'px';
   menu.style.backgroundColor = 'white';
-  menu.style.border = '1px solid #ccc';
-  menu.style.borderRadius = '8px';
-  menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-  menu.style.zIndex = '10000';
-  menu.style.minWidth = '120px';
+  menu.style.border = '2px solid #2196f3';
+  menu.style.borderRadius = '12px';
+  menu.style.boxShadow = '0 8px 25px rgba(0,0,0,0.2)';
+  menu.style.zIndex = '10001';
+  menu.style.minWidth = '140px';
   menu.style.overflow = 'hidden';
+  menu.style.fontFamily = 'inherit';
   
   // 메뉴 아이템들
   const menuItems = [
     {
-      label: '📝 수정',
+      label: '📝 수정하기',
       action: () => {
         editTransaction(transactionId);
-        document.body.removeChild(menu);
+        closeTransactionMenu();
       },
-      color: '#2196f3'
+      color: '#2196f3',
+      bgColor: '#e3f2fd'
     },
     {
-      label: '🗑️ 삭제',
+      label: '🗑️ 삭제하기',
       action: () => {
-        deleteTransaction(transactionId);
-        document.body.removeChild(menu);
+        closeTransactionMenu();
+        // 약간의 지연 후 삭제 (메뉴가 사라진 후)
+        setTimeout(() => {
+          deleteTransaction(transactionId);
+        }, 100);
       },
-      color: '#f44336'
+      color: '#f44336',
+      bgColor: '#ffebee'
     }
   ];
   
   menuItems.forEach((item, index) => {
     const menuItem = document.createElement('div');
-    menuItem.textContent = item.label;
-    menuItem.style.padding = '12px 16px';
+    menuItem.innerHTML = item.label;
+    menuItem.style.padding = isMobile ? '16px 20px' : '12px 16px';
     menuItem.style.cursor = 'pointer';
-    menuItem.style.fontSize = '14px';
+    menuItem.style.fontSize = isMobile ? '16px' : '14px';
     menuItem.style.color = item.color;
-    menuItem.style.fontWeight = '500';
-    menuItem.style.transition = 'background-color 0.2s';
+    menuItem.style.fontWeight = '600';
+    menuItem.style.transition = 'all 0.2s ease';
+    menuItem.style.userSelect = 'none';
     
     if (index < menuItems.length - 1) {
-      menuItem.style.borderBottom = '1px solid #eee';
+      menuItem.style.borderBottom = '1px solid #f0f0f0';
     }
     
     menuItem.addEventListener('mouseenter', () => {
-      menuItem.style.backgroundColor = '#f5f5f5';
+      menuItem.style.backgroundColor = item.bgColor;
+      menuItem.style.transform = 'translateX(3px)';
     });
     
     menuItem.addEventListener('mouseleave', () => {
       menuItem.style.backgroundColor = 'transparent';
+      menuItem.style.transform = 'translateX(0)';
     });
     
-    menuItem.addEventListener('click', item.action);
+    menuItem.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      item.action();
+    });
+    
+    // 모바일용 터치 이벤트
+    menuItem.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      item.action();
+    });
     
     menu.appendChild(menuItem);
   });
   
   document.body.appendChild(menu);
   
-  // 메뉴 외부 클릭 시 메뉴 제거
-  const closeMenu = (e) => {
+  // 메뉴 닫기 함수
+  window.closeTransactionMenu = () => {
+    if (document.body.contains(menu)) {
+      document.body.removeChild(menu);
+    }
+    // 이벤트 리스너 제거
+    document.removeEventListener('click', outsideClickHandler);
+    document.removeEventListener('touchstart', outsideClickHandler);
+    delete window.closeTransactionMenu;
+  };
+  
+  // 외부 클릭/터치 감지 핸들러
+  const outsideClickHandler = (e) => {
     if (!menu.contains(e.target)) {
-      if (document.body.contains(menu)) {
-        document.body.removeChild(menu);
-      }
-      document.removeEventListener('click', closeMenu);
-      document.removeEventListener('contextmenu', closeMenu);
+      closeTransactionMenu();
     }
   };
   
-  // 약간의 지연 후 이벤트 리스너 추가 (현재 클릭 이벤트와 겹치지 않도록)
+  // 약간의 지연 후 이벤트 리스너 추가 (현재 이벤트와 겹치지 않도록)
   setTimeout(() => {
-    document.addEventListener('click', closeMenu);
-    document.addEventListener('contextmenu', closeMenu);
+    document.addEventListener('click', outsideClickHandler);
+    document.addEventListener('touchstart', outsideClickHandler);
   }, 100);
+  
+  // 메뉴 애니메이션
+  menu.style.opacity = '0';
+  menu.style.transform = 'scale(0.8) translateY(-10px)';
+  
+  setTimeout(() => {
+    menu.style.transition = 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    menu.style.opacity = '1';
+    menu.style.transform = 'scale(1) translateY(0)';
+  }, 10);
 }
 
 // 지출/수입 상세 정보 모달 표시 (선택사항)
