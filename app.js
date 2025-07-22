@@ -3781,54 +3781,8 @@ function renderTransactionsCalendar(transactions) {
     locale: 'ko',
     events: events,
     eventClick: function(info) {
-      // 기본 클릭 시 수정 (기존 동작 유지)
+      // 클릭 시 수정/삭제 모달 표시 (취소, 저장, 삭제 버튼 포함)
       editTransaction(info.event.id);
-    },
-    eventDidMount: function(info) {
-      // 이벤트 요소에 사용자 정의 속성 추가
-      info.el.style.cursor = 'pointer';
-      info.el.style.position = 'relative';
-      
-      // 더블클릭 이벤트 추가 (PC용)
-      info.el.addEventListener('dblclick', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        showTransactionContextMenu(e, info.event.id);
-      });
-      
-      // 모바일용 터치 이벤트 (길게 누르기)
-      let touchTimer;
-      let touchStarted = false;
-      
-      info.el.addEventListener('touchstart', function(e) {
-        touchStarted = true;
-        touchTimer = setTimeout(() => {
-          if (touchStarted) {
-            e.preventDefault();
-            showTransactionContextMenu(e, info.event.id);
-          }
-        }, 500); // 0.5초 길게 누르기
-      });
-      
-      info.el.addEventListener('touchend', function(e) {
-        touchStarted = false;
-        clearTimeout(touchTimer);
-      });
-      
-      info.el.addEventListener('touchmove', function(e) {
-        touchStarted = false;
-        clearTimeout(touchTimer);
-      });
-      
-      // 우클릭 기본 동작 완전 차단
-      info.el.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      });
-      
-      // 이벤트 요소에 도움말 추가
-      info.el.title = '더블클릭: 수정/삭제 메뉴, 단일클릭: 수정';
     },
     dateClick: function(info) {
       showAddTransactionForm(info.dateStr);
@@ -3836,6 +3790,7 @@ function renderTransactionsCalendar(transactions) {
   });
   
   window.transactionCalendar.render();
+}
   
   // 달력 전체 영역에서 우클릭 차단
   calendarEl.addEventListener('contextmenu', function(e) {
@@ -4316,6 +4271,10 @@ async function editTransaction(transactionId) {
     
     const transaction = transactionDoc.data();
     
+    // 기본 카테고리 목록
+    const defaultCategories = ['현대카드', '삼성카드', '롯데카드', '신한카드', '계좌', '현금'];
+    const isCustomPaymentMethod = !defaultCategories.includes(transaction.paymentMethod);
+    
     const modalContent = `
       <form id="transaction-form">
         <input type="hidden" id="transaction-id" value="${transactionId}">
@@ -4386,12 +4345,12 @@ async function editTransaction(transactionId) {
             <option value="신한카드" ${transaction.paymentMethod === '신한카드' ? 'selected' : ''}>신한카드</option>
             <option value="계좌" ${transaction.paymentMethod === '계좌' ? 'selected' : ''}>계좌</option>
             <option value="현금" ${transaction.paymentMethod === '현금' ? 'selected' : ''}>현금</option>
-            <option value="기타" ${!['현대카드', '삼성카드', '롯데카드', '신한카드', '계좌', '현금'].includes(transaction.paymentMethod) ? 'selected' : ''}>기타</option>
+            <option value="기타" ${isCustomPaymentMethod ? 'selected' : ''}>기타</option>
           </select>
         </div>
-        <div class="form-group" id="payment-method-other-container" style="display: ${!['현대카드', '삼성카드', '롯데카드', '신한카드', '계좌', '현금'].includes(transaction.paymentMethod) ? 'block' : 'none'};">
+        <div class="form-group" id="payment-method-other-container" style="display: ${isCustomPaymentMethod ? 'block' : 'none'};">
           <label for="payment-method-other">결제 방법 (직접 입력)</label>
-          <input type="text" id="payment-method-other" placeholder="결제 방법 입력" value="${!['현대카드', '삼성카드', '롯데카드', '신한카드', '계좌', '현금'].includes(transaction.paymentMethod) ? transaction.paymentMethod : ''}">
+          <input type="text" id="payment-method-other" placeholder="결제 방법 입력" value="${isCustomPaymentMethod ? transaction.paymentMethod : ''}">
         </div>
         <div class="form-group">
           <label for="transaction-description">설명 (선택사항)</label>
@@ -4400,7 +4359,8 @@ async function editTransaction(transactionId) {
       </form>
     `;
     
-    showModal("지출/수입 내역 수정", modalContent, updateTransaction);
+    // 수정된 모달 표시 (삭제 버튼 포함)
+    showTransactionModal("지출/수입 내역 수정", modalContent, transactionId);
     
     // 카테고리 필드 토글 이벤트 리스너
     setTimeout(() => {
@@ -4500,6 +4460,158 @@ async function deleteTransaction(transactionId) {
       alert('지출/수입 내역을 삭제하는 중 오류가 발생했습니다.');
     }
   }
+}
+
+// 수정/삭제 버튼이 있는 지출 모달 표시
+function showTransactionModal(title, content, transactionId) {
+  isModalOpen = true;
+  const modalContainer = document.getElementById("modal-container");
+  
+  modalContainer.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target === this) closeModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">${title}</h2>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-content">
+          ${content}
+        </div>
+        <div class="modal-actions">
+          <button onclick="closeModal()" class="cancel-button">취소</button>
+          <button onclick="updateTransaction()" class="save-button">저장</button>
+          <button onclick="confirmDeleteTransaction('${transactionId}')" class="delete-button">삭제</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 입력 필드가 있으면 첫 번째 필드에 포커스
+  const firstInput = modalContainer.querySelector("input, textarea, select");
+  if (firstInput) {
+    setTimeout(() => {
+      firstInput.focus();
+    }, 100);
+  }
+  
+  // 모달 버튼 스타일 추가
+  addTransactionModalStyles();
+}
+
+// 삭제 확인 함수
+function confirmDeleteTransaction(transactionId) {
+  if (confirm('정말로 이 지출/수입 내역을 삭제하시겠습니까?')) {
+    closeModal();
+    // 모달이 닫힌 후 삭제 실행
+    setTimeout(() => {
+      deleteTransactionById(transactionId);
+    }, 100);
+  }
+}
+
+// 실제 삭제 실행 함수
+async function deleteTransactionById(transactionId) {
+  try {
+    await db.collection("transactions").doc(transactionId).delete();
+    loadTransactions(); // 목록 새로고침
+    
+    // 성공 메시지 (선택사항)
+    const successMsg = document.createElement('div');
+    successMsg.textContent = '삭제가 완료되었습니다.';
+    successMsg.style.position = 'fixed';
+    successMsg.style.top = '20px';
+    successMsg.style.right = '20px';
+    successMsg.style.backgroundColor = '#4caf50';
+    successMsg.style.color = 'white';
+    successMsg.style.padding = '10px 20px';
+    successMsg.style.borderRadius = '5px';
+    successMsg.style.zIndex = '10000';
+    document.body.appendChild(successMsg);
+    
+    setTimeout(() => {
+      if (document.body.contains(successMsg)) {
+        document.body.removeChild(successMsg);
+      }
+    }, 2000);
+  } catch (error) {
+    console.error("지출/수입 내역 삭제 중 오류 발생:", error);
+    alert('지출/수입 내역을 삭제하는 중 오류가 발생했습니다.');
+  }
+}
+
+// 모달 버튼 스타일 추가
+function addTransactionModalStyles() {
+  const styleEl = document.createElement('style');
+  styleEl.id = 'transaction-modal-styles';
+  styleEl.textContent = `
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    
+    .cancel-button {
+      background-color: #9e9e9e;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .save-button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .delete-button {
+      background-color: #f44336;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .cancel-button:hover {
+      background-color: #757575;
+    }
+    
+    .save-button:hover {
+      background-color: #45a049;
+    }
+    
+    .delete-button:hover {
+      background-color: #d32f2f;
+    }
+    
+    @media screen and (max-width: 768px) {
+      .modal-actions {
+        flex-direction: column;
+      }
+      
+      .modal-actions button {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+    }
+  `;
+  
+  // 이미 존재하는 스타일이 있으면 제거
+  const existingStyle = document.getElementById('transaction-modal-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  document.head.appendChild(styleEl);
 }
 
 // 달력 사용법 안내 표시
