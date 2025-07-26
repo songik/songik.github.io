@@ -220,6 +220,12 @@ function logout() {
 
 // 뷰 전환 (리스트 <-> 달력)
 function toggleView(view) {
+  // 모바일에서는 뷰 전환 비활성화
+  const isMobile = window.innerWidth < 768;
+  if (isMobile) {
+    return;
+  }
+  
   if (currentView !== view) {
     currentView = view;
     
@@ -616,11 +622,15 @@ function renderCalendarPage(container) {
   // 현재 뷰를 달력으로 설정
   currentView = 'calendar';
   
+  // 모바일 여부 확인
+  const isMobile = window.innerWidth < 768;
+  
   container.innerHTML = `
     <div class="page-container">
       <div class="page-header">
         <h1>일정 관리</h1>
         <div class="page-actions">
+          ${!isMobile ? `
           <div class="view-toggle">
             <button id="list-view-button" class="${currentView === 'list' ? 'active' : ''}" onclick="toggleView('list')">
               <i class="fas fa-list"></i> 리스트
@@ -629,14 +639,16 @@ function renderCalendarPage(container) {
               <i class="fas fa-calendar-alt"></i> 달력
             </button>
           </div>
+          ` : ''}
           <button onclick="showAddEventForm()">일정 추가</button>
         </div>
       </div>
       
-      <div id="calendar-view-container" class="calendar-container" style="display: ${currentView === 'calendar' ? 'block' : 'none'}">
+      <div id="calendar-view-container" class="calendar-container" style="display: block">
         <div id="calendar"></div>
       </div>
       
+      ${!isMobile ? `
       <div id="list-view-container" style="display: ${currentView === 'list' ? 'block' : 'none'}">
         <div class="card">
           <h2 class="card-title">일정 목록</h2>
@@ -645,6 +657,7 @@ function renderCalendarPage(container) {
           </div>
         </div>
       </div>
+      ` : ''}
     </div>
   `;
   
@@ -702,15 +715,21 @@ if (event.color) {
 events.push(eventObj);
     });
     
-    // 뷰에 따라 다르게 표시
-    if (currentView === 'list') {
+    // 모바일 여부 확인
+    const isMobile = window.innerWidth < 768;
+    
+    // 뷰에 따라 다르게 표시 (모바일에서는 항상 달력)
+    if (!isMobile && currentView === 'list') {
       renderEventsList(events);
     } else {
       renderEventsCalendar(events);
     }
   } catch (error) {
     console.error("일정을 불러오는 중 오류 발생:", error);
-    document.getElementById("events-list").innerHTML = '<p>일정을 불러오는 중 오류가 발생했습니다.</p>';
+    const eventsListEl = document.getElementById("events-list");
+    if (eventsListEl) {
+      eventsListEl.innerHTML = '<p>일정을 불러오는 중 오류가 발생했습니다.</p>';
+    }
   }
 }
 
