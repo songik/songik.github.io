@@ -114,41 +114,74 @@ function renderApp() {
         <div class="menu-icon" onclick="toggleMenu()">
           <i class="fas fa-bars"></i>
         </div>
-        <ul class="nav-menu" id="nav-menu">
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('home')">HOME</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('calendar')">일정</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('todo')">뭐해?</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('progress')">진행률</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('diet')">그만먹어</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('expense')">그만써</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('diary')">일기</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('notes')">메모</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('habits')">습관</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('bp')">혈압</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-links" onclick="navigateTo('search')">검색</a>
-          </li>
-        </ul>
+<ul class="nav-menu" id="nav-menu">
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('home')">
+      <i class="fas fa-home"></i>
+      <span>HOME</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('calendar')">
+      <i class="fas fa-calendar-days"></i>
+      <span>일정</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('todo')">
+      <i class="fas fa-list-check"></i>
+      <span>뭐해?</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('progress')">
+      <i class="fas fa-chart-line"></i>
+      <span>진행률</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('diet')">
+      <i class="fas fa-utensils"></i>
+      <span>그만먹어</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('expense')">
+      <i class="fas fa-money-bill-wave"></i>
+      <span>그만써</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('diary')">
+      <i class="fas fa-book-open"></i>
+      <span>일기</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('notes')">
+      <i class="fas fa-note-sticky"></i>
+      <span>메모</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('habits')">
+      <i class="fas fa-circle-check"></i>
+      <span>습관</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('bp')">
+      <i class="fas fa-heart-pulse"></i>
+      <span>혈압</span>
+    </a>
+  </li>
+  <li class="nav-item">
+    <a href="#" class="nav-links" onclick="navigateTo('search')">
+      <i class="fas fa-magnifying-glass"></i>
+      <span>검색</span>
+    </a>
+  </li>
+</ul>
         <div class="navbar-logout">
           <button onclick="logout()" class="logout-button">
             로그아웃
@@ -7553,4 +7586,5 @@ function showTransactionEditModal(title, content, transactionId) {
     }, 100);
   }
 }
+
 
