@@ -1146,10 +1146,21 @@ function showAddEventForm(startDate = null, endDate = null, allDay = false) {
   
   const modalContent = `
     <form id="event-form">
-      <div class="form-group">
-        <label for="event-title">제목</label>
-        <input type="text" id="event-title" required>
-      </div>
+<div class="form-group">
+  <label for="event-title">제목</label>
+  <input type="text" id="event-title" required placeholder="이모티콘 사용 가능 😊 📅 ⭐">
+  <div class="emoji-helper">
+    <small>자주 쓰는 이모티콘: 
+      <span onclick="insertEmoji('event-title', '📅')">📅</span>
+      <span onclick="insertEmoji('event-title', '⭐')">⭐</span>
+      <span onclick="insertEmoji('event-title', '🎯')">🎯</span>
+      <span onclick="insertEmoji('event-title', '✨')">✨</span>
+      <span onclick="insertEmoji('event-title', '🔔')">🔔</span>
+      <span onclick="insertEmoji('event-title', '💼')">💼</span>
+      <span onclick="insertEmoji('event-title', '🎉')">🎉</span>
+    </small>
+  </div>
+</div>
       <div class="form-group">
         <label for="event-start">시작일시</label>
         <input type="datetime-local" id="event-start" value="${formattedStartDate}" required>
@@ -1805,9 +1816,20 @@ function showAddTodoForm(dueDate = null) {
   
   const modalContent = `
     <form id="todo-form">
-      <div class="form-group">
+<div class="form-group">
         <label for="todo-title">제목</label>
-        <input type="text" id="todo-title" required>
+        <input type="text" id="todo-title" required placeholder="이모티콘 사용 가능 ✅ 📝 🎯">
+        <div class="emoji-helper">
+          <small>자주 쓰는 이모티콘: 
+            <span onclick="insertEmoji('todo-title', '✅')">✅</span>
+            <span onclick="insertEmoji('todo-title', '📝')">📝</span>
+            <span onclick="insertEmoji('todo-title', '🎯')">🎯</span>
+            <span onclick="insertEmoji('todo-title', '⚡')">⚡</span>
+            <span onclick="insertEmoji('todo-title', '🔥')">🔥</span>
+            <span onclick="insertEmoji('todo-title', '💡')">💡</span>
+            <span onclick="insertEmoji('todo-title', '⏰')">⏰</span>
+          </small>
+        </div>
       </div>
       <div class="form-group">
         <label for="todo-due-date">마감일</label>
@@ -4768,9 +4790,20 @@ async function loadNotes() {
 function showAddNoteForm() {
   const modalContent = `
     <form id="note-form">
-      <div class="form-group">
+<div class="form-group">
         <label for="note-title">제목</label>
-        <input type="text" id="note-title" required>
+        <input type="text" id="note-title" required placeholder="이모티콘 사용 가능 📝 💭 📌">
+        <div class="emoji-helper">
+          <small>자주 쓰는 이모티콘: 
+            <span onclick="insertEmoji('note-title', '📝')">📝</span>
+            <span onclick="insertEmoji('note-title', '💭')">💭</span>
+            <span onclick="insertEmoji('note-title', '📌')">📌</span>
+            <span onclick="insertEmoji('note-title', '💡')">💡</span>
+            <span onclick="insertEmoji('note-title', '⭐')">⭐</span>
+            <span onclick="insertEmoji('note-title', '🔖')">🔖</span>
+            <span onclick="insertEmoji('note-title', '📋')">📋</span>
+          </small>
+        </div>
       </div>
       <div class="form-group">
         <label for="note-content">내용</label>
@@ -7554,3 +7587,15 @@ function showTransactionEditModal(title, content, transactionId) {
   }
 }
 
+// 이모티콘 삽입 함수
+function insertEmoji(inputId, emoji) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    const currentValue = input.value;
+    const cursorPos = input.selectionStart;
+    const newValue = currentValue.slice(0, cursorPos) + emoji + currentValue.slice(cursorPos);
+    input.value = newValue;
+    input.focus();
+    input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
+  }
+}
