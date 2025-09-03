@@ -216,6 +216,33 @@ input:focus, select:focus, textarea:focus {
   background-color: var(--primary-color);
 }
 
+/* 네비게이션 메뉴 아이콘 스타일 */
+.nav-links i {
+  margin-right: 8px;
+  font-size: 1.1em;
+  vertical-align: middle;
+  display: inline-block;
+  width: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.nav-links span {
+  vertical-align: middle;
+}
+
+/* 아이콘 호버 효과 */
+.nav-links:hover i {
+  transform: scale(1.15);
+  color: var(--primary-color);
+}
+
+/* 활성 메뉴 아이콘 색상 */
+.nav-links.active i {
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
 .logout-button {
   padding: 6px 12px;
   background-color: transparent;
@@ -892,12 +919,19 @@ input:focus, select:focus, textarea:focus {
     border-bottom: 1px solid var(--border-color);
   }
 
-  .nav-links {
-    text-align: center;
-    padding: 1rem 0;
-    width: 100%;
-    display: block;
-  }
+.nav-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1rem 2rem;
+  width: 100%;
+}
+
+.nav-links i {
+  margin-right: 12px;
+  font-size: 1.3em;
+  min-width: 24px;
+}
 
   .menu-icon {
     display: block;
@@ -1096,3 +1130,4 @@ input:focus, select:focus, textarea:focus {
   color: #666;
   margin: 2px 0;
 }
+
