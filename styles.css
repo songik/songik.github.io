@@ -1096,3 +1096,35 @@ input:focus, select:focus, textarea:focus {
   color: #666;
   margin: 2px 0;
 }
+
+/* 이모티콘 헬퍼 스타일 */
+.emoji-helper {
+  margin-top: 5px;
+  padding: 8px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.emoji-helper small {
+  color: #666;
+}
+
+.emoji-helper span {
+  display: inline-block;
+  padding: 5px;
+  margin: 0 3px;
+  cursor: pointer;
+  font-size: 1.2em;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.emoji-helper span:hover {
+  background-color: var(--primary-light);
+  transform: scale(1.2);
+}
+
+/* 입력 필드에 이모티콘 지원 */
+input[type="text"] {
+  font-family: 'Noto Sans KR', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+}
