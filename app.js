@@ -891,21 +891,22 @@ function renderEventsCalendar(events) {
       { title: '크리스마스', start: `${year}-12-25` }
     ];
     
-    // 2025년 기준으로 음력 휴일 추가
-    if (year === 2025) {
-      // 2025년 설날
-      holidays.push({ title: '설날 연휴', start: '2025-01-28' });
-      holidays.push({ title: '설날', start: '2025-01-29' });
-      holidays.push({ title: '설날 연휴', start: '2025-01-30' });
-      
-      // 2025년 부처님 오신 날
-      holidays.push({ title: '부처님 오신 날', start: '2025-05-05' });
-      
-      // 2025년 추석
-      holidays.push({ title: '추석 연휴', start: '2025-09-29' });
-      holidays.push({ title: '추석', start: '2025-09-30' });
-      holidays.push({ title: '추석 연휴', start: '2025-10-01' });
-    }
+   // 2025년 기준으로 음력 휴일 추가
+if (year === 2025) {
+  // 2025년 설날
+  holidays.push({ title: '설날 연휴', start: '2025-01-28' });
+  holidays.push({ title: '설날', start: '2025-01-29' });
+  holidays.push({ title: '설날 연휴', start: '2025-01-30' });
+  
+  // 2025년 부처님 오신 날
+  holidays.push({ title: '부처님 오신 날', start: '2025-05-05' });
+  
+  // 2025년 추석 (10월 5일 ~ 10월 8일)
+  holidays.push({ title: '추석 연휴', start: '2025-10-05' });
+  holidays.push({ title: '추석', start: '2025-10-06' });
+  holidays.push({ title: '추석 연휴', start: '2025-10-07' });
+  holidays.push({ title: '추석 대체휴일', start: '2025-10-08' });
+}
     
     return holidays.map(holiday => ({
       ...holiday,
@@ -7552,3 +7553,4 @@ function showTransactionEditModal(title, content, transactionId) {
     }, 100);
   }
 }
+
