@@ -1128,3 +1128,21 @@ input:focus, select:focus, textarea:focus {
 input[type="text"] {
   font-family: 'Noto Sans KR', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
 }
+
+/* 메모 이동 버튼 스타일 */
+.move-note-btn {
+  padding: 5px 8px !important;
+  margin-right: 5px !important;
+  background-color: #f0f0f0 !important;
+  color: #333 !important;
+  font-size: 0.8rem !important;
+}
+
+.move-note-btn:hover:not(:disabled) {
+  background-color: #e0e0e0 !important;
+}
+
+.move-note-btn:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+}
