@@ -4749,7 +4749,7 @@ function renderNotesPage(container) {
 async function loadNotes() {
   try {
     const notesRef = db.collection("notes");
-    const snapshot = await notesRef.orderBy("updatedAt", "desc").get();
+    const snapshot = await notesRef.orderBy("order", "asc").orderBy("updatedAt", "desc").get();
     
     const notesListEl = document.getElementById("notes-list");
     
@@ -4760,23 +4760,47 @@ async function loadNotes() {
     
     let html = '<ul class="list-container">';
     
-    snapshot.forEach(doc => {
-      const note = doc.data();
-      html += `
-        <li class="list-item" data-id="${doc.id}">
-          <div class="list-item-content">
-            <div class="list-item-title">${note.title}</div>
-            <div class="list-item-date">최근 수정: ${formatDate(note.updatedAt || note.createdAt)}</div>
-            <div class="list-item-preview">${truncateText(note.content, 100)}</div>
-          </div>
-          <div class="list-item-actions">
-            <button onclick="viewNote('${doc.id}')">보기</button>
-            <button onclick="editNote('${doc.id}')">수정</button>
-            <button onclick="deleteNote('${doc.id}')">삭제</button>
-          </div>
-        </li>
-      `;
-    });
+const notes = [];
+snapshot.forEach(doc => {
+  const note = doc.data();
+  notes.push({
+    id: doc.id,
+    title: note.title,
+    content: note.content,
+    order: note.order || 9999,
+    updatedAt: note.updatedAt || note.createdAt,
+    createdAt: note.createdAt
+  });
+});
+
+// order로 정렬
+notes.sort((a, b) => a.order - b.order);
+
+notes.forEach((note, index) => {
+  const isFirst = index === 0;
+  const isLast = index === notes.length - 1;
+  
+  html += `
+    <li class="list-item" data-id="${note.id}">
+      <div class="list-item-content">
+        <div class="list-item-title">${note.title}</div>
+        <div class="list-item-date">최근 수정: ${formatDate(note.updatedAt)}</div>
+        <div class="list-item-preview">${truncateText(note.content, 100)}</div>
+      </div>
+      <div class="list-item-actions">
+        <button onclick="moveNoteUp('${note.id}')" class="move-note-btn" ${isFirst ? 'disabled' : ''}>
+          <i class="fas fa-arrow-up"></i>
+        </button>
+        <button onclick="moveNoteDown('${note.id}')" class="move-note-btn" ${isLast ? 'disabled' : ''}>
+          <i class="fas fa-arrow-down"></i>
+        </button>
+        <button onclick="viewNote('${note.id}')">보기</button>
+        <button onclick="editNote('${note.id}')">수정</button>
+        <button onclick="deleteNote('${note.id}')">삭제</button>
+      </div>
+    </li>
+  `;
+});
     
     html += '</ul>';
     notesListEl.innerHTML = html;
@@ -4836,11 +4860,22 @@ async function saveNote() {
     return;
   }
   
-  try {
+try {
+    // 최소 order 값 가져오기
+    const notesRef = db.collection("notes");
+    const snapshot = await notesRef.orderBy("order", "asc").limit(1).get();
+    
+    let minOrder = 10;
+    if (!snapshot.empty) {
+      const firstNote = snapshot.docs[0].data();
+      minOrder = (firstNote.order !== undefined ? firstNote.order : 10) - 10;
+    }
+    
     // 메모 데이터 구성
     const noteData = {
       title: titleEl.value,
       content: content,
+      order: minOrder, // 새 메모는 맨 위에
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -7597,5 +7632,85 @@ function insertEmoji(inputId, emoji) {
     input.value = newValue;
     input.focus();
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
+  }
+}
+
+// 메모 위로 이동
+async function moveNoteUp(noteId) {
+  try {
+    const notesRef = db.collection("notes");
+    const snapshot = await notesRef.orderBy("order", "asc").get();
+    
+    const notes = [];
+    snapshot.forEach(doc => {
+      notes.push({
+        id: doc.id,
+        order: doc.data().order !== undefined ? doc.data().order : 9999
+      });
+    });
+    
+    const currentIndex = notes.findIndex(n => n.id === noteId);
+    
+    if (currentIndex <= 0) return;
+    
+    const prevNote = notes[currentIndex - 1];
+    const currentNote = notes[currentIndex];
+    const tempOrder = prevNote.order;
+    
+    const batch = db.batch();
+    batch.update(notesRef.doc(prevNote.id), { 
+      order: currentNote.order,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    batch.update(notesRef.doc(currentNote.id), { 
+      order: tempOrder,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    await batch.commit();
+    await loadNotes();
+  } catch (error) {
+    console.error("메모 순서 변경 중 오류 발생:", error);
+    alert("메모 순서를 변경하는 중 오류가 발생했습니다.");
+  }
+}
+
+// 메모 아래로 이동
+async function moveNoteDown(noteId) {
+  try {
+    const notesRef = db.collection("notes");
+    const snapshot = await notesRef.orderBy("order", "asc").get();
+    
+    const notes = [];
+    snapshot.forEach(doc => {
+      notes.push({
+        id: doc.id,
+        order: doc.data().order !== undefined ? doc.data().order : 9999
+      });
+    });
+    
+    const currentIndex = notes.findIndex(n => n.id === noteId);
+    
+    if (currentIndex >= notes.length - 1) return;
+    
+    const nextNote = notes[currentIndex + 1];
+    const currentNote = notes[currentIndex];
+    const tempOrder = nextNote.order;
+    
+    const batch = db.batch();
+    batch.update(notesRef.doc(nextNote.id), { 
+      order: currentNote.order,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    batch.update(notesRef.doc(currentNote.id), { 
+      order: tempOrder,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    await batch.commit();
+    await loadNotes();
+  } catch (error) {
+    console.error("메모 순서 변경 중 오류 발생:", error);
+    alert("메모 순서를 변경하는 중 오류가 발생했습니다.");
   }
 }
