@@ -1156,3 +1156,38 @@ input[type="text"] {
 .fc {
     width: 100%;
 }
+
+/* =========================================
+   [커스텀] PC 모드에서 가로 너비 확장
+   ========================================= */
+
+/* 1. 전체 콘텐츠의 최대 너비 제한 해제 */
+/* 기존의 max-width: 1200px 설정을 덮어씁니다. */
+.container {
+    max-width: 100%; /* 너비 제한을 해제하고 부모 요소의 100%를 사용 */
+}
+
+/* =========================================
+   [커스텀] 최종 디자인 및 레이아웃 개선
+   ========================================= */
+
+/* 1. 줄 간격 및 배치 개선 */
+.fc-daygrid-event {
+  white-space: normal !important;
+  align-items: flex-start !important;
+  height: auto !important;
+  line-height: 1.4;          /* 줄 높이를 넓게 조정하여 가독성 개선 */
+  padding: 2px 4px;          /* 박스 내부에 약간의 여백 추가 */
+  margin-bottom: 2px;        /* 이벤트 바 사이에 작은 간격 추가 */
+}
+
+.fc-daygrid-day-frame {
+  min-height: 100px !important; 
+  height: auto !important;      
+  padding: 4px;             /* 칸 내부에 여백을 주어 글자가 너무 붙지 않게 합니다. */
+}
+
+/* 캘린더 자체 너비 설정 (가로 확장 보장) */
+.fc {
+    width: 100%;
+}
