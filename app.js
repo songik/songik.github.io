@@ -953,9 +953,10 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
     center: 'title',
     right: isMobile ? 'dayGridMonth,listMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
   },
-  initialView: isMobile ? 'listMonth' : 'dayGridMonth', // 모바일에서는 기본 리스트 뷰
-  height: isMobile ? 'auto' : undefined, // 모바일에서 높이 자동 조정
-  dayMaxEventRows: isMobile ? 2 : 6, // 모바일에서 표시하는 이벤트 수 제한
+initialView: isMobile ? 'listMonth' : 'dayGridMonth', // 모바일에서는 기본 리스트 뷰
+  height: 'auto',              // PC/모바일 모두 높이 자동 조절 (수정됨)
+  contentHeight: 'auto',       // 콘텐츠 높이 자동 조절 (추가됨)
+  dayMaxEventRows: false,      // 이벤트 개수 제한 해제 (수정됨)
   eventTimeFormat: { // 시간 표시 형식 간소화
     hour: '2-digit',
     minute: '2-digit',
@@ -7599,3 +7600,4 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
