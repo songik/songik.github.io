@@ -985,17 +985,13 @@ initialView: isMobile ? 'listMonth' : 'dayGridMonth', // 모바일에서는 기�
     }
   },
 
-// 향상된 디버깅용 이벤트 핸들러
+// 이벤트 표시 후 실행: 툴팁(title) 기능 활성화 및 스타일 적용
 eventDidMount: function(info) {
-  console.log("이벤트 표시:", info.event.id, 
-            "제목:", info.event.title,
-            "시작일:", formatDate(info.event.start, true), 
-            "종료일:", info.event.end ? formatDate(info.event.end, true) : "없음",
-            "allDay:", info.event.allDay,
-            "시작 타임스탬프:", info.event.start.getTime(),
-            "종료 타임스탬프:", info.event.end ? info.event.end.getTime() : "없음");
+  // 1. 마우스 오버 시 전체 제목을 보여주는 툴팁(title) 기능 활성화
+  // 제목이 잘리는 경우 전체 내용을 보여줍니다.
+  info.el.title = info.event.title; 
             
-  // 종일 이벤트의 경우 스타일 강화
+  // 2. 종일 이벤트 스타일 강화 (기존 로직 유지)
   if (info.event.allDay) {
     const eventEl = info.el;
     eventEl.style.fontWeight = 'bold';
@@ -7600,4 +7596,5 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
