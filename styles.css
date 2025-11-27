@@ -1242,3 +1242,19 @@ input[type="text"] {
 /* FullCalendar는 title 속성을 사용하여 자동으로 툴팁을 생성합니다.
    별도의 커스텀 툴팁을 원하지 않는다면 이 부분은 불필요할 수 있습니다. 
    하지만, 제목이 잘리지 않도록 강제하는 1번 코드가 핵심입니다. */
+
+/* =========================================
+   [긴급 수정] 달력 칸 경계선 및 색상 복구
+   ========================================= */
+
+/* 달력 칸 테두리 복구 */
+.fc-daygrid-day {
+    border: 1px solid var(--border-color) !important; 
+    border-top: none !important; /* 위쪽 테두리는 FullCalendar가 처리하므로 겹치지 않게 제외 */
+    background-color: var(--card-color) !important; /* 칸 배경색 복구 (흰색) */
+}
+
+/* 요일 헤더 테두리 복구 (선택 사항) */
+.fc-day-header {
+    border-top: 1px solid var(--border-color) !important;
+}
