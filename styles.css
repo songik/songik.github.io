@@ -1225,3 +1225,29 @@ input[type="text"] {
 .fc {
     width: 100%;
 }
+
+/* =========================================
+   [최종 개선] 시간 표시 및 디자인 수정
+   ========================================= */
+
+/* 시간 요소는 반드시 한 줄로 표시되도록 강제합니다. (핵심 수정) */
+.fc-event-time {
+    white-space: nowrap !important; /* 줄 바꿈 절대 금지 */
+    min-width: fit-content !important; /* 내용만큼 최소 너비 확보 */
+    padding-right: 4px; /* 시간과 제목 사이에 여백 추가 */
+}
+
+/* 1. 줄 간격 및 배치 개선 */
+.fc-daygrid-event {
+  white-space: normal !important;
+  line-height: 1.4;          /* 줄 높이 개선 */
+  padding: 2px 4px;          /* 박스 내부에 약간의 여백 추가 */
+  margin-bottom: 2px;
+}
+
+/* FullCalendar의 이벤트 컨테이너 정렬 방식 조정 */
+.fc-daygrid-event-harness {
+    display: flex;
+    align-items: flex-start; 
+}
+/* ... (나머지 .container, .page-container, .fc-daygrid-day-frame 코드는 그대로 둡니다) ... */
