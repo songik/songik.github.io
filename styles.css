@@ -1128,3 +1128,31 @@ input:focus, select:focus, textarea:focus {
 input[type="text"] {
   font-family: 'Noto Sans KR', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
 }
+
+/* =========================================
+   [커스텀] 달력 칸 자동 높이 조절 및 줄 바꿈 설정
+   ========================================= */
+
+/* 일정이 표시되는 파란색 박스 (.fc-daygrid-event)의 스타일을 변경합니다. */
+.fc-daygrid-event {
+  white-space: normal !important; /* 텍스트가 칸을 넘치면 자동으로 줄 바꿈 허용 */
+  align-items: flex-start !important;
+  height: auto !important; /* 내용에 따라 높이 자동 조절 */
+}
+
+/* 일정 내부 텍스트 (.fc-event-main)가 잘리지 않도록 설정합니다. */
+.fc-event-main {
+  overflow: visible !important; /* 넘치는 콘텐츠를 숨기지 않고 보이게 */
+  text-overflow: clip !important; /* 말줄임표(...) 사용하지 않음 */
+}
+
+/* 달력의 날짜 칸 (.fc-daygrid-day-frame) 높이 제한을 풀고, 유동적으로 만듭니다. */
+.fc-daygrid-day-frame {
+  min-height: 100px !important; 
+  height: auto !important;      
+}
+
+/* 캘린더 전체 컨테이너가 부모 요소의 100% 너비를 사용하도록 보장 */
+.fc {
+    width: 100%;
+}
