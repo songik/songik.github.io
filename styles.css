@@ -1191,3 +1191,37 @@ input[type="text"] {
 .fc {
     width: 100%;
 }
+
+/* =========================================
+   [최종] PC 모드 가로 너비 제한 강제 해제
+   ========================================= */
+
+/* 1. 이전에 시도했던 .container의 제한을 100%로 덮어쓰기 (유지) */
+.container {
+    max-width: 100% !important; 
+    padding: 20px;
+}
+
+/* 2. 네비게이션과 달력을 포함하는 가장 바깥쪽 요소의 제한 해제 (추정) */
+/* 앱 전체를 감싸는 ID나 클래스가 있을 경우를 대비합니다. */
+#app, .page-container, #main-content {
+    max-width: none !important; /* 모든 최대 너비 제한을 강제로 해제 */
+    width: 100%;
+}
+
+/* 3. 풀캘린더 내부 디자인 개선 (줄 간격, 패딩) */
+/* 기존에 추가했던 디자인 개선 코드도 다시 한번 확인합니다. */
+.fc-daygrid-event {
+  white-space: normal !important;
+  line-height: 1.4;          /* 줄 높이 개선 */
+  padding: 2px 4px;          /* 여백 추가 */
+  margin-bottom: 2px;
+}
+.fc-daygrid-day-frame {
+  min-height: 100px !important; 
+  height: auto !important;      
+  padding: 4px;
+}
+.fc {
+    width: 100%;
+}
