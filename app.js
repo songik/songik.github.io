@@ -970,40 +970,9 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
   
 // 이벤트 렌더링 커스터마이징 - 툴팁 활성화 및 모바일 최적화 통합
 eventDidMount: function(info) {
-  // 1. [PC/모바일 공통] 툴팁 기능 활성화 (에러 방지 강화 버전)
-  const titleEl = info.el.querySelector('.fc-event-title');
-  let eventTitle = info.event.title; // 기본값은 이벤트 객체의 제목
-
-  // titleEl이 존재할 경우에만 텍스트 콘텐츠를 가져옵니다. (에러 방지)
-  if (titleEl) {
-    // 툴팁에는 줄임표(...)가 없는 원본 텍스트를 사용합니다.
-    // textContent는 현재 화면에 표시된 텍스트입니다.
-    eventTitle = titleEl.getAttribute('aria-label') || titleEl.textContent.trim() || info.event.title; 
-  }
-  
-  // 요소에 title 속성을 설정하여 툴팁을 만듭니다. (에러와 관계없이 실행)
-  info.el.title = eventTitle; 
-
-  // 2. [모바일 전용] 기존의 모바일 최적화 로직 유지
-  const isMobile = window.innerWidth < 768; 
-  if (isMobile && info.view.type === 'dayGridMonth') {
-    const eventEl = info.el;
-    eventEl.style.fontSize = '0.8rem';
-    eventEl.style.padding = '2px 4px';
-    
-    // 이벤트 텍스트 길이 제한 (모바일에서만 적용)
-    if (titleEl && titleEl.textContent.length > 10) {
-      // 977번 라인 에러와는 무관하지만, 모바일에서 길이가 긴 이벤트의 텍스트를 직접 수정하는 로직입니다.
-      // 이 코드가 977번 라인에 포함되어 있었다면, 아래와 같이 보강해야 합니다.
-      titleEl.textContent = titleEl.textContent.substring(0, 10) + '...';
+    if (info.el.title) {
+        info.el.title = info.event.title + ' | ' + info.event.extendedProps.description;
     }
-  }
-
-  // 3. [스타일] 종일 이벤트 스타일 강화 (기존 로직 유지)
-  if (info.event.allDay) {
-    const eventEl = info.el;
-    eventEl.style.fontWeight = 'bold';
-  }
 },
 
 // [⭐️ 이 코드를 추가합니다 ⭐️]
@@ -7710,6 +7679,7 @@ function hideDayEventsPopup() {
         popup.style.display = 'none';
     }
 }
+
 
 
 
