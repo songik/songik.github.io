@@ -1006,7 +1006,38 @@ eventDidMount: function(info) {
   }
 },
 
-    
+// [⭐️ 이 코드를 추가합니다 ⭐️]
+    dayCellDidMount: function(info) {
+        // window.eventCalendar가 FullCalendar 인스턴스를 저장하고 있다고 가정합니다.
+        if (!window.eventCalendar) return; 
+
+        const dateStr = info.date.toISOString().split('T')[0];
+        const cellEl = info.el;
+
+        // 마우스 진입 시 팝업 표시
+        cellEl.addEventListener('mouseenter', () => {
+            // 해당 날짜의 모든 일정 필터링
+            const eventsOnDay = window.eventCalendar.getEvents().filter(event => {
+                const start = event.startStr.substring(0, 10);
+                const end = event.endStr ? event.endStr.substring(0, 10) : start;
+                
+                // 날짜 범위 확인 로직
+                return start <= dateStr && (end > dateStr || (!event.endStr && start === dateStr));
+            });
+
+            // 일정이 있는 경우에만 팝업 생성
+            if (eventsOnDay.length > 0) {
+                showDayEventsPopup(dateStr, eventsOnDay, cellEl);
+            }
+        });
+
+        // 마우스 이탈 시 팝업 닫기
+        cellEl.addEventListener('mouseleave', () => {
+            hideDayEventsPopup();
+        });
+    }, 
+    // 이 코드 다음에도 다른 설정이 있다면 쉼표(,)를 붙여야 합니다.
+  
         // 날짜 선택 시 이벤트 추가 폼 표시
         select: function(info) {
           showAddEventForm(info.startStr, info.endStr, info.allDay);
@@ -7657,5 +7688,6 @@ function hideDayEventsPopup() {
         popup.style.display = 'none';
     }
 }
+
 
 
