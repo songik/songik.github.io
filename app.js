@@ -977,27 +977,31 @@ eventDidMount: function(info) {
 
 // [⭐️ 이 코드를 추가합니다 ⭐️]
     dayCellDidMount: function(info) {
-        // window.eventCalendar가 FullCalendar 인스턴스를 저장하고 있다고 가정합니다.
         if (!window.eventCalendar) return; 
 
-        // 로컬 시간을 사용하여 날짜 문자열(YYYY-MM-DD) 추출
+        // 1. 팝업을 띄우는 날짜 문자열 추출 (로컬 시간 기준)
         const d = info.date;
         const dateStr = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
         
         const cellEl = info.el;
 
-        // 마우스 진입 시 팝업 표시
         cellEl.addEventListener('mouseenter', () => {
-            // 해당 날짜의 모든 일정 필터링
             const eventsOnDay = window.eventCalendar.getEvents().filter(event => {
-                const start = event.startStr.substring(0, 10);
                 
-                // endStr이 없을 경우, 시작일에 1일을 더한 날짜를 종료일로 설정합니다. (단일 시간 일정 처리)
-                let end = event.endStr ? event.endStr.substring(0, 10) : start; 
+                // 이벤트 시작일 (YYYY-MM-DD)
+                const start = event.start.toISOString().substring(0, 10);
                 
-                if (!event.endStr || (event.startStr.length > 10 && event.endStr.length <= 10)) { 
-                    const startDate = new Date(start);
-                    startDate.setDate(startDate.getDate() + 1); // 시작일에 1일 더하기
+                let end;
+                
+                // 2. 이벤트 종료일(end) 계산 로직 강화
+                if (event.end) {
+                    // 종료일이 있는 경우, 그대로 사용
+                    end = event.end.toISOString().substring(0, 10);
+                } else {
+                    // 종료일이 없는 경우 (대부분 하루 종일이거나 시간 지정 단일 이벤트)
+                    // 시작일에 1일을 더하여 다음 날을 종료일로 설정
+                    const startDate = new Date(event.start);
+                    startDate.setDate(startDate.getDate() + 1);
                     
                     const nextYear = startDate.getFullYear();
                     const nextMonth = (startDate.getMonth() + 1).toString().padStart(2, '0');
@@ -1007,21 +1011,20 @@ eventDidMount: function(info) {
                 }
 
 
-                // 팝업 날짜(dateStr)가 이벤트의 시작일과 종료일 사이에 있는지 확인
+                // 3. 최종 필터링 로직: 팝업 날짜(dateStr)가 시작일과 종료일 사이에 있는지 확인
+                // (시작일 <= dateStr < 종료일)
                 return start <= dateStr && dateStr < end;
             });
 
-            // 일정이 있는 경우에만 팝업 생성
             if (eventsOnDay.length > 0) {
                 showDayEventsPopup(dateStr, eventsOnDay, cellEl);
             }
         });
 
-        // 마우스 이탈 시 팝업 닫기
         cellEl.addEventListener('mouseleave', () => {
             hideDayEventsPopup();
         });
-    }, 
+    },
     // 이 코드 다음에도 다른 설정이 있다면 쉼표(,)를 붙여야 합니다.
   
         // 날짜 선택 시 이벤트 추가 폼 표시
@@ -7679,6 +7682,7 @@ function hideDayEventsPopup() {
         popup.style.display = 'none';
     }
 }
+
 
 
 
