@@ -981,33 +981,30 @@ eventDidMount: function(info) {
 
         // 1. 팝업을 띄우는 날짜 문자열 추출 (로컬 시간 기준)
         const d = info.date;
-        const dateStr = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+        const dateStr = formatDateToLocalString(d); // 헬퍼 함수 사용!
         
         const cellEl = info.el;
 
         cellEl.addEventListener('mouseenter', () => {
             const eventsOnDay = window.eventCalendar.getEvents().filter(event => {
                 
-                // 이벤트 시작일 (YYYY-MM-DD)
-                const start = event.start.toISOString().substring(0, 10);
+                // 이벤트 시작일 (YYYY-MM-DD) - 헬퍼 함수 사용
+                const start = formatDateToLocalString(event.start);
                 
                 let end;
                 
                 // 2. 이벤트 종료일(end) 계산 로직 강화
                 if (event.end) {
-                    // 종료일이 있는 경우, 그대로 사용
-                    end = event.end.toISOString().substring(0, 10);
+                    // 종료일이 있는 경우, 헬퍼 함수 사용
+                    end = formatDateToLocalString(event.end);
                 } else {
                     // 종료일이 없는 경우 (대부분 하루 종일이거나 시간 지정 단일 이벤트)
                     // 시작일에 1일을 더하여 다음 날을 종료일로 설정
                     const startDate = new Date(event.start);
                     startDate.setDate(startDate.getDate() + 1);
                     
-                    const nextYear = startDate.getFullYear();
-                    const nextMonth = (startDate.getMonth() + 1).toString().padStart(2, '0');
-                    const nextDay = startDate.getDate().toString().padStart(2, '0');
-                    
-                    end = `${nextYear}-${nextMonth}-${nextDay}`;
+                    // 헬퍼 함수를 사용해 다음 날짜 문자열 생성
+                    end = formatDateToLocalString(startDate);
                 }
 
 
@@ -7683,6 +7680,16 @@ function hideDayEventsPopup() {
     }
 }
 
+// [NEW] Date 객체를 로컬 시간대 기준으로 YYYY-MM-DD 문자열로 포맷하는 헬퍼 함수
+function formatDateToLocalString(date) {
+    if (!date) return null;
+    const d = new Date(date);
+    const year = d.getFullYear();
+    // getMonth()는 0부터 시작하므로 +1, 두 자리로 패딩
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
 
 
