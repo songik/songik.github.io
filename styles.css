@@ -1128,3 +1128,24 @@ input:focus, select:focus, textarea:focus {
 input[type="text"] {
   font-family: 'Noto Sans KR', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
 }
+
+/* =========================================
+   [부분 확장] 가로 너비 증가 및 디자인 복구
+   ========================================= */
+
+/* 1. 컨테이너 max-width를 1500px로 증가 (현재 1200px에서 소폭 확장) */
+.container {
+    max-width: 1500px !important; 
+}
+
+/* 2. 달력 칸 배경색 및 경계선 복구 (색상 깨짐 문제 해결) */
+.fc-daygrid-day {
+    border: 1px solid var(--border-color) !important; 
+    border-top: none !important; 
+    background-color: var(--card-color) !important; /* 칸 배경색 (흰색) 강제 복구 */
+}
+
+/* 3. 요일 헤더 테두리 복구 */
+.fc-day-header {
+    border-top: 1px solid var(--border-color) !important;
+}
