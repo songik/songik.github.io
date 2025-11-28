@@ -970,18 +970,22 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
   
 // 이벤트 렌더링 커스터마이징 - 툴팁 활성화 및 모바일 최적화 통합
 eventDidMount: function(info) {
-  // 1. [PC/모바일 공통] 마우스 오버 시 전체 제목을 보여주는 툴팁(title) 기능 활성화
-  // 이 기능은 PC에서 잘린 제목을 볼 수 있게 합니다.
-  info.el.title = info.event.title; 
+  // 1. [PC/모바일 공통] 마우스 오버 시 전체 제목을 보여주는 툴팁(title) 기능 활성화 (강화된 버전)
+  const titleEl = info.el.querySelector('.fc-event-title');
+  if (titleEl) {
+    info.el.title = titleEl.textContent.trim(); // 렌더링된 텍스트 자체를 툴팁으로 사용
+  } else {
+    info.el.title = info.event.title; // 제목 요소가 없으면 이벤트 객체의 title 사용
+  }
 
   // 2. [모바일 전용] 기존의 모바일 최적화 로직 유지
+  const isMobile = window.innerWidth < 768; // 모바일 여부 확인 (코드에서 확인됨)
   if (isMobile && info.view.type === 'dayGridMonth') {
     const eventEl = info.el;
     eventEl.style.fontSize = '0.8rem';
     eventEl.style.padding = '2px 4px';
     
     // 이벤트 텍스트 길이 제한 (모바일에서만 적용)
-    const titleEl = eventEl.querySelector('.fc-event-title');
     if (titleEl && titleEl.textContent.length > 10) {
       titleEl.textContent = titleEl.textContent.substring(0, 10) + '...';
     }
@@ -994,22 +998,6 @@ eventDidMount: function(info) {
   }
 },
 
-// 향상된 디버깅용 이벤트 핸들러
-eventDidMount: function(info) {
-  console.log("이벤트 표시:", info.event.id, 
-            "제목:", info.event.title,
-            "시작일:", formatDate(info.event.start, true), 
-            "종료일:", info.event.end ? formatDate(info.event.end, true) : "없음",
-            "allDay:", info.event.allDay,
-            "시작 타임스탬프:", info.event.start.getTime(),
-            "종료 타임스탬프:", info.event.end ? info.event.end.getTime() : "없음");
-            
-  // 종일 이벤트의 경우 스타일 강화
-  if (info.event.allDay) {
-    const eventEl = info.el;
-    eventEl.style.fontWeight = 'bold';
-  }
-},
     
         // 날짜 선택 시 이벤트 추가 폼 표시
         select: function(info) {
@@ -7609,4 +7597,5 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
