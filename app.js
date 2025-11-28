@@ -7606,5 +7606,56 @@ function insertEmoji(inputId, emoji) {
   }
 }
 
+// [새로 추가] 날짜별 일정 목록 팝업을 표시하는 함수
+function showDayEventsPopup(dateStr, events, targetEl) {
+    let popup = document.getElementById('day-events-popup');
+    if (!popup) {
+        popup = document.createElement('div');
+        popup.id = 'day-events-popup';
+        popup.className = 'day-events-popup';
+        document.body.appendChild(popup);
+    }
+
+    const eventListHtml = events.map(event => `
+        <div class="popup-event-item">
+            <span class="popup-event-title">${event.title}</span>
+        </div>
+    `).join('');
+
+    // 날짜 포맷팅 (YYYY-MM-DD -> YYYY년 MM월 DD일)
+    const formattedDate = dateStr.replace(/(\d{4})-(\d{2})-(\d{2})/, '$1년 $2월 $3일');
+
+    popup.innerHTML = `
+        <div class="popup-header">${formattedDate}</div>
+        <div class="popup-content">${eventListHtml}</div>
+    `;
+
+    // 팝업 위치 계산 (타겟 요소 기준)
+    const rect = targetEl.getBoundingClientRect();
+    const popupWidth = 250; 
+    const margin = 10;
+    
+    // 화면 오른쪽 경계를 넘어가지 않도록 위치 조정
+    let leftPos = rect.left;
+    if (rect.right + popupWidth + margin > window.innerWidth) {
+        // 팝업을 왼쪽으로 이동하여 셀 왼쪽에 표시
+        leftPos = rect.left - popupWidth; 
+    }
+    
+    // 화면 위쪽으로 팝업이 뜨지 않도록 처리
+    let topPos = rect.bottom + 5; 
+
+    popup.style.left = `${leftPos}px`;
+    popup.style.top = `${topPos}px`;
+    popup.style.display = 'block';
+}
+
+// [새로 추가] 팝업 숨기는 함수
+function hideDayEventsPopup() {
+    const popup = document.getElementById('day-events-popup');
+    if (popup) {
+        popup.style.display = 'none';
+    }
+}
 
 
