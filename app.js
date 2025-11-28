@@ -1011,7 +1011,7 @@ eventDidMount: function(info) {
         // window.eventCalendar가 FullCalendar 인스턴스를 저장하고 있다고 가정합니다.
         if (!window.eventCalendar) return; 
 
-        const dateStr = info.date.toISOString().split('T')[0];
+        const d = info.date; const dateStr = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
         const cellEl = info.el;
 
         // 마우스 진입 시 팝업 표시
@@ -7688,6 +7688,7 @@ function hideDayEventsPopup() {
         popup.style.display = 'none';
     }
 }
+
 
 
 
