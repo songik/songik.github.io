@@ -968,21 +968,31 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
   selectMirror: true,
   dayMaxEvents: false,
   
-  // 이벤트 렌더링 커스터마이징 - 모바일 최적화
-  eventDidMount: function(info) {
-    // 모바일에서 이벤트 표시 최적화
-    if (isMobile && info.view.type === 'dayGridMonth') {
-      const eventEl = info.el;
-      eventEl.style.fontSize = '0.8rem';
-      eventEl.style.padding = '2px 4px';
-      
-      // 이벤트 텍스트 길이 제한
-      const titleEl = eventEl.querySelector('.fc-event-title');
-      if (titleEl && titleEl.textContent.length > 10) {
-        titleEl.textContent = titleEl.textContent.substring(0, 10) + '...';
-      }
+// 이벤트 렌더링 커스터마이징 - 툴팁 활성화 및 모바일 최적화 통합
+eventDidMount: function(info) {
+  // 1. [PC/모바일 공통] 마우스 오버 시 전체 제목을 보여주는 툴팁(title) 기능 활성화
+  // 이 기능은 PC에서 잘린 제목을 볼 수 있게 합니다.
+  info.el.title = info.event.title; 
+
+  // 2. [모바일 전용] 기존의 모바일 최적화 로직 유지
+  if (isMobile && info.view.type === 'dayGridMonth') {
+    const eventEl = info.el;
+    eventEl.style.fontSize = '0.8rem';
+    eventEl.style.padding = '2px 4px';
+    
+    // 이벤트 텍스트 길이 제한 (모바일에서만 적용)
+    const titleEl = eventEl.querySelector('.fc-event-title');
+    if (titleEl && titleEl.textContent.length > 10) {
+      titleEl.textContent = titleEl.textContent.substring(0, 10) + '...';
     }
-  },
+  }
+
+  // 3. [스타일] 종일 이벤트 스타일 강화 (기존 로직 유지)
+  if (info.event.allDay) {
+    const eventEl = info.el;
+    eventEl.style.fontWeight = 'bold';
+  }
+},
 
 // 향상된 디버깅용 이벤트 핸들러
 eventDidMount: function(info) {
@@ -7599,3 +7609,4 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
