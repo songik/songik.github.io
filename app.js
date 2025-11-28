@@ -1011,7 +1011,10 @@ eventDidMount: function(info) {
         // window.eventCalendar가 FullCalendar 인스턴스를 저장하고 있다고 가정합니다.
         if (!window.eventCalendar) return; 
 
-        const d = info.date; const dateStr = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+        // 로컬 시간을 사용하여 날짜 문자열(YYYY-MM-DD) 추출
+        const d = info.date;
+        const dateStr = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+        
         const cellEl = info.el;
 
         // 마우스 진입 시 팝업 표시
@@ -1019,10 +1022,24 @@ eventDidMount: function(info) {
             // 해당 날짜의 모든 일정 필터링
             const eventsOnDay = window.eventCalendar.getEvents().filter(event => {
                 const start = event.startStr.substring(0, 10);
-                const end = event.endStr ? event.endStr.substring(0, 10) : start;
                 
-                // 날짜 범위 확인 로직
-                return start <= dateStr && (end > dateStr || (!event.endStr && start === dateStr));
+                // endStr이 없을 경우, 시작일에 1일을 더한 날짜를 종료일로 설정합니다. (단일 시간 일정 처리)
+                let end = event.endStr ? event.endStr.substring(0, 10) : start; 
+                
+                if (!event.endStr || (event.startStr.length > 10 && event.endStr.length <= 10)) { 
+                    const startDate = new Date(start);
+                    startDate.setDate(startDate.getDate() + 1); // 시작일에 1일 더하기
+                    
+                    const nextYear = startDate.getFullYear();
+                    const nextMonth = (startDate.getMonth() + 1).toString().padStart(2, '0');
+                    const nextDay = startDate.getDate().toString().padStart(2, '0');
+                    
+                    end = `${nextYear}-${nextMonth}-${nextDay}`;
+                }
+
+
+                // 팝업 날짜(dateStr)가 이벤트의 시작일과 종료일 사이에 있는지 확인
+                return start <= dateStr && dateStr < end;
             });
 
             // 일정이 있는 경우에만 팝업 생성
@@ -7666,15 +7683,20 @@ function showDayEventsPopup(dateStr, events, targetEl) {
     const popupWidth = 250; 
     const margin = 10;
     
-    // 화면 오른쪽 경계를 넘어가지 않도록 위치 조정
-    let leftPos = rect.left;
-    if (rect.right + popupWidth + margin > window.innerWidth) {
-        // 팝업을 왼쪽으로 이동하여 셀 왼쪽에 표시
-        leftPos = rect.left - popupWidth; 
-    }
-    
-    // 화면 위쪽으로 팝업이 뜨지 않도록 처리
-    let topPos = rect.bottom + 5; 
+    // 팝업을 날짜 셀의 왼쪽 경계에 맞춥니다.
+    let leftPos = rect.left; 
+
+    // 화면 오른쪽 경계를 넘어가지 않도록 조정
+    if (rect.left + popupWidth > window.innerWidth - margin) {
+        // 오른쪽으로 넘어갈 경우, 팝업을 왼쪽으로 밀어냅니다.
+        leftPos = window.innerWidth - popupWidth - margin; 
+    } else if (rect.left < margin) {
+        // 왼쪽 경계를 넘어갈 경우, 왼쪽 여백에 맞춥니다.
+        leftPos = margin;
+    } 
+
+    // 팝업을 날짜 셀의 아래쪽 경계에 고정합니다.
+    let topPos = rect.bottom + 5;  // 5px 여백
 
     popup.style.left = `${leftPos}px`;
     popup.style.top = `${topPos}px`;
@@ -7688,6 +7710,7 @@ function hideDayEventsPopup() {
         popup.style.display = 'none';
     }
 }
+
 
 
 
