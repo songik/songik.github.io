@@ -1163,9 +1163,10 @@ input[type="text"] {
    [NEW] 날짜별 일정 팝업 스타일 (PC Only)
    ========================================= */
 .day-events-popup {
-    position: absolute;
-    z-index: 9999; /* 다른 요소 위에 표시 */
-    background-color: var(--card-color); /* 카드 색상 변수 사용 */
+position: absolute !important; /* 위치 강제 고정 */
+    z-index: 9999 !important; /* 최상단 표시 강제 */
+    /* ... (나머지 스타일은 그대로 유지) ... */
+    background-color: var(--card-color); 
     border: 1px solid var(--border-color);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -1173,7 +1174,7 @@ input[type="text"] {
     width: 250px; 
     max-height: 300px;
     overflow-y: auto;
-    pointer-events: none; /* 마우스 이벤트 무시 (팝업이 툴팁처럼 작동하도록) */
+    pointer-events: none;
 }
 
 .day-events-popup .popup-header {
@@ -1192,3 +1193,4 @@ input[type="text"] {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
