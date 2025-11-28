@@ -1133,9 +1133,9 @@ input[type="text"] {
    [최종 확정] 가로 너비 증가 및 디자인 복구
    ========================================= */
 
-/* 1. 컨테이너와 페이지 컨테이너 모두 max-width를 1500px로 강제 증가 */
+/* 1. 컨테이너와 페이지 컨테이너 모두 max-width를 1400px로 강제 증가 */
 .container, .page-container {
-    max-width: 1500px !important; 
+    max-width: 1400px !important; 
 }
 
 /* 2. 달력 칸 배경색 및 경계선 복구 (색상 깨짐 문제 해결) */
@@ -1149,3 +1149,4 @@ input[type="text"] {
 .fc-day-header {
     border-top: 1px solid var(--border-color) !important;
 }
+
