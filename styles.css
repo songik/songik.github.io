@@ -1151,28 +1151,44 @@ input[type="text"] {
 }
 
 /* =========================================
-   [NEW] 오늘 날짜 강조 (Today's Date Highlight)
+   [NEW] 오늘 날짜 강조 (Today's Date Highlight) - 심플 버전
    ========================================= */
 
-/* 1. 오늘 날짜가 속한 셀 전체에는 연한 배경색 적용 */
+/* 1. 오늘 날짜가 속한 셀 전체의 기본 배경색 (FullCalendar 기본 스타일)을 제거하여 깨끗하게 유지 */
 .fc-day-today {
-    background-color: var(--primary-light) !important; /* 오늘 날짜 셀에 연한 배경색 */
-    opacity: 0.2; /* 연하게 보이도록 투명도 설정 */
+    background-color: transparent !important; 
 }
 
 /* 2. 오늘 날짜의 숫자(day-number)에만 동그란 배경색 적용 */
 .fc-day-today .fc-daygrid-day-number {
-    /* 기존의 셀 배경색과 겹치지 않도록 투명도 조정 */
-    opacity: 1; 
+    /* 날짜 숫자 강조 */
+    font-weight: bold; 
+    color: var(--card-color); /* 숫자 색상 흰색 (var(--card-color)는 #fff, 흰색일 확률이 높음) */
     
     /* 동그라미 배경 스타일 */
-    display: inline-flex; /* 숫자를 감싸는 영역 */
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 26px; /* 동그라미 크기 */
-    height: 26px; /* 동그라미 크기 */
+    height: 26px; 
     border-radius: 50%; /* 원형으로 만들기 */
-    font-weight: bold; /* 숫자 강조 */
-    color: var(--card-color); /* 숫자 색상 흰색 */
-    background-color: var(--primary-color); /* 진한 초록색 배경 */
+    
+    /* 주요 색상 배경 적용 */
+    background-color: var(--primary-color); 
+    
+    /* 폰트 크기 조정 (선택 사항: 숫자가 너무 크다면 조정) */
+    font-size: 0.9em; 
+    
+    /* 날짜 셀 내부에서 숫자가 좌측 상단이 아닌 중앙에 위치하도록 조정 (필요하다면 추가) */
+    position: relative; 
+    z-index: 10;
 }
+
+/* 3. 오늘 날짜 숫자가 진하게 표시되는 심플 버전 (동그라미가 마음에 안 들 경우 이 코드만 사용 가능) */
+/*
+.fc-day-today .fc-daygrid-day-number {
+    font-weight: 900 !important;
+    color: var(--primary-dark) !important;
+    background-color: transparent !important;
+}
+*/
