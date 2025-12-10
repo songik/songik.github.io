@@ -1149,3 +1149,30 @@ input[type="text"] {
 .fc-day-header {
     border-top: 1px solid var(--border-color) !important;
 }
+
+/* =========================================
+   [NEW] 오늘 날짜 강조 (Today's Date Highlight)
+   ========================================= */
+
+/* 1. 오늘 날짜가 속한 셀 전체에는 연한 배경색 적용 */
+.fc-day-today {
+    background-color: var(--primary-light) !important; /* 오늘 날짜 셀에 연한 배경색 */
+    opacity: 0.2; /* 연하게 보이도록 투명도 설정 */
+}
+
+/* 2. 오늘 날짜의 숫자(day-number)에만 동그란 배경색 적용 */
+.fc-day-today .fc-daygrid-day-number {
+    /* 기존의 셀 배경색과 겹치지 않도록 투명도 조정 */
+    opacity: 1; 
+    
+    /* 동그라미 배경 스타일 */
+    display: inline-flex; /* 숫자를 감싸는 영역 */
+    align-items: center;
+    justify-content: center;
+    width: 26px; /* 동그라미 크기 */
+    height: 26px; /* 동그라미 크기 */
+    border-radius: 50%; /* 원형으로 만들기 */
+    font-weight: bold; /* 숫자 강조 */
+    color: var(--card-color); /* 숫자 색상 흰색 */
+    background-color: var(--primary-color); /* 진한 초록색 배경 */
+}
