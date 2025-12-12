@@ -3752,7 +3752,9 @@ transactions.forEach(transaction => {
 // ⭐️ [로직] 결제 수단에 따른 클래스 결정 ⭐️
     if (isExpense) {
         // 🚨 [필수 수정] .trim()을 사용하여 앞뒤 공백을 제거합니다.
-        const method = transaction.paymentMethod ? transaction.paymentMethod.trim() : '';
+        const method = transaction.paymentMethod 
+    ? transaction.paymentMethod.trim().normalize("NFC").replace(/[^\w\s]/gi, '') 
+    : '';
         
         if (method === '현대카드') { 
             paymentClass = 'payment-hyundai';
@@ -7625,6 +7627,7 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
 
