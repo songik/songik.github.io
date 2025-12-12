@@ -1184,3 +1184,17 @@ input[type="text"] {
     position: relative;
     z-index: 10;
 }
+
+/* =========================================
+   [NEW] 카드별 지출 금액 색상 
+   ========================================= */
+
+/* 현대카드 지출 색상 */
+.expense-amount.payment-hyundai {
+    color: #0080ff; /* 파란색 */
+}
+
+/* 삼성카드 지출 색상 */
+.expense-amount.payment-samsung {
+    color: #ff9900; /* 주황색 */
+}
