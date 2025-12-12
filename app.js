@@ -3750,19 +3750,19 @@ transactions.forEach(transaction => {
     let paymentClass = '';
 
 // ⭐️ [로직] 결제 수단에 따른 클래스 결정 ⭐️
-    if (isExpense) {
+    if (isExpense) {
         // 🚨 [필수 수정] .trim()을 사용하여 앞뒤 공백을 제거합니다.
         const method = transaction.paymentMethod ? transaction.paymentMethod.trim() : '';
         
-        if (method === '현대카드') { // 비교 대상을 method로 변경
-            paymentClass = 'payment-hyundai';
-        } else if (method === '삼성카드') { // 비교 대상을 method로 변경
-            paymentClass = 'payment-samsung';
-        }
-    }
-  
-  // 👇 [추가] 이 코드를 넣어주세요. 브라우저가 무슨 생각을 하는지 훔쳐볼 수 있습니다.
-    console.log("결제수단:", transaction.paymentMethod, "| 적용될 클래스:", paymentClass);
+        if (method === '현대카드') { 
+            paymentClass = 'payment-hyundai';
+        } else if (method === '삼성카드') { 
+            paymentClass = 'payment-samsung';
+        }
+
+        // 👇 [진단용] 세 가지 값을 모두 출력하여 최종적으로 어떤 클래스가 적용되는지 확인합니다.
+        console.log("원본:", transaction.paymentMethod, "| trim 결과:", method, "| 적용 클래스:", paymentClass);
+    }
   
     html += `
       <li class="list-item" data-id="${transaction.id}">
@@ -7625,6 +7625,7 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
 
