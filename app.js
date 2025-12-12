@@ -3745,11 +3745,11 @@ function renderTransactionsList(transactions) {
   
   let html = '<ul class="list-container">';
   
-  transactions.forEach(transaction => {
-const isExpense = transaction.type === 'expense';
+transactions.forEach(transaction => {
+    const isExpense = transaction.type === 'expense';
     let paymentClass = '';
 
-    // ⭐️ [추가된 로직] 결제 수단에 따른 클래스 결정 ⭐️
+    // ⭐️ [로직] 결제 수단에 따른 클래스 결정 ⭐️
     if (isExpense) {
         if (transaction.paymentMethod === '현대카드') {
             paymentClass = 'payment-hyundai';
@@ -3778,7 +3778,7 @@ const isExpense = transaction.type === 'expense';
         </div>
       </li>
     `;
-  });
+});
   
   html += '</ul>';
   transactionsListEl.innerHTML = html;
@@ -7619,6 +7619,7 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
 
