@@ -971,7 +971,9 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
   editable: true,
   selectable: true,
   selectMirror: true,
-  dayMaxEvents: false, datesSet: function(dateInfo) { // ⭐️ [NEW] 달력 이동 시 현재 뷰 날짜 저장 ⭐️ window.currentCalendarDate = dateInfo.start; }, 
+  dayMaxEvents: false,
+  datesSet: function(dateInfo) { // ⭐️ [NEW] 달력 이동 시 현재 뷰 날짜 저장 ⭐️ 
+  window.currentCalendarDate = dateInfo.start; }, 
   
 // 이벤트 렌더링 커스터마이징 - 툴팁 활성화 및 모바일 최적화 통합
 eventDidMount: function(info) {
@@ -7615,5 +7617,6 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
