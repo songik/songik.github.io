@@ -1186,15 +1186,15 @@ input[type="text"] {
 }
 
 /* =========================================
-   [NEW] 카드별 지출 금액 색상 
+   [수정] 카드별 지출 금액 색상 (우선순위 강제 적용) 
    ========================================= */
 
 /* 현대카드 지출 색상 */
 .expense-amount.payment-hyundai {
-    color: #0080ff; /* 파란색 */
+    color: #0080ff !important; /* 파란색으로 강제 적용 */
 }
 
 /* 삼성카드 지출 색상 */
 .expense-amount.payment-samsung {
-    color: #ff9900; /* 주황색 */
+    color: #ff9900 !important; /* 주황색으로 강제 적용 */
 }
