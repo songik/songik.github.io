@@ -3761,7 +3761,7 @@ const isExpense = transaction.type === 'expense';
     html += `
       <li class="list-item" data-id="${transaction.id}">
         <div class="list-item-content">
-          <div class="list-item-title ${isExpense ? 'expense-amount' : 'income-amount'}">
+          <div class="list-item-title ${isExpense ? 'expense-amount ' + paymentClass : 'income-amount'}">
             ${isExpense ? '-' : '+'} ${transaction.amount.toLocaleString()}원
           </div>
           <div class="list-item-category">
@@ -7619,5 +7619,6 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
