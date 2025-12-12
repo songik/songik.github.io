@@ -950,30 +950,30 @@ if (year === 2025) {
 // 모바일 여부 확인
 const isMobile = window.innerWidth < 768;
 
-// FullCalendar 초기화
 window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
-  headerToolbar: {
-    left: 'prev,next today',
-    center: 'title',
-    right: isMobile ? 'dayGridMonth,listMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
-  },
-  initialView: isMobile ? 'listMonth' : 'dayGridMonth', // 모바일에서는 기본 리스트 뷰
-  initialDate: currentCalendarDate, // ⭐️ [NEW] 저장된 날짜를 사용해 뷰 고정 ⭐️
-  height: isMobile ? 'auto' : undefined, // 모바일에서 높이 자동 조정
-  dayMaxEventRows: isMobile ? 2 : 6, // 모바일에서 표시하는 이벤트 수 제한
-  eventTimeFormat: { // 시간 표시 형식 간소화
-    hour: '2-digit',
-    minute: '2-digit',
-    meridiem: false
-  },
-  locale: 'ko',
-  events: [...events, ...koreanHolidays, ...colorEvents],
-  editable: true,
-  selectable: true,
-  selectMirror: true,
-  dayMaxEvents: false,
-  datesSet: function(dateInfo) { // ⭐️ [NEW] 달력 이동 시 현재 뷰 날짜 저장 ⭐️ 
-  window.currentCalendarDate = dateInfo.start; }, 
+    headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: isMobile ? 'dayGridMonth,listMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
+    },
+    initialView: isMobile ? 'listMonth' : 'dayGridMonth', // 모바일에서는 기본 리스트 뷰
+    initialDate: window.currentCalendarDate, // 👈 [1단계 수정] window.currentCalendarDate
+    height: isMobile ? 'auto' : undefined, // 모바일에서 높이 자동 조정
+    dayMaxEventRows: isMobile ? 2 : 6, // 모바일에서 표시하는 이벤트 수 제한
+    eventTimeFormat: { // 시간 표시 형식 간소화
+        hour: '2-digit',
+        minute: '2-digit',
+        meridiem: false
+    },
+    locale: 'ko',
+    events: [...events, ...koreanHolidays, ...colorEvents],
+    editable: true,
+    selectable: true,
+    selectMirror: true,
+    dayMaxEvents: false, // ⭐️ 쉼표(,) 필수 ⭐️
+    datesSet: function(dateInfo) {
+        window.currentCalendarDate = dateInfo.start;
+    },
   
 // 이벤트 렌더링 커스터마이징 - 툴팁 활성화 및 모바일 최적화 통합
 eventDidMount: function(info) {
@@ -7617,6 +7617,7 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
 
