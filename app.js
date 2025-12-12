@@ -3757,7 +3757,10 @@ transactions.forEach(transaction => {
             paymentClass = 'payment-samsung';
         }
     }
-    
+
+  // 👇 [추가] 이 코드를 넣어주세요. 브라우저가 무슨 생각을 하는지 훔쳐볼 수 있습니다.
+    console.log("결제수단:", transaction.paymentMethod, "| 적용될 클래스:", paymentClass);
+  
     html += `
       <li class="list-item" data-id="${transaction.id}">
         <div class="list-item-content">
@@ -7619,6 +7622,7 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
 
