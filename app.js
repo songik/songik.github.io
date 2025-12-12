@@ -5,6 +5,10 @@ let currentView = "calendar"; // 'list' 또는 'calendar' - 기본값을 calenda
 const app = document.getElementById("app");
 let editors = {}; // 텍스트 에디터 객체 보관용
 
+// ⭐️ [NEW] 캘린더 뷰 상태 저장을 위한 변수 추가 (1번 문제) ⭐️
+let currentCalendarDate = new Date(); 
+// =======================================================
+
 // 현재 날짜 가져오기
 const today = new Date();
 const currentYear = today.getFullYear();
@@ -954,6 +958,7 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
     right: isMobile ? 'dayGridMonth,listMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
   },
   initialView: isMobile ? 'listMonth' : 'dayGridMonth', // 모바일에서는 기본 리스트 뷰
+  initialDate: currentCalendarDate, // ⭐️ [NEW] 저장된 날짜를 사용해 뷰 고정 ⭐️
   height: isMobile ? 'auto' : undefined, // 모바일에서 높이 자동 조정
   dayMaxEventRows: isMobile ? 2 : 6, // 모바일에서 표시하는 이벤트 수 제한
   eventTimeFormat: { // 시간 표시 형식 간소화
@@ -966,7 +971,7 @@ window.eventCalendar = new FullCalendar.Calendar(calendarEl, {
   editable: true,
   selectable: true,
   selectMirror: true,
-  dayMaxEvents: false,
+  dayMaxEvents: false, datesSet: function(dateInfo) { // ⭐️ [NEW] 달력 이동 시 현재 뷰 날짜 저장 ⭐️ window.currentCalendarDate = dateInfo.start; }, 
   
 // 이벤트 렌더링 커스터마이징 - 툴팁 활성화 및 모바일 최적화 통합
 eventDidMount: function(info) {
@@ -4453,6 +4458,7 @@ async function updateTransaction() {
     
     // 지출 목록 새로고침
     loadTransactions();
+    renderEventsCalendar();
   } catch (error) {
     console.error("지출/수입 내역 업데이트 중 오류 발생:", error);
     alert('지출/수입 내역을 업데이트하는 중 오류가 발생했습니다.');
@@ -7609,4 +7615,5 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
