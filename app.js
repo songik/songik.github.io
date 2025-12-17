@@ -757,7 +757,13 @@ function showDateColorForm(date) {
     <form id="date-color-form">
       <div class="form-group">
         <label for="background-color">배경색 선택</label>
-        <input type="color" id="background-color" value="#e8f5e9">
+        <div class="color-presets">
+          <div class="preset-btn" style="background-color: #FFF9C4" onclick="document.getElementById('background-color').value = '#FFF9C4'"></div>
+          <div class="preset-btn" style="background-color: #E3F2FD" onclick="document.getElementById('background-color').value = '#E3F2FD'"></div>
+          <div class="preset-btn" style="background-color: #E8F5E9" onclick="document.getElementById('background-color').value = '#E8F5E9'"></div>
+          <span style="font-size: 12px; color: #888; margin-left: 5px">직접 선택 ➔</span>
+          <input type="color" id="background-color" value="#e8f5e9" style="width: 40px; border: none; background: none">
+        </div>
       </div>
       <div class="form-group">
         <label for="color-note">메모 (선택사항)</label>
@@ -1190,9 +1196,15 @@ function showAddEventForm(startDate = null, endDate = null, allDay = false) {
   <div id="event-description-editor"></div>
 </div>
 <div class="form-group">
-  <label for="event-color">일정 색상</label>
-  <input type="color" id="event-color" value="#2196f3">
-</div>
+          <label for="event-color">일정 색상</label>
+          <div class="color-presets">
+            <div class="preset-btn" style="background-color: #FFF9C4" onclick="document.getElementById('event-color').value = '#FFF9C4'"></div>
+            <div class="preset-btn" style="background-color: #E3F2FD" onclick="document.getElementById('event-color').value = '#E3F2FD'"></div>
+            <div class="preset-btn" style="background-color: #E8F5E9" onclick="document.getElementById('event-color').value = '#E8F5E9'"></div>
+            <span style="font-size: 12px; color: #888; margin-left: 5px">직접 선택 ➔</span>
+            <input type="color" id="event-color" value="#2196f3" style="width: 40px; border: none; background: none">
+          </div>
+        </div>
     </form>
   `;
   
@@ -1377,9 +1389,15 @@ async function editEvent(eventId) {
           <div id="event-description-editor"></div>
         </div>
         <div class="form-group">
-          <label for="event-color">일정 색상</label>
-          <input type="color" id="event-color" value="${event.color || '#2196f3'}">
-        </div>
+  <label for="event-color">일정 색상</label>
+  <div class="color-presets">
+    <div class="preset-btn" style="background-color: #FFF9C4" onclick="document.getElementById('event-color').value = '#FFF9C4'"></div>
+    <div class="preset-btn" style="background-color: #E3F2FD" onclick="document.getElementById('event-color').value = '#E3F2FD'"></div>
+    <div class="preset-btn" style="background-color: #E8F5E9" onclick="document.getElementById('event-color').value = '#E8F5E9'"></div>
+    <span style="font-size: 12px; color: #888; margin-left: 5px">직접 선택 ➔</span>
+    <input type="color" id="event-color" value="${event.color || '#2196f3'}" style="width: 40px; border: none; background: none">
+  </div>
+</div>
       </form>
     `;
     
@@ -7609,4 +7627,5 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
