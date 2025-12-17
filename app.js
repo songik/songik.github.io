@@ -759,10 +759,10 @@ function showDateColorForm(date) {
         <label for="background-color">배경색 선택</label>
         <div class="color-presets">
           <div class="preset-btn" style="background-color: #FFF176" onclick="document.getElementById('background-color').value = '#FFF176'"></div>
-          <div class="preset-btn" style="background-color: #E3F2FD" onclick="document.getElementById('background-color').value = '#E3F2FD'"></div>
-          <div class="preset-btn" style="background-color: #E8F5E9" onclick="document.getElementById('background-color').value = '#E8F5E9'"></div>
+          <div class="preset-btn" style="background-color: #90CAF9" onclick="document.getElementById('background-color').value = '#90CAF9'"></div>
+          <div class="preset-btn" style="background-color: #A5D6A7" onclick="document.getElementById('background-color').value = '#A5D6A7'"></div>
           <span style="font-size: 12px; color: #888; margin-left: 5px">직접 선택 ➔</span>
-          <input type="color" id="background-color" value="#e8f5e9" style="width: 40px; border: none; background: none">
+          <input type="color" id="background-color" value="#A5D6A7" style="width: 40px; border: none; background: none">
         </div>
       </div>
       <div class="form-group">
@@ -1199,8 +1199,8 @@ function showAddEventForm(startDate = null, endDate = null, allDay = false) {
           <label for="event-color">일정 색상</label>
           <div class="color-presets">
             <div class="preset-btn" style="background-color: #FFF176" onclick="document.getElementById('event-color').value = '#FFF176'"></div>
-            <div class="preset-btn" style="background-color: #E3F2FD" onclick="document.getElementById('event-color').value = '#E3F2FD'"></div>
-            <div class="preset-btn" style="background-color: #E8F5E9" onclick="document.getElementById('event-color').value = '#E8F5E9'"></div>
+            <div class="preset-btn" style="background-color: #90CAF9" onclick="document.getElementById('event-color').value = '#90CAF9'"></div>
+            <div class="preset-btn" style="background-color: #A5D6A7" onclick="document.getElementById('event-color').value = '#A5D6A7'"></div>
             <span style="font-size: 12px; color: #888; margin-left: 5px">직접 선택 ➔</span>
             <input type="color" id="event-color" value="#2196f3" style="width: 40px; border: none; background: none">
           </div>
@@ -1392,8 +1392,8 @@ async function editEvent(eventId) {
   <label for="event-color">일정 색상</label>
   <div class="color-presets">
     <div class="preset-btn" style="background-color: #FFF176" onclick="document.getElementById('event-color').value = '#FFF176'"></div>
-    <div class="preset-btn" style="background-color: #E3F2FD" onclick="document.getElementById('event-color').value = '#E3F2FD'"></div>
-    <div class="preset-btn" style="background-color: #E8F5E9" onclick="document.getElementById('event-color').value = '#E8F5E9'"></div>
+    <div class="preset-btn" style="background-color: #90CAF9" onclick="document.getElementById('event-color').value = '#90CAF9'"></div>
+    <div class="preset-btn" style="background-color: #A5D6A7" onclick="document.getElementById('event-color').value = '#A5D6A7'"></div>
     <span style="font-size: 12px; color: #888; margin-left: 5px">직접 선택 ➔</span>
     <input type="color" id="event-color" value="${event.color || '#2196f3'}" style="width: 40px; border: none; background: none">
   </div>
@@ -7627,6 +7627,7 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
 
