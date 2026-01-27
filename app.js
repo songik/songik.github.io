@@ -1342,9 +1342,17 @@ eventData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
     
     // 모달 닫기
     closeModal();
+
+    // 1. 현재 달력에서 보고 있는 날짜 정보를 변수에 저장합니다.
+const currentCalendarDate = calendar.getDate(); 
+
+// 2. 일정을 새로 불러옵니다.
+await loadEvents();
+
+// 3. 저장해둔 날짜를 사용하여 해당 월의 화면을 다시 그려줍니다.
+renderCalendar(currentCalendarDate);
     
     // 일정 목록 새로고침
-    loadEvents();
   } catch (error) {
     console.error("일정 저장 중 오류 발생:", error);
     alert('일정을 저장하는 중 오류가 발생했습니다.');
@@ -1481,9 +1489,11 @@ await db.collection("events").doc(eventId).update(eventData);
     
     // 모달 닫기
     closeModal();
+    const currentCalendarDate = calendar.getDate(); // 현재 날짜 기억
+await loadEvents(); // 일정 새로고침
+renderCalendar(currentCalendarDate); // 기억한 날짜로 다시 그리기
     
     // 일정 목록 새로고침
-    loadEvents();
   } catch (error) {
     console.error("일정 업데이트 중 오류 발생:", error);
     alert('일정을 업데이트하는 중 오류가 발생했습니다.');
@@ -1549,7 +1559,9 @@ async function deleteEvent(eventId) {
   if (confirm('정말로 이 일정을 삭제하시겠습니까?')) {
     try {
       await db.collection("events").doc(eventId).delete();
-      loadEvents(); // 목록 새로고침
+const currentCalendarDate = calendar.getDate(); // 현재 날짜 기억
+await loadEvents();
+renderCalendar(currentCalendarDate); // 화면 유지
     } catch (error) {
       console.error("일정 삭제 중 오류 발생:", error);
       alert('일정을 삭제하는 중 오류가 발생했습니다.');
@@ -7627,6 +7639,7 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
 
