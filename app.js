@@ -1744,7 +1744,7 @@ eventClick: function(info) {
     }
   });
   
-  calendar.render();
+  globalCalendar.render();
 }
 
 // 할 일 상세 모달 표시
@@ -3194,7 +3194,7 @@ function renderWeightsCalendar(weights) {
   });
   
   // FullCalendar 초기화
-  const calendar = new FullCalendar.Calendar(calendarEl, {
+  globalCalendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
@@ -3211,7 +3211,7 @@ function renderWeightsCalendar(weights) {
     }
   });
   
-  calendar.render();
+  globalCalendar.render();
 }
 
 // 체중 차트 렌더링
@@ -3825,7 +3825,7 @@ function renderTransactionsCalendar(transactions) {
   });
   
   // FullCalendar 초기화
-  const calendar = new FullCalendar.Calendar(calendarEl, {
+  globalCalendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
@@ -3842,7 +3842,7 @@ function renderTransactionsCalendar(transactions) {
     }
   });
   
-  calendar.render();
+  globalCalendar.render();
 }
 
 // 지출 차트 렌더링
@@ -5194,7 +5194,7 @@ function renderHabitsCalendar(habits) {
   });
   
   // FullCalendar 초기화
-  const calendar = new FullCalendar.Calendar(calendarEl, {
+  globalCalendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
@@ -5223,7 +5223,7 @@ function renderHabitsCalendar(habits) {
     }
   });
   
-  calendar.render();
+  globalCalendar.render();
 }
 
 // 카테고리별 색상 가져오기
@@ -7641,6 +7641,7 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
 
