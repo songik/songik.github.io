@@ -1,3 +1,5 @@
+let globalCalendar = null; // 달력 객체를 담을 전역 변수
+
 // 앱 상태
 let isAuthenticated = false;
 let currentPage = "home";
@@ -1344,7 +1346,7 @@ eventData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
     closeModal();
 
     // 1. 현재 달력에서 보고 있는 날짜 정보를 변수에 저장합니다.
-const currentCalendarDate = calendar.getDate(); 
+const currentCalendarDate = globalCalendar.getDate(); 
 
 // 2. 일정을 새로 불러옵니다.
 await loadEvents();
@@ -1489,7 +1491,7 @@ await db.collection("events").doc(eventId).update(eventData);
     
     // 모달 닫기
     closeModal();
-    const currentCalendarDate = calendar.getDate(); // 현재 날짜 기억
+    const currentCalendarDate = globalCalendar.getDate(); // 현재 날짜 기억
 await loadEvents(); // 일정 새로고침
 renderCalendar(currentCalendarDate); // 기억한 날짜로 다시 그리기
     
@@ -1559,7 +1561,7 @@ async function deleteEvent(eventId) {
   if (confirm('정말로 이 일정을 삭제하시겠습니까?')) {
     try {
       await db.collection("events").doc(eventId).delete();
-const currentCalendarDate = calendar.getDate(); // 현재 날짜 기억
+const currentCalendarDate = globalCalendar.getDate(); // 현재 날짜 기억
 await loadEvents();
 renderCalendar(currentCalendarDate); // 화면 유지
     } catch (error) {
@@ -1707,7 +1709,7 @@ function renderTodosCalendar(todos) {
   });
   
   // FullCalendar 초기화
-  const calendar = new FullCalendar.Calendar(calendarEl, {
+ globalCalendar = new FullCalendar.Calendar(calendarEl, {
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
@@ -7639,6 +7641,7 @@ function insertEmoji(inputId, emoji) {
     input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
   }
 }
+
 
 
 
